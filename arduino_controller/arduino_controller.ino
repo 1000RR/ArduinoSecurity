@@ -21,6 +21,7 @@ typedef struct {
   String name; 
   int receivedCyclesAgo = DEVICE_CYCLES_START_CONST; //-1 just to be safe in case MAX_CYCLES_BEFORE_ALARM is 1.
 } pirDeviceDetails;
+const int BROADCAST_ADDR = 0x00;
 const int DEVICES_LENGTH = 25;
 const int MAX_CYCLES_BEFORE_ALARM = 50; // roughly MAX_STEPS * MAX_CYCLES_BEFORE_ALARM * DELAY_LOOP_TIME is the ms timeout after which the alarm will go off in the absence of messages from a specific can device
 const int DELAY_LOOP_TIME = 50;
@@ -65,10 +66,9 @@ void loop() {
   //must be able to reset trip for (determine) with the push of a button
 
   switchPinValue = digitalRead(switchPin);
-  possiblyReactToSwitchStateChange(lastSwitchState, switchPinValue);
+  possiblyReactToSwitchStateChange(BROADCAST_ADDR); //broadcast, one by one
   canMessageError = mcp2515.readMessage(&incomingCanMsg);
 
-  //CURRENTLY SET UP FOR ONE SENDER. 0x00 messages (at rest) from other devices will inhibit the alarm on the receiving side.
   if (switchPinValue == HIGH) {
      digitalWrite(armedLedPin, HIGH);
   } else {
@@ -100,6 +100,7 @@ void loop() {
           }
           alarmDevices[i].id = incomingCanMsg.can_id;
           resetPresenceCounterForDevice(i);
+          sendMessage(getActiveStatusCommand(), alarmDevices[i].id);
           break;
         }
       }
@@ -139,21 +140,53 @@ void loop() {
   lastSwitchState = switchPinValue;
 }
 
-void possiblyReactToSwitchStateChange(bool last, bool current) {
-  if (last != current) {
-    if (current == true) {
+void possiblyReactToSwitchStateChange(int addressee) {
+  int commandToSend;
+  
+  if (lastSwitchState != switchPinValue) {
+    commandToSend = getActiveStatusCommand();
+
+    if (addressee == BROADCAST_ADDR) {
+      if (switchPinValue == HIGH) { //when turning on, do so 15ms apart
+        for (int i = 0; i < DEVICES_LENGTH; i++) {
+          if (alarmDevices[i].id != ID_NOT_USED) {
+            sendMessage(commandToSend, alarmDevices[i].id);
+            delay(15);
+            sendMessage(commandToSend, alarmDevices[i].id);
+            delay(15);
+          }
+        }
+      } else { //when turning off, do so at once
+        sendMessage(commandToSend, 0x00);
+      }
+    } else {
+      sendMessage(commandToSend, addressee);
+    } 
+  }
+}
+
+int getActiveStatusCommand() {
+  if (switchPinValue == HIGH) {
       if (debug) {
         Serial.println("SWITCH NOW ON");
       }
-      sendBroadcastMessage(0x0F); //enable command
+      return getEnableMessageCommand();
     } else {
       if (debug) {
         Serial.println("SWITCH NOW OFF");
       }
-      sendBroadcastMessage(0x01); //disable command
+      return getDisableMessageCommand();
     }
-  }
 }
+
+int getEnableMessageCommand() {
+  return 0x0F;
+}
+
+int getDisableMessageCommand() {
+  return 0x01;
+}
+
 
 //the following function depends on the state of the switch && the alarmed value
 void maybeTone() {
@@ -203,16 +236,19 @@ int getPresenceCycleCountForDevice(int deviceIndex) { //how many cycles ago this
   return alarmDevices[deviceIndex].receivedCyclesAgo;
 }
 
-void makeBroadcastMessage(int message) {
+
+
+
+void makeMessage(int message, int addressee) {
   myCanMessage.can_id  = myCanId;
   myCanMessage.can_dlc = 2;
-  myCanMessage.data[0] = 0x00; //broadcast
+  myCanMessage.data[0] = addressee;
   myCanMessage.data[1] = message;
   
 }
 
-void sendBroadcastMessage(int message) {
-  makeBroadcastMessage(message);
+void sendMessage(int message, int addressee) {
+  makeMessage(message, addressee);
   mcp2515.sendMessage(&myCanMessage);
 
   if (debug) {
