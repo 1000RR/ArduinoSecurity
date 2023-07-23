@@ -7,8 +7,6 @@ import atexit
 import tornado.ioloop
 import tornado.web
 
-#from pytz import timezone
-
 LISTEN_PORT=8080
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
 memberDevices = {}
@@ -24,11 +22,13 @@ firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
 
-#0x77 - garage, industrial
-#0x75 - inside, home
+#0x80 - garage, commercial type (high emmissions, long range)
+#0x75 - inside, consumer type (short range)
 #0x14 - home base
 #0x10 - fire alarm bell
 #0x15 - siren alarm
+#0x30 - door sensor
+#0x31 - door sensor
 
 #serial message format: 
 #   {sender id hex}-{receiver id hex}-{message hex}-{devicetype hex}\n
@@ -36,9 +36,9 @@ initWaitSeconds = 5
 np.set_printoptions(formatter={'int':hex})
 
 
-
-
-
+def addEvent(event):
+    global pastEvents
+    pastEvents.append(event)
 
 def toggleAlarm(now):
     global lastArmedTogglePressed
@@ -49,12 +49,12 @@ def toggleAlarm(now):
     lastArmedTogglePressed = now
     if (armed == True):
         print(f">>>>>>>>TURNING OFF ALARM AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<")
-        pastEvents.append({"event": "DISARMED", "time": getReadableTimeFromTimestamp(now)})
+        addEvent({"event": "DISARMED", "time": getReadableTimeFromTimestamp(now)})
         armed = False #TODO: add logging of event and source
         alarmed = False #reset alarmed state
     else:
         print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<")
-        pastEvents.append({"event": "ARMED", "time": getReadableTimeFromTimestamp(now)})
+        addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now)})
         armed = True #TODO: add logging of event and source
         alarmed = False #reset alarmed state
     
@@ -96,6 +96,7 @@ def possiblyAddMember(msg):
     if (msg[0] != homeBaseId):
         if (msg[0] not in memberDevices) :
             print(f"Adding new device to members list {hex(msg[0])} at {getReadableTimeFromTimestamp(now)}")
+            addEvent({"event": "NEW_MEMBER", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
             memberDevices[msg[0]] = {'firstSeen': now, 'deviceType': msg[3], 'lastSeen': now}
         else :
             memberDevices[msg[0]]['lastSeen'] = now
@@ -146,6 +147,12 @@ def exitSteps():
     for line in pastEvents:
         print(f"\t{line}")    
 
+def arrayToString(array):
+    string = ""
+    for i in array:
+        string += "" + {array[i]} + " "
+    return string
+
 def handleMessage(msg):
     possiblyAddMember(msg)
     missingDevices = checkMembersOnline()
@@ -164,19 +171,20 @@ def handleMessage(msg):
         return
 
     #handle general case
-    if (alarmed == False) :
+    #if (alarmed == False):
+    if (True): #TEMPORARY!!! RE-WORK THIS DEBUG STATEMENT GIVEN THE BELOW COMMENT
         if (msg[1]==homeBaseId and msg[2]==0xAA): 
             print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<<<<<<<<<<")
             alarmed = True
             lastAlarmTime = now
             alarmReason = f"tripped {hex(msg[0])}"
-            pastEvents.append({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+            addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
         elif (len(missingDevices) > 0):
-            print(f">>>>>>>>>>>>>>>>>>>>FOUND missing devices {missingDevices}<<<<<<<<<<<<<<<<<<<")
+            print(f">>>>>>>>>>>>>>>>>>>>FOUND missing devices {arrayToString(missingDevices)}<<<<<<<<<<<<<<<<<<<")
             alarmed = True
             lastAlarmTime = now
-            alarmReason = f"missing device(s) {missingDevices}"
-            pastEvents.append({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+            alarmReason = f"missing device(s) {arrayToString(missingDevices)}"
+            addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
         
     elif (alarmed and lastAlarmTime + alarmTimeLengthSec < now and len(missingDevices) == 0 and (msg[1]==homeBaseId and msg[2]==0x00)):
         alarmed = False #TODO: for now - after 3000ms after first alarm message, the alarm is turned off, given ANY device sending a non-alarmed code. This approach is fundamentally fucked, but temporary.

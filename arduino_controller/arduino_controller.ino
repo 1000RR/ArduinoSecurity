@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <mcp2515.h>
 
-bool debug = false; //debug output printing to Serial
+bool debug = true; //debug output printing to Serial
 
 struct can_frame incomingCanMsg;
 struct can_frame myCanMessage;
