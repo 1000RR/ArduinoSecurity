@@ -7,6 +7,7 @@ import atexit
 import tornado.ioloop
 import tornado.web
 
+debug = False
 LISTEN_PORT=8080
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
 memberDevices = {}
@@ -17,7 +18,7 @@ lastAlarmTime = 0
 armed = False #initial condition
 lastArmedTogglePressed = 0
 alarmTimeLengthSec = 5 #audible and visual alarm will be this long
-deviceAbsenceThresholdSec = 2
+deviceAbsenceThresholdSec = 5
 firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
@@ -150,10 +151,13 @@ def exitSteps():
 def arrayToString(array):
     string = ""
     for i in array:
-        string += "" + {array[i]} + " "
+        string += "" + str(hex(i)) + " "
     return string
 
 def handleMessage(msg):
+    if (debug):
+        print(f"SENDER {hex(msg[0])} RECEIVER {hex(msg[1])} MESSAGE {hex(msg[2])} DEVICE-TYPE {hex(msg[3])}")
+
     possiblyAddMember(msg)
     missingDevices = checkMembersOnline()
     global alarmed
@@ -171,8 +175,7 @@ def handleMessage(msg):
         return
 
     #handle general case
-    #if (alarmed == False):
-    if (True): #TEMPORARY!!! RE-WORK THIS DEBUG STATEMENT GIVEN THE BELOW COMMENT
+    if (alarmed == False):
         if (msg[1]==homeBaseId and msg[2]==0xAA): 
             print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<<<<<<<<<<")
             alarmed = True
