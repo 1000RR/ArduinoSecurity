@@ -78,11 +78,11 @@ void makeMessage(bool override, int message)
   {
     sensorVal = digitalRead(sensorPin); 
     if (debug == true) Serial.print("SENSOR VALUE=======");
-    if (debug == true) Serial.print(sensorVal);
+    if (debug == true) Serial.println(sensorVal);
   }
   else
   {
-    if (debug == true) Serial.print("not reading sensor val - message override");
+    if (debug == true) Serial.println("not reading sensor val - message override");
   }
 
   myCanMessage.data[0] = homebaseCanId;
@@ -111,8 +111,10 @@ void sendMessage(bool override, int message)
   makeMessage(override, message);
   mcp2515.sendMessage(&myCanMessage);
 
-  if (debug == true) Serial.print("Messages sent ");
+  if (debug == true) Serial.print("Messages sent");
+  if (debug == true) Serial.print(" RECEIVER: ");
   if (debug == true) Serial.print(myCanMessage.data[0], HEX);
+  if (debug == true) Serial.print(" MESSAGE: ");
   if (debug == true) Serial.println(myCanMessage.data[1], HEX);
 }
 
@@ -175,7 +177,7 @@ bool processMessage()
 void loop()
 {
   if (debug == true) Serial.print(">>>> effectively enabled: ");
-  if (debug == true) Serial.print(effectivelyEnabled);
+  if (debug == true) Serial.println(effectivelyEnabled);
 
 
   bool needToReply = true;
@@ -186,7 +188,7 @@ void loop()
     debugPrintIncoming();
     needToReply = processMessage();
   }
-  // if (needToReply == true) {
+// if (needToReply == true) {
   long now = millis();
   if ((now > lastSentMillis + 500) || now < lastSentMillis)
   { // only send a message if it's been 500ms OR the timer has cycled around LONG
