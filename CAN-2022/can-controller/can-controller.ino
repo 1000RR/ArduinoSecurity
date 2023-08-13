@@ -55,6 +55,8 @@ void setup() {
   setupOled();
   setupArmedLeds();
   setupArmedButtonPin();
+
+  lcdHello();
 }
 
 void doLocalThingsWithMessage(MessageStruct message) {
@@ -71,11 +73,8 @@ void doLocalThingsWithMessage(MessageStruct message) {
   } else if (message.message == 0xCC) { //set alarmed status boolean to false if home base says so
     alarmedStatus = false;
     lastAlarmedDevice = 0;
-  } else if (message.addressee == 0xFF) {
-    if (message.message == 0xAA) {
+  } else if (message.addressee == 0xFF && message.message == 0xAA) { //home base sending its arduino the ID of the device that's causing the alarm (single device / message)
       lastAlarmedDevice = message.deviceType;
-
-    }
   }
 }
 
@@ -240,12 +239,21 @@ void sendMessage(int myCanId, int addressee, int message, int myDeviceType) {
 //  }
 }
 
+void lcdHello() {
+  ssd1306_invertMode();
+  ssd1306_setFixedFont(ssd1306xled_font8x16);
+  ssd1306_printFixed(0, 8, "     BOBIK", STYLE_BOLD);
+  delay(3000);
+  ssd1306_normalMode();
+  ssd1306_clearScreen();
+}
+
 void outputToLcd(int loopIndex)
 {
     ssd1306_setFixedFont(ssd1306xled_font6x8);
 
     //first line
-    String strArmedStatus = armedStatus == true ? "ENABLED              " : "DISABLED           ";
+    String strArmedStatus = armedStatus == true ? "ENABLED              " : "DISABLED              ";
     // ssd1306_printFixed(0,  8, "Normal text", STYLE_NORMAL);
     // ssd1306_printFixed(0, 16, "Bold text", STYLE_BOLD);
     // ssd1306_printFixed(0, 24, "Italic text", STYLE_ITALIC);

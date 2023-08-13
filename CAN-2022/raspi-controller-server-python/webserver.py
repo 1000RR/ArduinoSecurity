@@ -11,6 +11,9 @@ webserver_message_queue = Queue()
 alarm_message_queue = Queue()
 
 def main():
+    global alarm_message_queue
+    global webserver_message_queue
+
     print("Main program started.")
 
     # Create a thread for the raspi alarm python script and pass the global variable and message queue

@@ -9,9 +9,20 @@ import tornado.web
 
 debug = False
 LISTEN_PORT=8080
-ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
+ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
+print("Arduino: serial connection with PI established")
 memberDevices = {}
-homeBaseId = 0x14
+deviceDictionary = {
+    "0x80": "garage motion sensor 0x80",
+    "0x75": "inside motion sensor 0x75",
+    "0x30": "garage car door sensor 0x30",
+    "0x31": "garage side door sensor 0x31",
+    "0x14": "home base",
+    "0xFF": "home base communicating to its arduino",
+    "0x10": "fire alarm bell",
+    "0x15": "piezo 120db alarm 0x15"
+}
+homeBaseId = 0x14 #interdependent with deviceDictionary
 pastEvents = []
 alarmed = False
 lastAlarmTime = 0
@@ -55,6 +66,7 @@ def toggleAlarm(now, method):
     global alarmed
     global armed
     global memberDevices
+    global deviceDictionary
     
     lastArmedTogglePressed = now
     if (armed == True):
@@ -69,7 +81,8 @@ def toggleAlarm(now, method):
         alarmed = False #reset alarmed state
     
     sendPowerCommandDependingOnArmedState() #TODO - here?
-    broadcastArmedLedSignal() #TODO - here?
+    sendArmedLedSignal() #TODO - here?
+    print("Clearing member devices list")
     memberDevices = {} #reset all members on the bus when turning on/off
 
 def decodeLine(line):
@@ -107,9 +120,13 @@ def possiblyAddMember(msg):
         if (msg[0] not in memberDevices) :
             print(f"Adding new device to members list {hex(msg[0])} at {getReadableTimeFromTimestamp(now)}")
             addEvent({"event": "NEW_MEMBER", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
-            memberDevices[msg[0]] = {'firstSeen': now, 'deviceType': msg[3], 'lastSeen': now}
+            memberDevices[msg[0]] = {'firstSeen': now, 'deviceType': msg[3], 'lastSeen': now, 'friendlyName': getFriendlyName(msg[0])}
         else :
             memberDevices[msg[0]]['lastSeen'] = now
+
+def getFriendlyName(address):
+    strAddress = hex(address)
+    return deviceDictionary[strAddress] if strAddress in deviceDictionary else "unlisted"
 
 def checkMembersOnline():
     now = getTime()
@@ -120,17 +137,15 @@ def checkMembersOnline():
             missingMembers.append(memberId)
     return missingMembers
 
-def broadcastArmedLedSignal():
-    sendArmedLedSignal(0x00)
 
-def sendArmedLedSignal(recipientId):
+def sendArmedLedSignal():
     global armed
     if (armed == True):
-        messageToSend = [homeBaseId, recipientId, 0xD1, 0x01]
-        print(f">>>> SENDING ARM ON SIGNAL {np.array(messageToSend)}")
+        messageToSend = [homeBaseId, 0xFF, 0xD1, 0x01]
+        print(f">>>> SENDING ARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
     else:
-        messageToSend = [homeBaseId, recipientId, 0xD0, 0x01]
-        print(f">>>> SENDING ARM OFF SIGNAL {np.array(messageToSend)}")
+        messageToSend = [homeBaseId, 0xFF, 0xD0, 0x01]
+        print(f">>>> SENDING DISARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
     sendMessage(messageToSend)
 
 def sendPowerCommandDependingOnArmedState():
@@ -146,7 +161,7 @@ def sendPowerCommandDependingOnArmedState():
             messageToSend = [homeBaseId, member, 0x0F, 0x01]
             sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
             print(f">>>> SENDING POWER ON SIGNAL {np.array(messageToSend)}")
-            time.sleep(1/4) #in seconds, double - 250 msec sleep
+            time.sleep(1/2) #in seconds, double - 500 msec sleep
 
 def exitSteps():
     global pastEvents
@@ -236,7 +251,7 @@ def run(webserver_message_queue, alarm_message_queue):
     ser.flushOutput()
     ser.flushInput()
     sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
-    broadcastArmedLedSignal()
+    sendArmedLedSignal()
     firstTurnedOnTimestamp = getTime()
 
 
@@ -282,9 +297,8 @@ def run(webserver_message_queue, alarm_message_queue):
     #     tornado.ioloop.IOLoop.current().start()
     #----------------------//////SERVER-----------------------------
 
-
-
-    for line in ser:
+    while True:
+        line = ser.readline()
         if not webserver_message_queue.empty():
             message = webserver_message_queue.get()
             #print(f"GOT MESSAGE: {message}")
@@ -297,6 +311,8 @@ def run(webserver_message_queue, alarm_message_queue):
                 outgoingMessage = "ARMED | " + strAlarmedStatus if armed else "DISARMED";
                 alarm_message_queue.put(outgoingMessage)
 
+        if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
+        
         ser.flushInput()
 
         if (firstPowerCommandNeedsToBeSent and getTime() > firstTurnedOnTimestamp + timeAllottedToBuildOutMembersSec):
