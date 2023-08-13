@@ -81,7 +81,7 @@ def encodeLine(message): #[myCanId, addressee, message, myDeviceType]
     printableArr = message.copy()
     printableArr.append(getTime())
     #print("SENDING ", np.array(printableArr)); #TODO: uncomment
-    return (hex(message[0]) + "-" + hex(message[1]) + "-" + hex(message[2]) + "-" + hex(message[3]) + "\n")
+    return (hex(message[0]) + "-" + hex(message[1]) + "-" + hex(message[2]) + "-" + hex(message[3]) + "-\n")
 
 def sendMessage(messageArray): 
     outgoing = encodeLine(messageArray)
@@ -115,7 +115,7 @@ def checkMembersOnline():
             missingMembers.append(memberId)
     return missingMembers
 
-def broadcastArmedSignal():
+def broadcastArmedLedSignal():
     sendArmedLedSignal(0x00)
 
 def sendArmedLedSignal(recipientId):
@@ -189,6 +189,7 @@ def handleMessage(msg):
             lastAlarmTime = now
             alarmReason = f"tripped {hex(msg[0])}"
             addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+            sendMessage([homeBaseId, 0xFF, 0xAA, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device ####TODO#### - there may be more than one alarm-generating device
         elif (len(missingDevices) > 0):
             print(f">>>>>>>>>>>>>>>>>>>>FOUND missing devices {arrayToString(missingDevices)}<<<<<<<<<<<<<<<<<<<")
             alarmed = True
@@ -201,10 +202,8 @@ def handleMessage(msg):
 
     if (armed and alarmed):
         sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
-        sendMessage([homeBaseId, 0xFF, 0xAA, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device ####TODO#### - there may be more than one alarm-generating device
     else:
         sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
-    sendMessage(messageToSend);
 
 atexit.register(exitSteps)
 print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTime())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")

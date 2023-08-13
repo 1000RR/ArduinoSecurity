@@ -70,9 +70,11 @@ void doLocalThingsWithMessage(MessageStruct message) {
     alarmedStatus = true;
   } else if (message.message == 0xCC) { //set alarmed status boolean to false if home base says so
     alarmedStatus = false;
+    lastAlarmedDevice = 0;
   } else if (message.addressee == 0xFF) {
     if (message.message == 0xAA) {
       lastAlarmedDevice = message.deviceType;
+
     }
   }
 }
@@ -209,16 +211,16 @@ MessageStruct parseIncomingComMessage(String message) {
   return messageStruct;
 }
 
-MessageStruct parseIncomingCanMessage() {
-  MessageStruct messageStruct;
+// MessageStruct parseIncomingCanMessage() {
+//   MessageStruct messageStruct;
 
-  messageStruct.id = incomingCanMsg.can_id;
-  messageStruct.addressee = incomingCanMsg.data[0];
-  messageStruct.message = incomingCanMsg.data[1];
-  messageStruct.deviceType = incomingCanMsg.data[2];
+//   messageStruct.id = incomingCanMsg.can_id;
+//   messageStruct.addressee = incomingCanMsg.data[0];
+//   messageStruct.message = incomingCanMsg.data[1];
+//   messageStruct.deviceType = incomingCanMsg.data[2];
 
-  return messageStruct;
-}
+//   return messageStruct;
+// }
 
 void _makeMessage(int myCanId, int addressee, int message, int myDeviceType) {
   myCanMessage.can_id  = myCanId;
@@ -256,8 +258,10 @@ void outputToLcd(int loopIndex)
       if (loopIndex % 2 > 0) ssd1306_negativeMode();
       ssd1306_printFixed(0, 8, "        ALARM        ", STYLE_BOLD);
       if (loopIndex % 2 > 0) ssd1306_positiveMode();
-      if (lastAlarmedDevice != 0) ssd1306_printFixed(0, 16, &String(lastAlarmedDevice, HEX)[0], STYLE_BOLD); // third line
+      String alarmGeneratingDeviceId = "0x" + String(lastAlarmedDevice, HEX);
+      if (lastAlarmedDevice != 0) ssd1306_printFixed(0, 16, &alarmGeneratingDeviceId[0], STYLE_BOLD); // third line
     } else {
+       ssd1306_printFixed(0, 16, "                     ", STYLE_BOLD); // third line
        ssd1306_printFixed(0, 8, "      NO ALARM       ", STYLE_BOLD);
     }
     
