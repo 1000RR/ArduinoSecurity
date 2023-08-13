@@ -23,6 +23,8 @@ firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
 
+#0x00 - broadcast
+#0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
 #0x80 - garage, commercial type (high emmissions, long range)
 #0x75 - inside, consumer type (short range)
 #0x14 - home base
@@ -33,6 +35,8 @@ initWaitSeconds = 5
 
 #serial message format: 
 #   {sender id hex}-{receiver id hex}-{message hex}-{devicetype hex}\n
+#when sending to 0x00 (home base arduino)
+#   {homeBaseId}-0x00-{message hex}-{message 2 hex}\n
 
 np.set_printoptions(formatter={'int':hex})
 
@@ -60,7 +64,7 @@ def toggleAlarm(now):
         alarmed = False #reset alarmed state
     
     sendPowerCommandDependingOnArmedState() #TODO - here?
-    sendArmedLedSignal() #TODO - here?
+    broadcastArmedLedSignal() #TODO - here?
     memberDevices = {} #reset all members on the bus when turning on/off
 
 def decodeLine(line):
@@ -111,14 +115,17 @@ def checkMembersOnline():
             missingMembers.append(memberId)
     return missingMembers
 
-def sendArmedLedSignal():
+def broadcastArmedSignal():
+    sendArmedLedSignal(0x00)
+
+def sendArmedLedSignal(recipientId):
     global armed
     if (armed == True):
-        messageToSend = [homeBaseId, 0x00, 0xD1, 0x01]
-        print(f">>>> SENDING LED ON SIGNAL {np.array(messageToSend)}")
+        messageToSend = [homeBaseId, recipientId, 0xD1, 0x01]
+        print(f">>>> SENDING ARM ON SIGNAL {np.array(messageToSend)}")
     else:
-        messageToSend = [homeBaseId, 0x00, 0xD0, 0x01]
-        print(f">>>> SENDING LED OFF SIGNAL {np.array(messageToSend)}")
+        messageToSend = [homeBaseId, recipientId, 0xD0, 0x01]
+        print(f">>>> SENDING ARM OFF SIGNAL {np.array(messageToSend)}")
     sendMessage(messageToSend)
 
 def sendPowerCommandDependingOnArmedState():
@@ -134,7 +141,7 @@ def sendPowerCommandDependingOnArmedState():
             messageToSend = [homeBaseId, member, 0x0F, 0x01]
             sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
             print(f">>>> SENDING POWER ON SIGNAL {np.array(messageToSend)}")
-            time.sleep(15/100) #15 msec sleep
+            time.sleep(1/4) #in seconds, double - 250 msec sleep
 
 def exitSteps():
     global pastEvents
@@ -193,10 +200,11 @@ def handleMessage(msg):
         alarmed = False #TODO: for now - after 3000ms after first alarm message, the alarm is turned off, given ANY device sending a non-alarmed code. This approach is fundamentally fucked, but temporary.
 
     if (armed and alarmed):
-        messageToSend = [homeBaseId, 0x00, 0xBB, 0x01] #TODO: send to those nodes that need to be triggered
+        sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
+        sendMessage([homeBaseId, 0xFF, 0xAA, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device ####TODO#### - there may be more than one alarm-generating device
     else:
-        messageToSend = [homeBaseId, 0x00, 0xCC, 0x01] #TODO: send to those nodes that need to be reset
-    sendMessage(messageToSend)
+        sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
+    sendMessage(messageToSend);
 
 atexit.register(exitSteps)
 print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTime())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
@@ -206,7 +214,7 @@ print(f"DONE WAITING, OPERATIONAL NOW AT {getReadableTimeFromTimestamp(getTime()
 ser.flushOutput()
 ser.flushInput()
 sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
-sendArmedLedSignal()
+broadcastArmedLedSignal()
 firstTurnedOnTimestamp = getTime()
 
 

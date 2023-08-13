@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <mcp2515.h>
+#include <ssd1306.h>
 
 struct can_frame incomingCanMsg;
 struct can_frame myCanMessage;
@@ -15,12 +16,16 @@ MCP2515::ERROR canMessageError;
 int index; //used for message number in testing
 String incomingComMessage;
 MessageStruct parsedIncomingComMessage;
-int armedLedPin = 3;
-int disarmedLedPin = 2;
+int armedLedPin = 3; //blue led
+int disarmedLedPin = 2; //red led
 int armedButtonPin = 9;
 int homeBaseCanId = 0x14;
 int previousArmedButtonState = HIGH;
+int loopIndex = 0;
 bool currentArmedButtonState;
+bool armedStatus = false;
+bool alarmedStatus = false;
+int lastAlarmedDevice = 0;
 
 ///MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///            [1] MSG (1 byte)
@@ -47,18 +52,35 @@ void setup() {
   mcp2515.setBitrate(CAN_125KBPS);
   mcp2515.setNormalMode();
 
+  setupOled();
   setupArmedLeds();
   setupArmedButtonPin();
 }
 
 void doLocalThingsWithMessage(MessageStruct message) {
   if (message.message == 0xD1) { //turn on ARMED led, turn off DISARMED led
-    setArmedLedPin(true);
-    setDisarmedLedPin(false);
+    armedStatus = true;
+    setArmedLedPin(armedStatus);
+    setDisarmedLedPin(!armedStatus);
   } else if (message.message == 0xD0) { //turn on DISARMED led, turn off ARMED led
-    setArmedLedPin(false);
-    setDisarmedLedPin(true);
+    armedStatus = false;
+    setArmedLedPin(armedStatus);
+    setDisarmedLedPin(!armedStatus);
+  } else if (message.message == 0xBB) { //set alarmed status boolean to true if home base says so
+    alarmedStatus = true;
+  } else if (message.message == 0xCC) { //set alarmed status boolean to false if home base says so
+    alarmedStatus = false;
+  } else if (message.addressee == 0xFF) {
+    if (message.message == 0xAA) {
+      lastAlarmedDevice = message.deviceType;
+    }
   }
+}
+
+void setupOled(){
+  ssd1306_setFixedFont(ssd1306xled_font6x8);
+  ssd1306_128x32_i2c_init();
+  ssd1306_clearScreen();
 }
 
 void setupArmedLeds() {
@@ -92,7 +114,8 @@ void loop() {
   if (incomingComMessage.length() > 0) {
     parsedIncomingComMessage = parseIncomingComMessage(incomingComMessage);
     doLocalThingsWithMessage(parsedIncomingComMessage);
-    sendMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
+    if (parsedIncomingComMessage.addressee != 0xFF) //has to be addressed to not the home base's arduino
+      sendMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
   }
 
   currentArmedButtonState = digitalRead(armedButtonPin);
@@ -132,6 +155,16 @@ void loop() {
 
     //use this structure to access data: incomingCanMsg.data[1]==0xAA
     //maybe delay too??? delay(DELAY_LOOP_TIME);
+  }
+  
+  outputToLcd(loopIndex);
+  if (alarmedStatus == true) blinkDisarmedLed(loopIndex);
+  else if (armedStatus == true) setDisarmedLedPin(false);
+
+  if (loopIndex < 32766) {
+    loopIndex++;
+  } else {
+    loopIndex = 0;
   }
 }
 
@@ -198,10 +231,43 @@ void _makeMessage(int myCanId, int addressee, int message, int myDeviceType) {
 void sendMessage(int myCanId, int addressee, int message, int myDeviceType) {
   _makeMessage(myCanId, addressee, message, myDeviceType);
   mcp2515.sendMessage(&myCanMessage);
-
 //  if (debug) {
 //    Serial.print("Messages sent ");
 //    Serial.print(myCanMessage.data[0], HEX);
 //    Serial.println(myCanMessage.data[1], HEX);
 //  }
+}
+
+void outputToLcd(int loopIndex)
+{
+    ssd1306_setFixedFont(ssd1306xled_font6x8);
+
+    //first line
+    String strArmedStatus = armedStatus == true ? "ENABLED              " : "DISABLED           ";
+    // ssd1306_printFixed(0,  8, "Normal text", STYLE_NORMAL);
+    // ssd1306_printFixed(0, 16, "Bold text", STYLE_BOLD);
+    // ssd1306_printFixed(0, 24, "Italic text", STYLE_ITALIC);
+    if (armedStatus == true) ssd1306_negativeMode();
+    ssd1306_printFixed(0, 0, &strArmedStatus[0], STYLE_NORMAL);
+    if (armedStatus == true) ssd1306_positiveMode();
+
+    //second line & potentially third line
+    if (alarmedStatus == true) {
+      if (loopIndex % 2 > 0) ssd1306_negativeMode();
+      ssd1306_printFixed(0, 8, "        ALARM        ", STYLE_BOLD);
+      if (loopIndex % 2 > 0) ssd1306_positiveMode();
+      if (lastAlarmedDevice != 0) ssd1306_printFixed(0, 16, &String(lastAlarmedDevice, HEX)[0], STYLE_BOLD); // third line
+    } else {
+       ssd1306_printFixed(0, 8, "      NO ALARM       ", STYLE_BOLD);
+    }
+    
+    
+    //fourth line
+    String strLoopIndex = "LOOP INDEX   " + String(loopIndex);
+    ssd1306_printFixed(0, 24, &strLoopIndex[0], STYLE_ITALIC);
+    delay(40);
+}
+
+void blinkDisarmedLed (int loopIndex) {
+  if (loopIndex%10) setDisarmedLedPin(!digitalRead(disarmedLedPin));
 }

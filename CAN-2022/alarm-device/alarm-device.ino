@@ -1,8 +1,8 @@
 #include <SPI.h>
 #include <mcp2515.h>
 
-bool debug = false; //debug output printing to Serial
-
+bool debug = true ; //debug output printing to Serial
+bool suppressErrorDebugText = true; //debug output
 struct can_frame incomingCanMsg;
 struct can_frame myCanMessage;
 struct MessageStruct {
@@ -14,7 +14,7 @@ struct MessageStruct {
 MCP2515 mcp2515(10);
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 const int ID_NOT_USED = -1;
-int myCanId = 0x10;
+int myCanId = 0x99;
 int devicePin = 7;
 int armedLedPin = 6;
 bool isAlarmed = false;
@@ -51,6 +51,7 @@ void setup() {
   mcp2515.reset();
   mcp2515.setBitrate(CAN_125KBPS);
   mcp2515.setNormalMode();
+
 }
 
 void loop() {
@@ -79,8 +80,10 @@ void loop() {
         currentStatus = 0x00;
       }
     }
+    Serial.println("CAN MSG RECEIVED");
+
   } else {
-    if (debug) {
+    if (debug && !suppressErrorDebugText) {
       Serial.print("ERROR READING CAN: ");
       Serial.println(ERROR_NAMES[canMessageError]);
     }
