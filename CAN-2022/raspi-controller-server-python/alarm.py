@@ -22,6 +22,7 @@ deviceAbsenceThresholdSec = 5
 firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
+alarmReason = ""
 
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
@@ -45,7 +46,11 @@ def addEvent(event):
     global pastEvents
     pastEvents.append(event)
 
-def toggleAlarm(now):
+def getArmedStatus():
+    global armed
+    return armed
+
+def toggleAlarm(now, method):
     global lastArmedTogglePressed
     global alarmed
     global armed
@@ -53,13 +58,13 @@ def toggleAlarm(now):
     
     lastArmedTogglePressed = now
     if (armed == True):
-        print(f">>>>>>>>TURNING OFF ALARM AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<")
-        addEvent({"event": "DISARMED", "time": getReadableTimeFromTimestamp(now)})
+        print(f">>>>>>>>TURNING OFF ALARM AT {getReadableTimeFromTimestamp(now)} PER {method}<<<<<<<<<")
+        addEvent({"event": "DISARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
         armed = False #TODO: add logging of event and source
         alarmed = False #reset alarmed state
     else:
-        print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<")
-        addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now)})
+        print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)} PER {method}<<<<<<<<<")
+        addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
         armed = True #TODO: add logging of event and source
         alarmed = False #reset alarmed state
     
@@ -174,11 +179,12 @@ def handleMessage(msg):
     global armed
     global lastArmedTogglePressed
     global memberDevices
+    global alarmReason
     now = getTime();
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
     if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): #0xEE - arm toggle pressed
-        toggleAlarm(now)
+        toggleAlarm(now, "ARDUINO")
         return
 
     #handle general case
@@ -205,89 +211,118 @@ def handleMessage(msg):
     else:
         sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
 
-atexit.register(exitSteps)
-print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTime())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
-time.sleep(initWaitSeconds)
-print(f"DONE WAITING, OPERATIONAL NOW AT {getReadableTimeFromTimestamp(getTime())}. STATUS:\nARMED: {armed}\nALARMED: {alarmed}\n\n\n")
+def run(webserver_message_queue, alarm_message_queue):
+    global debug
+    global LISTEN_PORT
+    global ser
+    global memberDevices
+    global homeBaseId
+    global pastEvents
+    global alarmed
+    global lastAlarmTime
+    global armed
+    global lastArmedTogglePressed
+    global alarmTimeLengthSec
+    global deviceAbsenceThresholdSec
+    global firstPowerCommandNeedsToBeSent
+    global timeAllottedToBuildOutMembersSec
+    global initWaitSeconds
 
-ser.flushOutput()
-ser.flushInput()
-sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
-broadcastArmedLedSignal()
-firstTurnedOnTimestamp = getTime()
+    atexit.register(exitSteps)
+    print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTime())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
+    time.sleep(initWaitSeconds)
+    print(f"DONE WAITING, OPERATIONAL NOW AT {getReadableTimeFromTimestamp(getTime())}. STATUS:\nARMED: {armed}\nALARMED: {alarmed}\n\n\n")
 
-
-#--------------------------SERVER-----------------------------
-# class StatusHandler(tornado.web.RequestHandler):
-#     def get(self):
-#         self.write(f"{armed}")
-
-# class Mode0Handler(tornado.web.RequestHandler):
-#     def get(self):
-#         global armed
-#         if (armed == True):
-#             toggleAlarm(getTime())
-#         self.write(f"{armed}")
-
-# class Mode1Handler(tornado.web.RequestHandler):
-#     def get(self):
-#         global armed
-#         if (armed == False):
-#             toggleAlarm(getTime())
-#         self.write(f"{armed}")
-        
-# class ListEventsHandler(tornado.web.RequestHandler):
-#     def get(self):
-#         for line in pastEvents:
-#              self.write(f"\t{line}<br>") 
-
-# class MainHandler(tornado.web.RequestHandler):
-#     def get(self):
-#         global armed
-
-# def make_app():
-#     return tornado.web.Application([
-#         (r"/status", StatusHandler),
-#         (r"/mode0", Mode0Handler),
-#         (r"/mode1", Mode1Handler),
-#         (r"/events", ListEventsHandler)
-#     ])
-
-# if __name__ == "__main__":
-#     app = make_app()
-#     app.listen(LISTEN_PORT)
-#     tornado.ioloop.IOLoop.current().start()
-#----------------------//////SERVER-----------------------------
-
-
-
-for line in ser:
+    ser.flushOutput()
     ser.flushInput()
+    sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
+    broadcastArmedLedSignal()
+    firstTurnedOnTimestamp = getTime()
 
-    if (firstPowerCommandNeedsToBeSent and getTime() > firstTurnedOnTimestamp + timeAllottedToBuildOutMembersSec):
-        firstPowerCommandNeedsToBeSent = False
-        print(f"Members array built at {getReadableTimeFromTimestamp(getTime())} as:")
-        for member in memberDevices:
-            print(f"{hex(member)} : {memberDevices[member]}")
-        print("\n\n\n")
-        sendPowerCommandDependingOnArmedState()
-    try:
-        decodedLine = line.decode('utf-8')
-    except:
-        print(f">>>>>ERROR ON BUS WHILE PARSING MESSAGE //// SKIPPING THIS MESSAGE<<<<<<")
-        continue
-    if (decodedLine.startswith(">>>")): #handle debug lines over serial without crashing
-        #print(line.decode('utf-8'))
-        continue
-    try:
-        msg = decodeLine(decodedLine)
-    except:
-        print(f"ERROR WITH PARSING LINE, CONTINUING LOOP<<<<<")
-        continue
-    msg.append(getTime())
-    #print("GETTING", np.array(msg)) #TODO: uncomment
 
-    handleMessage(msg)
+    #--------------------------SERVER-----------------------------
+    # class StatusHandler(tornado.web.RequestHandler):
+    #     def get(self):
+    #         self.write(f"{armed}")
+
+    # class Mode0Handler(tornado.web.RequestHandler):
+    #     def get(self):
+    #         global armed
+    #         if (armed == True):
+    #             toggleAlarm(getTime())
+    #         self.write(f"{armed}")
+
+    # class Mode1Handler(tornado.web.RequestHandler):
+    #     def get(self):
+    #         global armed
+    #         if (armed == False):
+    #             toggleAlarm(getTime())
+    #         self.write(f"{armed}")
+            
+    # class ListEventsHandler(tornado.web.RequestHandler):
+    #     def get(self):
+    #         for line in pastEvents:
+    #              self.write(f"\t{line}<br>") 
+
+    # class MainHandler(tornado.web.RequestHandler):
+    #     def get(self):
+    #         global armed
+
+    # def make_app():
+    #     return tornado.web.Application([
+    #         (r"/status", StatusHandler),
+    #         (r"/mode0", Mode0Handler),
+    #         (r"/mode1", Mode1Handler),
+    #         (r"/events", ListEventsHandler)
+    #     ])
+
+    # if __name__ == "__main__":
+    #     app = make_app()
+    #     app.listen(LISTEN_PORT)
+    #     tornado.ioloop.IOLoop.current().start()
+    #----------------------//////SERVER-----------------------------
+
+
+
+    for line in ser:
+        if not webserver_message_queue.empty():
+            message = webserver_message_queue.get()
+            #print(f"GOT MESSAGE: {message}")
+            if (message == "ENABLE-ALARM" and getArmedStatus() == False) :
+                toggleAlarm(getTime(), "WEB API")
+            elif (message == "DISABLE-ALARM" and getArmedStatus() == True) :
+                toggleAlarm(getTime(), "WEB API")
+            elif (message == "ALARM-STATUS") :
+                strAlarmedStatus = "ALARM " + alarmReason if alarmed else "NORMAL"
+                outgoingMessage = "ARMED | " + strAlarmedStatus if armed else "DISARMED";
+                alarm_message_queue.put(outgoingMessage)
+
+        ser.flushInput()
+
+        if (firstPowerCommandNeedsToBeSent and getTime() > firstTurnedOnTimestamp + timeAllottedToBuildOutMembersSec):
+            firstPowerCommandNeedsToBeSent = False
+            print(f"Members array built at {getReadableTimeFromTimestamp(getTime())} as:")
+            for member in memberDevices:
+                print(f"{hex(member)} : {memberDevices[member]}")
+            print("\n\n\n")
+            sendPowerCommandDependingOnArmedState()
+        try:
+            decodedLine = line.decode('utf-8')
+        except:
+            print(f">>>>>ERROR ON BUS WHILE PARSING MESSAGE //// SKIPPING THIS MESSAGE<<<<<<")
+            continue
+        if (decodedLine.startswith(">>>")): #handle debug lines over serial without crashing
+            #print(line.decode('utf-8'))
+            continue
+        try:
+            msg = decodeLine(decodedLine)
+        except:
+            print(f"ERROR WITH PARSING LINE, CONTINUING LOOP<<<<<")
+            continue
+        msg.append(getTime())
+        #print("GETTING", np.array(msg)) #TODO: uncomment
+
+        handleMessage(msg)
 
 #TODO:
 #This should be in the polling thread
@@ -304,4 +339,7 @@ for line in ser:
 
 #pmd.reset_output_buffer()
 
+
+if __name__ == "__main__":
+    run(None, None)  # For testing in standalone mode
 

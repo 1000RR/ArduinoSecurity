@@ -1,0 +1,12 @@
+{
+  "folders": [
+    "."
+  ],
+  "settings": {
+    "on_post_save_project": [
+      {
+        "command": "updateRaspiAlarmCode"
+      }
+    ]
+  }
+}
