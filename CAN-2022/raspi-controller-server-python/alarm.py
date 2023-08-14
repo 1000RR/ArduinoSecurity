@@ -6,6 +6,7 @@ import time
 import atexit
 import tornado.ioloop
 import tornado.web
+import json
 
 debug = False
 LISTEN_PORT=8080
@@ -20,7 +21,8 @@ deviceDictionary = {
     "0x14": "home base",
     "0xFF": "home base communicating to its arduino",
     "0x10": "fire alarm bell",
-    "0x15": "piezo 120db alarm 0x15"
+    "0x15": "piezo 120db alarm 0x15",
+    "0x99": "indoor siren with led"
 }
 homeBaseId = 0x14 #interdependent with deviceDictionary
 pastEvents = []
@@ -42,6 +44,7 @@ alarmReason = ""
 #0x14 - home base
 #0x10 - fire alarm bell
 #0x15 - siren alarm
+#0x99 - indoor siren with led
 #0x30 - door sensor
 #0x31 - door sensor
 
@@ -110,6 +113,9 @@ def getTime():
     return math.floor(datetime.now().timestamp())
     #return math.floor(datetime.now(timezone('US/Pacific')).timestamp())
 
+def getReadableTime():
+    return getReadableTimeFromTimestamp(getTime())
+
 def getReadableTimeFromTimestamp(timestamp):
     return f"{datetime.fromtimestamp(timestamp).strftime('%c')} LOCAL TIME"
 
@@ -117,12 +123,16 @@ def possiblyAddMember(msg):
     global memberDevices
     now = getTime()
     if (msg[0] != homeBaseId):
+        readableTimestamp = getReadableTime()
+
         if (msg[0] not in memberDevices) :
-            print(f"Adding new device to members list {hex(msg[0])} at {getReadableTimeFromTimestamp(now)}")
-            addEvent({"event": "NEW_MEMBER", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
-            memberDevices[msg[0]] = {'firstSeen': now, 'deviceType': msg[3], 'lastSeen': now, 'friendlyName': getFriendlyName(msg[0])}
+            print(f"Adding new device to members list {hex(msg[0])} at {readableTimestamp}")
+            addEvent({"event": "NEW_MEMBER", "trigger": hex(msg[0]), "time": readableTimestamp})
+            memberDevices[msg[0]] = {'id': hex(msg[0]), 'firstSeen': now, 'firstSeenReadable': readableTimestamp, 'deviceType': msg[3], 'lastSeen': now, 'lastSeenReadable': readableTimestamp, 'friendlyName': getFriendlyName(msg[0])}
         else :
+            print(f"PULSE {hex(msg[0])} AT {readableTimestamp}")
             memberDevices[msg[0]]['lastSeen'] = now
+            memberDevices[msg[0]]['lastSeenReadable'] = readableTimestamp
 
 def getFriendlyName(address):
     strAddress = hex(address)
@@ -133,8 +143,9 @@ def checkMembersOnline():
     missingMembers = []
     for memberId in memberDevices :
         if (memberDevices[memberId]['lastSeen'] + deviceAbsenceThresholdSec < now) :
-            print(f"Adding missing device {hex(memberId)} at {getReadableTimeFromTimestamp(now)}")
+            print(f"Adding missing device {hex(memberId)} at {getReadableTime()}. missing for {(getTime()-memberDevices[memberId]['lastSeen'])} seconds")
             missingMembers.append(memberId)
+        ##TODO WRITE A FOUND MISSING DEVICE HANDLER THAT OUTPUTS TO LOG
     return missingMembers
 
 
@@ -166,7 +177,7 @@ def sendPowerCommandDependingOnArmedState():
 def exitSteps():
     global pastEvents
     global homeBaseId
-    print(f"\n\nEXITING AT {getReadableTimeFromTimestamp(getTime())}")
+    print(f"\n\nEXITING AT {getReadableTime()}")
     print("BROADCASTING QUIET-ALL-ALARMS SIGNAL")
     sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
     print("BROADCASTING ALL-SENSOR-DEVICES-OFF SIGNAL")
@@ -205,14 +216,14 @@ def handleMessage(msg):
     #handle general case
     if (alarmed == False):
         if (msg[1]==homeBaseId and msg[2]==0xAA): 
-            print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTimeFromTimestamp(now)}<<<<<<<<<<<<<<<<<<")
+            print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
             alarmed = True
             lastAlarmTime = now
             alarmReason = f"tripped {hex(msg[0])}"
             addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
             sendMessage([homeBaseId, 0xFF, 0xAA, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device ####TODO#### - there may be more than one alarm-generating device
         elif (len(missingDevices) > 0):
-            print(f">>>>>>>>>>>>>>>>>>>>FOUND missing devices {arrayToString(missingDevices)}<<<<<<<<<<<<<<<<<<<")
+            print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
             alarmed = True
             lastAlarmTime = now
             alarmReason = f"missing device(s) {arrayToString(missingDevices)}"
@@ -225,6 +236,17 @@ def handleMessage(msg):
         sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
     else:
         sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
+
+
+def getStatusJsonString():
+    strAlarmedStatus = "ALARM " + alarmReason if alarmed else "NORMAL"
+    outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
+    outgoingMessage += ('"alarmStatus": "' + strAlarmedStatus + '",') if armed else ""
+    outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
+    outgoingMessage += '"memberDevices": ' + str(list(memberDevices.values())).replace("(","{").replace(")","}").replace("'","\"")
+    outgoingMessage += '}'
+    return outgoingMessage
+
 
 def run(webserver_message_queue, alarm_message_queue):
     global debug
@@ -307,9 +329,7 @@ def run(webserver_message_queue, alarm_message_queue):
             elif (message == "DISABLE-ALARM" and getArmedStatus() == True) :
                 toggleAlarm(getTime(), "WEB API")
             elif (message == "ALARM-STATUS") :
-                strAlarmedStatus = "ALARM " + alarmReason if alarmed else "NORMAL"
-                outgoingMessage = "ARMED | " + strAlarmedStatus if armed else "DISARMED";
-                alarm_message_queue.put(outgoingMessage)
+                alarm_message_queue.put(getStatusJsonString())
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
         

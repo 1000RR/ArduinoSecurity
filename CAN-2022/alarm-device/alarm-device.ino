@@ -15,7 +15,9 @@ MCP2515 mcp2515(10);
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 const int ID_NOT_USED = -1;
 int myCanId = 0x99;
-int devicePin = 7;
+int alarmConstantOnDevicePin = 7;
+int alarmVaribleDevicePin = 17; //17 is A3. A0 is 14, etc.
+
 int armedLedPin = 6;
 bool isAlarmed = false;
 const int BROADCAST_ADDR = 0x00;
@@ -24,6 +26,7 @@ MCP2515::ERROR canMessageError;
 int loopIndex = 0;
 int sendEveryXLoops = 10000;
 int currentStatus = 0x00;
+bool buzzerDirection = true; //true = up, false = down in tone
 
 ///MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///            [1] MSG (1 byte)
@@ -43,7 +46,7 @@ int currentStatus = 0x00;
 //}
 
 void setup() {
-  pinMode(devicePin, OUTPUT);
+  pinMode(alarmConstantOnDevicePin, OUTPUT);
   pinMode(armedLedPin, INPUT_PULLUP);
   
   Serial.begin(115200);
@@ -66,18 +69,16 @@ void loop() {
   canMessageError = mcp2515.readMessage(&incomingCanMsg);
 
   if (canMessageError == MCP2515::ERROR_OK) {
-
     if (incomingCanMsg.can_id == 0x14 && (incomingCanMsg.data[0] == 0x00 || incomingCanMsg.data[0] == myCanId)) { //if home base addresses to me/broadcasts a reset trip signal, stand down
       if (incomingCanMsg.data[1] == 0xBB) {
-        isAlarmed = true;
-        digitalWrite(armedLedPin, HIGH);
-        digitalWrite(devicePin, HIGH);
+        isAlarmed = true;    
         currentStatus = 0xBB;
+        setConstantOnAlarmPinValue();
+
       } else if (incomingCanMsg.data[1] == 0xCC) {
         isAlarmed = false;
-        digitalWrite(armedLedPin, LOW);
-        digitalWrite(devicePin, LOW);
         currentStatus = 0x00;
+        setConstantOnAlarmPinValue();
       }
     }
     Serial.println("CAN MSG RECEIVED");
@@ -88,8 +89,8 @@ void loop() {
       Serial.println(ERROR_NAMES[canMessageError]);
     }
   }
-
-  if (loopIndex < 32766) loopIndex++;
+  playBuzzerTone();
+  if (loopIndex < 32000) loopIndex++;
   else loopIndex = 0;
 }
 
@@ -101,7 +102,28 @@ int getDisableMessageCommand() {
   return 0x01;
 }
 
+void setConstantOnAlarmPinValue() {
+  digitalWrite(armedLedPin, isAlarmed ? HIGH : LOW);
+  digitalWrite(alarmConstantOnDevicePin, isAlarmed ? HIGH : LOW);
+}
 
+void playBuzzerTone() {
+  if (isAlarmed) {
+    int factor = 3000;
+    int freqConstant = 500;
+    if (loopIndex%factor == 0) {
+      buzzerDirection = !buzzerDirection;
+    }
+    
+    int frequency;
+    
+    if (buzzerDirection) frequency = freqConstant + loopIndex % factor;
+    else frequency = freqConstant + factor - loopIndex%factor;
+    tone(alarmVaribleDevicePin, frequency, 5);
+  } else {
+    noTone(alarmVaribleDevicePin);
+  }
+}
 
 //COMMON
 MessageStruct parseIncomingCanMessage() {

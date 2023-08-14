@@ -1,6 +1,7 @@
 import threading
 import time
 import alarm
+import json
 from queue import Queue
 
 # Define a global variable
@@ -56,7 +57,8 @@ def main():
             message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
         except Queue.empty: 
             message = "NO RESPONSE"
-        return jsonify({"status": message}), 200
+        print(json.dumps(json.loads(message), indent=2))
+        return json.loads(message), 200
 
     # Run the Flask app
     app.run(host='0.0.0.0', port=8080)
