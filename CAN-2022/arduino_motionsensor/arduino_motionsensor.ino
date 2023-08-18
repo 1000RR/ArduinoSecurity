@@ -18,6 +18,7 @@ bool effectivelyEnabled = true;
 struct can_frame incomingCanMsg;
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 long lastSentMillis = 0;
+int sendEveryMillis = 750;
 
 /// MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///             [1] MSG (1 byte)
@@ -183,10 +184,7 @@ void processMessage()
 
 void loop()
 {
-  Serial.print(">>>> effectively enabled: ");
-  Serial.print(effectivelyEnabled);
-  Serial.print(" || relay state: ");
-  Serial.println(relayState);
+  
 
   if (readMessage())
   {
@@ -196,10 +194,14 @@ void loop()
     processMessage();
   }
   long now = millis();
-  if ((now > lastSentMillis + 500) || now < lastSentMillis)
+  if ((now > lastSentMillis + sendEveryMillis) || now < lastSentMillis)
   { // only send a message if it's been 500ms OR the timer has cycled around LONG
     sendMessage(false, 0);
     lastSentMillis = now;
+    Serial.print(">>>> effectively enabled: ");
+    Serial.print(effectivelyEnabled);
+    Serial.print(" || relay state: ");
+    Serial.println(relayState);
   }
 }
 

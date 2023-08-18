@@ -25,7 +25,8 @@ int loopIndex = 0;
 bool currentArmedButtonState;
 bool armedStatus = false;
 bool alarmedStatus = false;
-int lastAlarmedDevice = 0;
+String strActiveAlarmedDevicesIdList = "";
+String strAllAlarmedDevicesIdList = "";
 
 ///MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///            [1] MSG (1 byte)
@@ -68,13 +69,16 @@ void doLocalThingsWithMessage(MessageStruct message) {
     armedStatus = false;
     setArmedLedPin(armedStatus);
     setDisarmedLedPin(!armedStatus);
-  } else if (message.message == 0xBB) { //set alarmed status boolean to true if home base says so
-    alarmedStatus = true;
-  } else if (message.message == 0xCC) { //set alarmed status boolean to false if home base says so
-    alarmedStatus = false;
-    lastAlarmedDevice = 0;
-  } else if (message.addressee == 0xFF && message.message == 0xAA) { //home base sending its arduino the ID of the device that's causing the alarm (single device / message)
-      lastAlarmedDevice = message.deviceType;
+  } else if (message.addressee == 0xFF && message.message == 0xA0) { //home base sending its arduino the ID of a device that's causing the alarm (single device / message)
+      alarmedStatus = true;
+      strActiveAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
+      strAllAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
+  } else if (message.addressee == 0xFF && message.message == 0xB0) { //home base sending its arduino the ID of a device that's not causing the alarm (single device / message)
+      strActiveAlarmedDevicesIdList.remove(strActiveAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX) + " "), 5); //erase 5 chars
+  } else if (message.addressee == 0xFF && message.message == 0xC0) { //home base sending its arduino a signal to turn off alarmedStatus
+      alarmedStatus = false;
+      strActiveAlarmedDevicesIdList = "";
+      strAllAlarmedDevicesIdList = "";
   }
 }
 
@@ -266,8 +270,8 @@ void outputToLcd(int loopIndex)
       if (loopIndex % 2 > 0) ssd1306_negativeMode();
       ssd1306_printFixed(0, 8, "        ALARM        ", STYLE_BOLD);
       if (loopIndex % 2 > 0) ssd1306_positiveMode();
-      String alarmGeneratingDeviceId = "0x" + String(lastAlarmedDevice, HEX);
-      if (lastAlarmedDevice != 0) ssd1306_printFixed(0, 16, &alarmGeneratingDeviceId[0], STYLE_BOLD); // third line
+      if (strActiveAlarmedDevicesIdList != "") ssd1306_printFixed(0, 16, &strActiveAlarmedDevicesIdList[0], STYLE_BOLD); // third line
+      if (strAllAlarmedDevicesIdList != "") ssd1306_printFixed(0, 24, &strAllAlarmedDevicesIdList[0], STYLE_BOLD); // third line
     } else {
        ssd1306_printFixed(0, 16, "                     ", STYLE_BOLD); // third line
        ssd1306_printFixed(0, 8, "      NO ALARM       ", STYLE_BOLD);
@@ -275,8 +279,8 @@ void outputToLcd(int loopIndex)
     
     
     //fourth line
-    String strLoopIndex = "LOOP INDEX   " + String(loopIndex);
-    ssd1306_printFixed(0, 24, &strLoopIndex[0], STYLE_ITALIC);
+    //String strLoopIndex = "LOOP INDEX   " + String(loopIndex);
+    //ssd1306_printFixed(0, 24, &strLoopIndex[0], STYLE_ITALIC);
     delay(40);
 }
 
