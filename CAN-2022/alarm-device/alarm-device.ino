@@ -17,14 +17,15 @@ const int ID_NOT_USED = -1;
 int myCanId = 0x99;
 int alarmConstantOnDevicePin = 7;
 int alarmVaribleDevicePin = 17; //17 is A3. A0 is 14, etc.
+long loopIndexMax = 30000;
+long sendEveryXLoops = 10000; //tied to loopIndexMax
 
 int armedLedPin = 6;
 bool isAlarmed = false;
 const int BROADCAST_ADDR = 0x00;
 const int DELAY_LOOP_TIME = 50;
 MCP2515::ERROR canMessageError;
-int loopIndex = 0;
-int sendEveryXLoops = 10000;
+long loopIndex = 0;
 int currentStatus = 0x00;
 bool buzzerDirection = true; //true = up, false = down in tone
 
@@ -54,7 +55,6 @@ void setup() {
   mcp2515.reset();
   mcp2515.setBitrate(CAN_125KBPS);
   mcp2515.setNormalMode();
-
 }
 
 void loop() {
@@ -81,7 +81,18 @@ void loop() {
         setConstantOnAlarmPinValue();
       }
     }
-    Serial.println("CAN MSG RECEIVED");
+    Serial.print("CAN MSG RECEIVED");
+
+    Serial.print("0x");
+    Serial.print(incomingCanMsg.can_id, HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[0], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[1], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[2], HEX);
+    Serial.print("\n");
+    Serial.flush();
 
   } else {
     if (debug && !suppressErrorDebugText) {
@@ -90,8 +101,10 @@ void loop() {
     }
   }
   playBuzzerTone();
-  if (loopIndex < 32000) loopIndex++;
+  if (loopIndex < loopIndexMax-1) loopIndex++;
   else loopIndex = 0;
+  
+  if (debug && loopIndex % sendEveryXLoops == 0) {Serial.print("loopIndex "); Serial.println(loopIndex);}
 }
 
 int getEnableMessageCommand() {

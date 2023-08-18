@@ -8,7 +8,7 @@ import tornado.ioloop
 import tornado.web
 import json
 
-debug = False
+debug = True
 LISTEN_PORT=8080
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
 print("Arduino: serial connection with PI established")
@@ -24,6 +24,7 @@ deviceDictionary = {
     "0x15": "piezo 120db alarm 0x15",
     "0x99": "indoor siren with led"
 }
+lastSentMessageTimeMsec = 0
 homeBaseId = 0x14 #interdependent with deviceDictionary
 pastEvents = []
 alarmed = False
@@ -36,6 +37,9 @@ firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
 alarmReason = ""
+sendTimeoutMsec = 500
+lastCheckedMissingDevicesMsec = 0
+checkForMissingDevicesEveryMsec = 750
 
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
@@ -55,14 +59,15 @@ alarmReason = ""
 
 np.set_printoptions(formatter={'int':hex})
 
-
 def addEvent(event):
     global pastEvents
     pastEvents.append(event)
 
+
 def getArmedStatus():
     global armed
     return armed
+
 
 def toggleAlarm(now, method):
     global lastArmedTogglePressed
@@ -88,6 +93,7 @@ def toggleAlarm(now, method):
     print("Clearing member devices list")
     memberDevices = {} #reset all members on the bus when turning on/off
 
+
 def decodeLine(line):
     try:
         msg = line.split("-")
@@ -98,30 +104,46 @@ def decodeLine(line):
         raise("PARSE-ERROR")
     return msg
 
+
 def encodeLine(message): #[myCanId, addressee, message, myDeviceType]
     printableArr = message.copy()
-    printableArr.append(getTime())
+    printableArr.append(getTimeSec())
     #print("SENDING ", np.array(printableArr)); #TODO: uncomment
     return (hex(message[0]) + "-" + hex(message[1]) + "-" + hex(message[2]) + "-" + hex(message[3]) + "-\n")
 
+
 def sendMessage(messageArray): 
+    global lastSentMessageTimeMsec
     outgoing = encodeLine(messageArray)
     ser.write(bytearray(outgoing, 'ascii'))
     ser.flushOutput()
-    
+    lastSentMessageTimeMsec = getTimeMsec()
+
+
 def getTime():
-    return math.floor(datetime.now().timestamp())
+    return datetime.now().timestamp()
     #return math.floor(datetime.now(timezone('US/Pacific')).timestamp())
 
+
+def getTimeSec():
+    return math.floor(getTime())
+
+
+def getTimeMsec():
+    return math.floor(getTime()*1000)
+
+
 def getReadableTime():
-    return getReadableTimeFromTimestamp(getTime())
+    return getReadableTimeFromTimestamp(getTimeSec())
+
 
 def getReadableTimeFromTimestamp(timestamp):
     return f"{datetime.fromtimestamp(timestamp).strftime('%c')} LOCAL TIME"
 
+
 def possiblyAddMember(msg):
     global memberDevices
-    now = getTime()
+    now = getTimeSec()
     if (msg[0] != homeBaseId):
         readableTimestamp = getReadableTime()
 
@@ -130,20 +152,23 @@ def possiblyAddMember(msg):
             addEvent({"event": "NEW_MEMBER", "trigger": hex(msg[0]), "time": readableTimestamp})
             memberDevices[msg[0]] = {'id': hex(msg[0]), 'firstSeen': now, 'firstSeenReadable': readableTimestamp, 'deviceType': msg[3], 'lastSeen': now, 'lastSeenReadable': readableTimestamp, 'friendlyName': getFriendlyName(msg[0])}
         else :
-            print(f"PULSE {hex(msg[0])} AT {readableTimestamp}")
             memberDevices[msg[0]]['lastSeen'] = now
             memberDevices[msg[0]]['lastSeenReadable'] = readableTimestamp
+
 
 def getFriendlyName(address):
     strAddress = hex(address)
     return deviceDictionary[strAddress] if strAddress in deviceDictionary else "unlisted"
 
+
 def checkMembersOnline():
-    now = getTime()
+    now = getTimeSec()
+    global lastCheckedMissingDevicesMsec
+    lastCheckedMissingDevicesMsec = getTimeMsec()
     missingMembers = []
     for memberId in memberDevices :
         if (memberDevices[memberId]['lastSeen'] + deviceAbsenceThresholdSec < now) :
-            print(f"Adding missing device {hex(memberId)} at {getReadableTime()}. missing for {(getTime()-memberDevices[memberId]['lastSeen'])} seconds")
+            print(f"Adding missing device {hex(memberId)} at {getReadableTime()}. missing for {(getTimeSec()-memberDevices[memberId]['lastSeen'])} seconds")
             missingMembers.append(memberId)
         ##TODO WRITE A FOUND MISSING DEVICE HANDLER THAT OUTPUTS TO LOG
     return missingMembers
@@ -158,6 +183,7 @@ def sendArmedLedSignal():
         messageToSend = [homeBaseId, 0xFF, 0xD0, 0x01]
         print(f">>>> SENDING DISARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
     sendMessage(messageToSend)
+
 
 def sendPowerCommandDependingOnArmedState():
     global memberDevices
@@ -174,6 +200,7 @@ def sendPowerCommandDependingOnArmedState():
             print(f">>>> SENDING POWER ON SIGNAL {np.array(messageToSend)}")
             time.sleep(1/2) #in seconds, double - 500 msec sleep
 
+
 def exitSteps():
     global pastEvents
     global homeBaseId
@@ -186,18 +213,19 @@ def exitSteps():
     for line in pastEvents:
         print(f"\t{line}")    
 
+
 def arrayToString(array):
     string = ""
     for i in array:
         string += "" + str(hex(i)) + " "
     return string
 
+
 def handleMessage(msg):
     if (debug):
         print(f"SENDER {hex(msg[0])} RECEIVER {hex(msg[1])} MESSAGE {hex(msg[2])} DEVICE-TYPE {hex(msg[3])}")
 
     possiblyAddMember(msg)
-    missingDevices = checkMembersOnline()
     global alarmed
     global pastEvents
     global homeBaseId
@@ -206,7 +234,8 @@ def handleMessage(msg):
     global lastArmedTogglePressed
     global memberDevices
     global alarmReason
-    now = getTime();
+    global missingDevices
+    now = getTimeSec();
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
     if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): #0xEE - arm toggle pressed
@@ -222,20 +251,9 @@ def handleMessage(msg):
             alarmReason = f"tripped {hex(msg[0])}"
             addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
             sendMessage([homeBaseId, 0xFF, 0xAA, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device ####TODO#### - there may be more than one alarm-generating device
-        elif (len(missingDevices) > 0):
-            print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
-            alarmed = True
-            lastAlarmTime = now
-            alarmReason = f"missing device(s) {arrayToString(missingDevices)}"
-            addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
         
     elif (alarmed and lastAlarmTime + alarmTimeLengthSec < now and len(missingDevices) == 0 and (msg[1]==homeBaseId and msg[2]==0x00)):
         alarmed = False #TODO: for now - after 3000ms after first alarm message, the alarm is turned off, given ANY device sending a non-alarmed code. This approach is fundamentally fucked, but temporary.
-
-    if (armed and alarmed):
-        sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
-    else:
-        sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
 
 
 def getStatusJsonString():
@@ -264,60 +282,22 @@ def run(webserver_message_queue, alarm_message_queue):
     global firstPowerCommandNeedsToBeSent
     global timeAllottedToBuildOutMembersSec
     global initWaitSeconds
+    global lastSentMessageTimeMsec
+    global sendTimeoutMsec
+    global missingDevices
+    global checkForMissingDevicesEveryMsec
+    global lastCheckedMissingDevicesMsec
 
     atexit.register(exitSteps)
-    print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTime())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
+    print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTimeSec())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
     time.sleep(initWaitSeconds)
-    print(f"DONE WAITING, OPERATIONAL NOW AT {getReadableTimeFromTimestamp(getTime())}. STATUS:\nARMED: {armed}\nALARMED: {alarmed}\n\n\n")
+    print(f"DONE WAITING, OPERATIONAL NOW AT {getReadableTimeFromTimestamp(getTimeSec())}. STATUS:\nARMED: {armed}\nALARMED: {alarmed}\n\n\n")
 
     ser.flushOutput()
     ser.flushInput()
     sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
     sendArmedLedSignal()
-    firstTurnedOnTimestamp = getTime()
-
-
-    #--------------------------SERVER-----------------------------
-    # class StatusHandler(tornado.web.RequestHandler):
-    #     def get(self):
-    #         self.write(f"{armed}")
-
-    # class Mode0Handler(tornado.web.RequestHandler):
-    #     def get(self):
-    #         global armed
-    #         if (armed == True):
-    #             toggleAlarm(getTime())
-    #         self.write(f"{armed}")
-
-    # class Mode1Handler(tornado.web.RequestHandler):
-    #     def get(self):
-    #         global armed
-    #         if (armed == False):
-    #             toggleAlarm(getTime())
-    #         self.write(f"{armed}")
-            
-    # class ListEventsHandler(tornado.web.RequestHandler):
-    #     def get(self):
-    #         for line in pastEvents:
-    #              self.write(f"\t{line}<br>") 
-
-    # class MainHandler(tornado.web.RequestHandler):
-    #     def get(self):
-    #         global armed
-
-    # def make_app():
-    #     return tornado.web.Application([
-    #         (r"/status", StatusHandler),
-    #         (r"/mode0", Mode0Handler),
-    #         (r"/mode1", Mode1Handler),
-    #         (r"/events", ListEventsHandler)
-    #     ])
-
-    # if __name__ == "__main__":
-    #     app = make_app()
-    #     app.listen(LISTEN_PORT)
-    #     tornado.ioloop.IOLoop.current().start()
-    #----------------------//////SERVER-----------------------------
+    firstTurnedOnTimestamp = getTimeSec()
 
     while True:
         line = ser.readline()
@@ -325,9 +305,9 @@ def run(webserver_message_queue, alarm_message_queue):
             message = webserver_message_queue.get()
             #print(f"GOT MESSAGE: {message}")
             if (message == "ENABLE-ALARM" and getArmedStatus() == False) :
-                toggleAlarm(getTime(), "WEB API")
+                toggleAlarm(getTimeSec(), "WEB API")
             elif (message == "DISABLE-ALARM" and getArmedStatus() == True) :
-                toggleAlarm(getTime(), "WEB API")
+                toggleAlarm(getTimeSec(), "WEB API")
             elif (message == "ALARM-STATUS") :
                 alarm_message_queue.put(getStatusJsonString())
 
@@ -335,9 +315,9 @@ def run(webserver_message_queue, alarm_message_queue):
         
         ser.flushInput()
 
-        if (firstPowerCommandNeedsToBeSent and getTime() > firstTurnedOnTimestamp + timeAllottedToBuildOutMembersSec):
+        if (firstPowerCommandNeedsToBeSent and getTimeSec() > firstTurnedOnTimestamp + timeAllottedToBuildOutMembersSec):
             firstPowerCommandNeedsToBeSent = False
-            print(f"Members array built at {getReadableTimeFromTimestamp(getTime())} as:")
+            print(f"Members array built at {getReadableTimeFromTimestamp(getTimeSec())} as:")
             for member in memberDevices:
                 print(f"{hex(member)} : {memberDevices[member]}")
             print("\n\n\n")
@@ -355,10 +335,30 @@ def run(webserver_message_queue, alarm_message_queue):
         except:
             print(f"ERROR WITH PARSING LINE, CONTINUING LOOP<<<<<")
             continue
-        msg.append(getTime())
+        msg.append(getTimeSec())
         #print("GETTING", np.array(msg)) #TODO: uncomment
 
         handleMessage(msg)
+
+
+        if (lastCheckedMissingDevicesMsec+checkForMissingDevicesEveryMsec < getTimeMsec()):
+            if (debug): 
+                print(f">>>Checking for missing devices at {getTimeMsec()}")
+            missingDevices = checkMembersOnline()
+
+            if (len(missingDevices) > 0):
+                print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
+                alarmed = True
+                lastAlarmTime = getTimeSec()
+                alarmReason = f"missing device(s) {arrayToString(missingDevices)}"
+                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+
+        #possibly send a message (if it's been sendTimeoutMsec)
+        if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
+            if (armed and alarmed):
+                sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
+            else:
+                sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
 
 #TODO:
 #This should be in the polling thread

@@ -10,7 +10,7 @@ int sensorPin = 5; // the pin that the sensor is atteched to
 int state = LOW;   // by default, no motion detected
 int sensorVal = 0; // variable to store the sensor status (value)
 int relayPin = 6;
-int myCanId = 0x75;
+int myCanId = 0x80;
 const int BROADCAST_ADDR = 0x00;
 int homebaseCanId = 0x14;
 bool relayState = true; // false = off; true = on; MUST BE SET SAME AS effectivelyEnabled
@@ -126,15 +126,16 @@ void sendMessage(bool override, int message)
   makeMessage(override, message);
   mcp2515.sendMessage(&myCanMessage);
 
-  Serial.print("Messages sent ");
+  Serial.print("Message sent to 0x");
   Serial.print(myCanMessage.data[0], HEX);
+  Serial.print(" from 0x");
+  Serial.print(myCanId, HEX);
+  Serial.print(" message: ");
   Serial.println(myCanMessage.data[1], HEX);
 }
 
 bool readMessage()
 {
-  for (int i = 0; i < 250; i++)
-  {
     canMessageError = mcp2515.readMessage(&incomingCanMsg);
     if (canMessageError == MCP2515::ERROR_OK)
     {
@@ -148,8 +149,7 @@ bool readMessage()
       // Serial.print("INCOMING CAN MESSAGE ERROR: ");
       // Serial.println(ERROR_NAMES[canMessageError]);
     }
-    delay(1);
-  }
+    
 
   return false;
 }
@@ -166,24 +166,18 @@ bool matchMessageToThisDevice()
   return false;
 }
 
-bool processMessage()
+void processMessage()
 {
   if (matchMessageToThisDevice() == true)
   {
     if (incomingCanMsg.data[1] == 0x0F)
     { // enable
       setRelayState(true);
-      return 0; // don't send a message back
     }
     else if (incomingCanMsg.data[1] == 0x01)
     { // disable
       setRelayState(false);
-      return 0; // dont send a message back
     }
-  }
-  else
-  {
-    return 1;
   }
 }
 
@@ -194,15 +188,13 @@ void loop()
   Serial.print(" || relay state: ");
   Serial.println(relayState);
 
-  bool needToReply = true;
   if (readMessage())
   {
     Serial.println(">>>>>>>READMESSAGE TRUE");
     Serial.print(">>>>>>>MESSAGE: ");
     debugPrintIncoming();
-    needToReply = processMessage();
+    processMessage();
   }
-  // if (needToReply == true) {
   long now = millis();
   if ((now > lastSentMillis + 500) || now < lastSentMillis)
   { // only send a message if it's been 500ms OR the timer has cycled around LONG
