@@ -91,8 +91,9 @@ def toggleAlarm(now, method):
         armed = True #TODO: add logging of event and source
         alarmed = False #reset alarmed state
     
-    sendArmedLedSignal() #TODO - here?
+    
     sendPowerCommandDependingOnArmedState() #TODO - here?
+    sendArmedLedSignal() #TODO - here?
     print("Clearing member devices list")
     memberDevices = {} #reset all members on the bus when turning on/off
 
@@ -265,29 +266,26 @@ def handleMessage(msg):
         updateAlarmReason();
         addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
         
-        #for each alarmed device - TODO: also need a way of removing the alarmed device. OxBB??
-        sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
+        if (armed):
+            sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
     elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in alarmedDevices):
-        print("DEVICE NO LONGER IN ALARMEDDEVICES - MESSAGE TO REMOVE FROM OLED")
+        print(f"DEVICE {hex(msg[0])} NO LONGER IN ALARMEDDEVICES - MESSAGE TO REMOVE FROM OLED")
         #home base's arduino should not show this device's ID as one that is currently alarmed
+        alarmedDevices.pop(hex(msg[0]))
+        updateAlarmReason();
         sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]]) 
         
-        #if it has been long enough that the alarm should be over, turn off the alarm
-        if (hex(msg[0]) in alarmedDevices and alarmedDevices[hex(msg[0])]+alarmTimeLengthSec < now):
-            print("DEVICE NO LONGER IN ALARMEDDEVICES - REMOVE FROM PI ALARMED LIST AND TELL ARDUINO TO STOP ALARM")
-            alarmedDevices.pop(hex(msg[0]))
 
-        updateAlarmReason();
         
 def updateAlarmReason():
     global alarmReason
     alarmReason = ""
     for missingId in missingDevices:
-        alarmReason += "missing " + missingId + " "
+        alarmReason += ("" if not alarmReason else " ") + "missing " + missingId
     for alarmedId in alarmedDevices:
-        alarmReason += "tripped " + alarmedId + " "
+        alarmReason += ("" if not alarmReason else " ") +"tripped " + alarmedId
     print("Updated alarm reason to: " + alarmReason)
 
 def getStatusJsonString():
@@ -384,13 +382,15 @@ def run(webserver_message_queue, alarm_message_queue):
             if (len(missingDevices) > 0):
                 print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
                 alarmed = True
-                updateAlarmReason()
                 lastAlarmTime = getTimeSec()
+                updateAlarmReason()
+                #TODO: show missing devices on oled?
                 addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(alarmedDevices) == 0):
             alarmed = False
+            updateAlarmReason()
             sendMessage([homeBaseId, 0xFF, 0xC0, 0x01]) #TODO: send to those nodes that need to be reset
 
         #possibly send a message (if it's been sendTimeoutMsec)

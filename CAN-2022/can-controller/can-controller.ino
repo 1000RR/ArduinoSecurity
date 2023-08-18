@@ -27,6 +27,7 @@ bool armedStatus = false;
 bool alarmedStatus = false;
 String strActiveAlarmedDevicesIdList = "";
 String strAllAlarmedDevicesIdList = "";
+int outputToOledEveryXloops = 10;
 
 ///MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///            [1] MSG (1 byte)
@@ -67,14 +68,24 @@ void doLocalThingsWithMessage(MessageStruct message) {
     setDisarmedLedPin(!armedStatus);
   } else if (message.message == 0xD0) { //turn on DISARMED led, turn off ARMED led
     armedStatus = false;
+    alarmedStatus = false;
+    strActiveAlarmedDevicesIdList = "";
+    strAllAlarmedDevicesIdList = "";
     setArmedLedPin(armedStatus);
     setDisarmedLedPin(!armedStatus);
   } else if (message.addressee == 0xFF && message.message == 0xA0) { //home base sending its arduino the ID of a device that's causing the alarm (single device / message)
       alarmedStatus = true;
-      strActiveAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
-      strAllAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
+      if (strActiveAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX)) == -1) {
+        strActiveAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
+      }
+      if (strAllAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX)) == -1) {
+        strAllAlarmedDevicesIdList += ("0x" + String(message.deviceType, HEX) + " ");
+      }
   } else if (message.addressee == 0xFF && message.message == 0xB0) { //home base sending its arduino the ID of a device that's not causing the alarm (single device / message)
-      strActiveAlarmedDevicesIdList.remove(strActiveAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX) + " "), 5); //erase 5 chars
+        index = strActiveAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX));
+        if (index > -1) {
+          strActiveAlarmedDevicesIdList.remove(index, 5); //erase 5 chars
+        }
   } else if (message.addressee == 0xFF && message.message == 0xC0) { //home base sending its arduino a signal to turn off alarmedStatus
       alarmedStatus = false;
       strActiveAlarmedDevicesIdList = "";
@@ -255,35 +266,40 @@ void lcdHello() {
 void outputToLcd(int loopIndex)
 {
     ssd1306_setFixedFont(ssd1306xled_font6x8);
+    if (loopIndex % outputToOledEveryXloops != 0)
+      return;
 
     //first line
     String strArmedStatus = armedStatus == true ? "ENABLED              " : "DISABLED              ";
+    String strOutput;
     // ssd1306_printFixed(0,  8, "Normal text", STYLE_NORMAL);
     // ssd1306_printFixed(0, 16, "Bold text", STYLE_BOLD);
     // ssd1306_printFixed(0, 24, "Italic text", STYLE_ITALIC);
     if (armedStatus == true) ssd1306_negativeMode();
     ssd1306_printFixed(0, 0, &strArmedStatus[0], STYLE_NORMAL);
+    ssd1306_printFixed(96, 0, &(((String)loopIndex)[0]), STYLE_ITALIC);
     if (armedStatus == true) ssd1306_positiveMode();
 
     //second line & potentially third line
     if (alarmedStatus == true) {
-      if (loopIndex % 2 > 0) ssd1306_negativeMode();
+      if (loopIndex % 3 == 0) ssd1306_negativeMode();
       ssd1306_printFixed(0, 8, "        ALARM        ", STYLE_BOLD);
-      if (loopIndex % 2 > 0) ssd1306_positiveMode();
-      if (strActiveAlarmedDevicesIdList != "") ssd1306_printFixed(0, 16, &strActiveAlarmedDevicesIdList[0], STYLE_BOLD); // third line
-      if (strAllAlarmedDevicesIdList != "") ssd1306_printFixed(0, 24, &strAllAlarmedDevicesIdList[0], STYLE_BOLD); // third line
+      if (loopIndex % 3 == 0) ssd1306_positiveMode();
+      if (strActiveAlarmedDevicesIdList != "") {
+        strOutput = strActiveAlarmedDevicesIdList + "                        ";
+        ssd1306_printFixed(0, 16, &strOutput[0], STYLE_BOLD); // third line
+      }
+      if (strAllAlarmedDevicesIdList != "") {
+        strOutput = strAllAlarmedDevicesIdList + "                        ";
+        ssd1306_printFixed(0, 24, &strOutput[0], STYLE_BOLD); // third line
+      }
     } else {
-       ssd1306_printFixed(0, 16, "                     ", STYLE_BOLD); // third line
        ssd1306_printFixed(0, 8, "      NO ALARM       ", STYLE_BOLD);
+       ssd1306_printFixed(0, 16, "                     ", STYLE_BOLD); // third line
+       ssd1306_printFixed(0, 24, "                     ", STYLE_BOLD); // fourth line
     }
-    
-    
-    //fourth line
-    //String strLoopIndex = "LOOP INDEX   " + String(loopIndex);
-    //ssd1306_printFixed(0, 24, &strLoopIndex[0], STYLE_ITALIC);
-    delay(40);
 }
 
 void blinkDisarmedLed (int loopIndex) {
-  if (loopIndex%10) setDisarmedLedPin(!digitalRead(disarmedLedPin));
+  setDisarmedLedPin(!digitalRead(disarmedLedPin));
 }
