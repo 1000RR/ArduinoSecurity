@@ -8,7 +8,7 @@ import tornado.ioloop
 import tornado.web
 import json
 
-debug = True
+debug = False
 LISTEN_PORT=8080
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
 print("Arduino: serial connection with PI established")
@@ -292,7 +292,7 @@ def updateCurrentlyTriggeredDevices():
         alarmReason += ("" if not alarmReason else " ") + "missing " + missingId
     for alarmedId in currentlyAlarmedDevices:
         alarmReason += ("" if not alarmReason else " ") +"tripped " + alarmedId
-    print("Updated alarm reason to: " + alarmReason)
+    if (debug): print("Updated alarm reason to: " + alarmReason)
 
 def getStatusJsonString():
     global currentlyAlarmedDevices
