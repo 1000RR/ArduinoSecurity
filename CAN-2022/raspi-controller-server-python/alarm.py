@@ -30,6 +30,7 @@ broadcastId = 0x00
 pastEvents = []
 alarmed = False
 alarmedDevices = {} #map of {string hex id:int alarmTimeSec}
+currentlyAlarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 missingDevices = []
 lastAlarmTime = 0
 armed = False #initial condition
@@ -72,12 +73,13 @@ def getArmedStatus():
     return armed
 
 
-def toggleAlarm(now, method):
+def toggleArmed(now, method):
     global lastArmedTogglePressed
     global alarmed
     global armed
     global memberDevices
     global deviceDictionary
+    global alarmedDevices
     
     lastArmedTogglePressed = now
     if (armed == True):
@@ -85,11 +87,13 @@ def toggleAlarm(now, method):
         addEvent({"event": "DISARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
         armed = False #TODO: add logging of event and source
         alarmed = False #reset alarmed state
+        alarmedDevices = {}
     else:
         print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)} PER {method}<<<<<<<<<")
         addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
         armed = True #TODO: add logging of event and source
         alarmed = False #reset alarmed state
+        alarmedDevices = {}
     
     
     sendPowerCommandDependingOnArmedState() #TODO - here?
@@ -249,49 +253,60 @@ def handleMessage(msg):
     global alarmReason
     global missingDevices
     global alarmTimeLengthSec
+    global currentlyAlarmedDevices
     global alarmedDevices
     now = getTimeSec()
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
     if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): #0xEE - arm toggle pressed
-        toggleAlarm(now, "ARDUINO")
+        toggleArmed(now, "ARDUINO")
         return
 
-    #alarm message coming in from a device that isn't in the alarmedDevices list
-    if ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in alarmedDevices): 
+    #alarm message coming in from a device that isn't in the currentlyAlarmedDevices list
+    if (armed and (msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices): 
         print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
         alarmed = True
         lastAlarmTime = now;
+        currentlyAlarmedDevices[hex(msg[0])] = now;
         alarmedDevices[hex(msg[0])] = now;
-        updateAlarmReason();
         addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
-        
-        if (armed):
-            sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
+        sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
-    elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in alarmedDevices):
-        print(f"DEVICE {hex(msg[0])} NO LONGER IN ALARMEDDEVICES - MESSAGE TO REMOVE FROM OLED")
+    elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in currentlyAlarmedDevices):
+        print(f"DEVICE {hex(msg[0])} NO LONGER IN currentlyAlarmedDevices - MESSAGE TO REMOVE FROM OLED")
         #home base's arduino should not show this device's ID as one that is currently alarmed
-        alarmedDevices.pop(hex(msg[0]))
-        updateAlarmReason();
+        currentlyAlarmedDevices.pop(hex(msg[0]))
         sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]]) 
+    updateCurrentlyTriggeredDevices();
         
 
         
-def updateAlarmReason():
+def updateCurrentlyTriggeredDevices():
     global alarmReason
+    global currentlyAlarmedDevices
+    global missingDevices
+
     alarmReason = ""
     for missingId in missingDevices:
         alarmReason += ("" if not alarmReason else " ") + "missing " + missingId
-    for alarmedId in alarmedDevices:
+    for alarmedId in currentlyAlarmedDevices:
         alarmReason += ("" if not alarmReason else " ") +"tripped " + alarmedId
     print("Updated alarm reason to: " + alarmReason)
 
 def getStatusJsonString():
-    strAlarmedStatus = "ALARM " + alarmReason if alarmed else "NORMAL"
+    global currentlyAlarmedDevices
+    global alarmedDevices
+    global memberDevices
+    global lastArmedTogglePressed
+    global strAlarmedStatus
+
+    strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += ('"alarmStatus": "' + strAlarmedStatus + '",') if armed else ""
+    outgoingMessage += '"currentTriggers": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
+    outgoingMessage += '"everTriggered": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
+    outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberDevices": ' + str(list(memberDevices.values())).replace("(","{").replace(")","}").replace("'","\"")
     outgoingMessage += '}'
@@ -303,6 +318,7 @@ def run(webserver_message_queue, alarm_message_queue):
     global LISTEN_PORT
     global ser
     global memberDevices
+    global currentlyAlarmedDevices
     global alarmedDevices
     global homeBaseId
     global pastEvents
@@ -338,9 +354,9 @@ def run(webserver_message_queue, alarm_message_queue):
             message = webserver_message_queue.get()
             #print(f"GOT MESSAGE: {message}")
             if (message == "ENABLE-ALARM" and getArmedStatus() == False) :
-                toggleAlarm(getTimeSec(), "WEB API")
+                toggleArmed(getTimeSec(), "WEB API")
             elif (message == "DISABLE-ALARM" and getArmedStatus() == True) :
-                toggleAlarm(getTimeSec(), "WEB API")
+                toggleArmed(getTimeSec(), "WEB API")
             elif (message == "ALARM-STATUS") :
                 alarm_message_queue.put(getStatusJsonString())
 
@@ -383,22 +399,32 @@ def run(webserver_message_queue, alarm_message_queue):
                 print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
                 alarmed = True
                 lastAlarmTime = getTimeSec()
-                updateAlarmReason()
+                updateCurrentlyTriggeredDevices()
                 #TODO: show missing devices on oled?
                 addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
-        if (alarmed and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(alarmedDevices) == 0):
+        if (alarmed and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
             alarmed = False
-            updateAlarmReason()
+            alarmedDevices = {}
+            currentlyAlarmedDevices = {}
+            updateCurrentlyTriggeredDevices()
             sendMessage([homeBaseId, 0xFF, 0xC0, 0x01]) #TODO: send to those nodes that need to be reset
+
+        elif (alarmed and (len(missingDevices) > 0 or len(currentlyAlarmedDevices) > 0)):
+            alarmed = True
+            updateCurrentlyTriggeredDevices();
 
         #possibly send a message (if it's been sendTimeoutMsec)
         if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
             if (armed and alarmed):
                 sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
             else:
+                alarmed = False
                 sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
+                alarmedDevices = {}
+                currentlyAlarmedDevices = {}
+
 
 #TODO:
 #This should be in the polling thread
