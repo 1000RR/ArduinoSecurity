@@ -303,12 +303,14 @@ def getStatusJsonString():
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
-    outgoingMessage += ('"alarmStatus": "' + strAlarmedStatus + '",') if armed else ""
+    outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
     outgoingMessage += '"currentTriggers": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
     outgoingMessage += '"everTriggered": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
-    outgoingMessage += '"memberDevices": ' + str(list(memberDevices.values())).replace("(","{").replace(")","}").replace("'","\"")
+    outgoingMessage += '"memberDevices": ' + str(list(memberDevices.keys())).replace("'","\"") + ','
+    outgoingMessage += '"memberDetails": ' + str(memberDevices).replace("'","\"") + ','
+    outgoingMessage += '"missingDevices": ' + str(missingDevices).replace("'","\"")
     outgoingMessage += '}'
     return outgoingMessage
 
@@ -395,7 +397,7 @@ def run(webserver_message_queue, alarm_message_queue):
                 print(f">>>Checking for missing devices at {getTimeMsec()}")
             missingDevices = checkMembersOnline()
 
-            if (len(missingDevices) > 0):
+            if (armed and len(missingDevices) > 0):
                 print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
                 alarmed = True
                 lastAlarmTime = getTimeSec()

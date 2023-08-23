@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BOBIK</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+</head>
+<style>
+    .json-render {
+    font-family: monospace;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.json-key {
+    color: blue;
+}
+
+.json-string {
+    color: green;
+}
+
+.json-number {
+    color: red;
+}
+
+.json-boolean, .json-null {
+    color: purple;
+}
+
+nav {
+    background-color: darkgray;
+    margin-bottom: 20px;
+    margin-top: 20px;
+    justify-content: space-around;
+    display: flex;
+    flex-direction: row;
+    padding: 10px;
+
+}
+
+div {
+    white-space: pre;
+}
+
+@keyframes blink {
+    from {background-color: red;}
+    to {background-color: blue;}
+    from {color: white}
+    to {color: white}
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+}
+
+.column {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    margin-right: 10px;
+}
+
+.title {
+    font-weight: bold;
+    margin-right: 10px;
+}
+</style>
+<body>
+    <h1>BOBIK</h1>
+    
+    <script type="text/javascript">
+        var socket = io.connect('http://bobikwifi:8080');
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('postStatus', function(data) {
+            console.log('Message from server:', data.message);
+            renderMessage(data.message);
+            blinkAlarmStatus(data.message.alarmStatus === "ALARM");
+
+        });
+
+        function paintArmStatus(isArmed) {
+            let divs = document.getElementsByClassName('class-armStatus');
+            if (!divs.length) return;
+            let parent = divs[0].parentElement;
+            if (isArmed) {
+                parent.style['color'] = 'white';
+                parent.style['background-color'] = 'blue';
+            } else {
+                parent.style['color'] = 'white';
+                parent.style['background-color'] = 'red';
+            }
+        }
+
+        function blinkAlarmStatus(blink) {
+            let divs = document.getElementsByClassName('class-alarmStatus');
+            if (!divs.length) return;
+            let parent = divs[0].parentElement;
+            if (blink) {
+                parent.style['color'] = null;
+                parent.style['background-color'] = null;
+                parent.style['animation-name'] = 'blink';
+                parent.style['animation-duration'] = '.2s';
+                parent.style['animation-iteration-count'] = 'infinite';
+                parent.style['animation-direction'] = 'alternate';
+            } else {
+                parent.style['color'] = 'white';
+                parent.style['background-color'] = 'green';
+                parent.style['animation-name'] = null;
+                parent.style['animation-duration'] = null;
+                parent.style['animation-iteration-count'] = null;
+                parent.style['animation-direction'] = null;
+            }
+        }
+
+        function sendMessage() {
+            socket.emit('getStatus', { message: undefined });
+        }
+
+        function arm() {
+            socket.emit('arm', {message: undefined});
+        }
+
+        function disarm() {
+            socket.emit('disarm', {message: undefined});
+        }
+
+        setInterval(sendMessage, 500);
+
+        function renderMessage(message) {
+            var node = document.getElementById('container');
+            // if (node.hasChildNodes()) {
+            //     for (child in node.children) {
+            //         node.children[child].removeChild(node.children[child].lastChild)
+            //     }
+            // }
+            while (node.hasChildNodes()) {
+                node.removeChild(node.lastChild);
+            }
+
+            let excludedFields = {"memberDetails" : true}
+
+            var container = document.getElementById('container');
+
+            for (var key in message) {
+                if (key in excludedFields)
+                    continue;
+
+                var column = document.createElement('div');
+                column.classList.add('column');
+
+                var title = document.createElement('div');
+                title.classList.add('title');
+                title.classList.add('class-' + key)
+                title.textContent = key + ':';
+
+                var value = document.createElement('div');
+                value.id = 'div-' + key;
+                value.classList.add('class-' + key);
+                value.innerHTML = getJSONtext(message[key]);
+
+                column.appendChild(title);
+                column.appendChild(value);
+
+                container.appendChild(column);
+
+                if (key === 'armStatus') {
+                    paintArmStatus(message[key] == 'ARMED')
+                }
+            }
+        }
+
+        function getJSONtext(jsonValue) {
+
+            if (typeof jsonValue === 'object') {
+                jsonValue = JSON.stringify(jsonValue, null, 2);
+            } else {
+                return jsonValue;
+            }
+
+            return syntaxHighlight(jsonValue);
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(
+                /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+                function(match) {
+                    var cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                }
+            );
+        }
+    </script>
+    <nav>
+        <button onclick="arm()">ARM</button>
+        <button onclick="disarm()">DISARM</button>
+    </nav>
+    <div class="container" id="container"></div>
+</body>
+</html>
