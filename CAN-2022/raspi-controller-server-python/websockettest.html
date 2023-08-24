@@ -14,6 +14,10 @@
     border-radius: 4px;
 }
 
+#span-title {
+    margin-right: auto;
+}
+
 .json-key {
     color: blue;
 }
@@ -30,15 +34,64 @@
     color: purple;
 }
 
+.item-even {
+    background-color: #ffffcc;
+}
+
+.item-odd {
+    background-color: #ffffff;
+}
+
+.blue {
+    color: white;
+    background-color: blue;
+}
+
+.red {
+    color: white;
+    background-color: red;
+}
+
+.green {
+    color: white;
+    background-color: green;
+}
+
+.gray {
+    color: black;
+    background-color: lightgray;
+}
+
+button {
+    border-radius: 8px;
+    height: 40px;
+    padding-left: 20px;
+    padding-right: 20px;
+    transition-duration: .4s;
+    margin-left: 20px;
+}
+
+button:hover {
+    color: black;
+    font-weight: bold;
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+}
+
+.blinkingTransitions {
+    animation-name: blink;
+    animation-duration: .2s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
 nav {
     background-color: darkgray;
     margin-bottom: 20px;
     margin-top: 20px;
     justify-content: space-around;
+    align-items: center;
     display: flex;
     flex-direction: row;
-    padding: 10px;
-
 }
 
 div {
@@ -60,7 +113,6 @@ div {
 .column {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
     margin-right: 10px;
 }
 
@@ -69,9 +121,7 @@ div {
     margin-right: 10px;
 }
 </style>
-<body>
-    <h1>BOBIK</h1>
-    
+<body>    
     <script type="text/javascript">
         var socket = io.connect('http://bobikwifi:8080');
 
@@ -90,34 +140,26 @@ div {
             let divs = document.getElementsByClassName('class-armStatus');
             if (!divs.length) return;
             let parent = divs[0].parentElement;
-            if (isArmed) {
-                parent.style['color'] = 'white';
-                parent.style['background-color'] = 'blue';
-            } else {
-                parent.style['color'] = 'white';
-                parent.style['background-color'] = 'red';
-            }
+
+            let armButton = document.getElementById('button-arm');
+            let disarmButton = document.getElementById('button-disarm');
+
+            parent.classList.remove(!isArmed ? "blue" : "red")
+            parent.classList.add(isArmed ? "blue" : "red")
+
+            armButton.classList.remove(!isArmed ? "gray" : "blue");
+            armButton.classList.add(isArmed ? "gray" : "blue");
+
+            disarmButton.classList.remove(!isArmed ? "red" : "gray");
+            disarmButton.classList.add(isArmed ? "red" : "gray");
         }
 
         function blinkAlarmStatus(blink) {
             let divs = document.getElementsByClassName('class-alarmStatus');
             if (!divs.length) return;
             let parent = divs[0].parentElement;
-            if (blink) {
-                parent.style['color'] = null;
-                parent.style['background-color'] = null;
-                parent.style['animation-name'] = 'blink';
-                parent.style['animation-duration'] = '.2s';
-                parent.style['animation-iteration-count'] = 'infinite';
-                parent.style['animation-direction'] = 'alternate';
-            } else {
-                parent.style['color'] = 'white';
-                parent.style['background-color'] = 'green';
-                parent.style['animation-name'] = null;
-                parent.style['animation-duration'] = null;
-                parent.style['animation-iteration-count'] = null;
-                parent.style['animation-direction'] = null;
-            }
+            parent.classList.remove(!blink ? 'blinkingTransitions' : 'green')
+            parent.classList.add(blink ? 'blinkingTransitions' : 'green')
         }
 
         function sendMessage() {
@@ -145,9 +187,10 @@ div {
                 node.removeChild(node.lastChild);
             }
 
-            let excludedFields = {"memberDetails" : true}
+            let excludedFields = {"memberDevices": true}
 
             var container = document.getElementById('container');
+            let counter = 0;
 
             for (var key in message) {
                 if (key in excludedFields)
@@ -155,6 +198,7 @@ div {
 
                 var column = document.createElement('div');
                 column.classList.add('column');
+                column.classList.add(counter%2 > 0 ? 'item-odd' : 'item-even');
 
                 var title = document.createElement('div');
                 title.classList.add('title');
@@ -174,6 +218,7 @@ div {
                 if (key === 'armStatus') {
                     paintArmStatus(message[key] == 'ARMED')
                 }
+                counter++;
             }
         }
 
@@ -211,8 +256,9 @@ div {
         }
     </script>
     <nav>
-        <button onclick="arm()">ARM</button>
-        <button onclick="disarm()">DISARM</button>
+        <span id="span-title"><img src="dogue.jpg" width="100px" /></span>
+        <button id="button-arm" onclick="arm()">ARM</button>
+        <button id="button-disarm" onclick="disarm()">DISARM</button>
     </nav>
     <div class="container" id="container"></div>
 </body>

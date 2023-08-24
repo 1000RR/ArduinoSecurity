@@ -20,15 +20,16 @@ deviceDictionary = {
     "0x31": "garage side door sensor 0x31",
     "0x14": "home base",
     "0xFF": "home base communicating to its arduino",
-    "0x10": "fire alarm bell",
+    "0x10": "fire alarm bell 0x10",
     "0x15": "piezo 120db alarm 0x15",
-    "0x99": "indoor siren with led"
+    "0x99": "indoor buzzer with led 0x99"
 }
 lastSentMessageTimeMsec = 0
 homeBaseId = 0x14 #interdependent with deviceDictionary
 broadcastId = 0x00
 pastEvents = []
 alarmed = False
+alarmedDevicesInCurrentArmCycle = {}
 alarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 currentlyAlarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 missingDevices = []
@@ -45,6 +46,7 @@ sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
 
+
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
 #0x80 - garage, commercial type (high emmissions, long range)
@@ -60,6 +62,15 @@ checkForMissingDevicesEveryMsec = 750
 #   {sender id hex}-{receiver id hex}-{message hex}-{devicetype hex}\n
 #when sending to 0x00 (home base arduino)
 #   {homeBaseId}-0x00-{message hex}-{message 2 hex}\n
+
+#DEVICE TYPE DICTIONARY:
+#01 controller
+#02 pir/microwave sensor
+#03 bell alarm
+#04 visual alarm
+#05 door open sensor
+
+#TODO - ADJUST AND FLASH ALL DEVICES WITH CORRECT DEVICETYPES!!
 
 np.set_printoptions(formatter={'int':hex})
 
@@ -80,6 +91,7 @@ def toggleArmed(now, method):
     global memberDevices
     global deviceDictionary
     global alarmedDevices
+    global alarmedDevicesInCurrentArmCycle
     
     lastArmedTogglePressed = now
     if (armed == True):
@@ -88,6 +100,7 @@ def toggleArmed(now, method):
         armed = False #TODO: add logging of event and source
         alarmed = False #reset alarmed state
         alarmedDevices = {}
+        alarmedDevicesInCurrentArmCycle = {}
     else:
         print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)} PER {method}<<<<<<<<<")
         addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
@@ -176,6 +189,12 @@ def getFriendlyName(address):
     strAddress = hex(address)
     return deviceDictionary[strAddress] if strAddress in deviceDictionary else "unlisted"
 
+def getFriendlyNamesFromDeviceDict(dict):
+    friendlyDeviceNames = []
+    for key in dict:
+        if key in deviceDictionary:
+            friendlyDeviceNames.append(deviceDictionary[key])
+    return friendlyDeviceNames;
 
 def checkMembersOnline():
     now = getTimeSec()
@@ -255,6 +274,7 @@ def handleMessage(msg):
     global alarmTimeLengthSec
     global currentlyAlarmedDevices
     global alarmedDevices
+    global alarmedDevicesInCurrentArmCycle
     now = getTimeSec()
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
@@ -268,7 +288,9 @@ def handleMessage(msg):
         alarmed = True
         lastAlarmTime = now;
         currentlyAlarmedDevices[hex(msg[0])] = now;
+        alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
         alarmedDevices[hex(msg[0])] = now;
+        updateCurrentlyTriggeredDevices();
         addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
         sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
 
@@ -277,8 +299,9 @@ def handleMessage(msg):
         print(f"DEVICE {hex(msg[0])} NO LONGER IN currentlyAlarmedDevices - MESSAGE TO REMOVE FROM OLED")
         #home base's arduino should not show this device's ID as one that is currently alarmed
         currentlyAlarmedDevices.pop(hex(msg[0]))
-        sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]]) 
-    updateCurrentlyTriggeredDevices();
+        sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]])
+        updateCurrentlyTriggeredDevices();
+
         
 
         
@@ -300,17 +323,27 @@ def getStatusJsonString():
     global memberDevices
     global lastArmedTogglePressed
     global strAlarmedStatus
+    global alarmedDevicesInCurrentArmCycle
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
-    outgoingMessage += '"currentTriggers": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
-    outgoingMessage += '"everTriggered": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
+    outgoingMessage += '"currentTriggeredDevices": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
+    outgoingMessage += '"currentMissingDevices": ' + str(missingDevices).replace("'","\"") + ','
+    outgoingMessage += '"everTriggeredWithinAlarmCycle": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
+    outgoingMessage += '"everTriggeredWithinArmCycle": ' + str(list(alarmedDevicesInCurrentArmCycle.keys())).replace("'","\"") + ","
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberDevices": ' + str(list(memberDevices.keys())).replace("'","\"") + ','
-    outgoingMessage += '"memberDetails": ' + str(memberDevices).replace("'","\"") + ','
-    outgoingMessage += '"missingDevices": ' + str(missingDevices).replace("'","\"")
+    outgoingMessage += '"memberDevicesReadable": ' + str(getFriendlyNamesFromDeviceDict(list(memberDevices.keys()))).replace("'","\"")
+    #outgoingMessage += '"memberDetails": ' + str(memberDevices).replace("'","\"")
+    outgoingMessage += '}'
+    return outgoingMessage
+
+def getPasEventsJsonString():
+    global pastEvents
+
+    outgoingMessage = '{"pastEvents": ' + str(pastEvents).replace("'","\"")
     outgoingMessage += '}'
     return outgoingMessage
 
@@ -361,6 +394,8 @@ def run(webserver_message_queue, alarm_message_queue):
                 toggleArmed(getTimeSec(), "WEB API")
             elif (message == "ALARM-STATUS") :
                 alarm_message_queue.put(getStatusJsonString())
+            elif (message == "PAST-EVENTS") :
+                alarm_message_queue.put(getPasEventsJsonString())
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
         
@@ -402,12 +437,12 @@ def run(webserver_message_queue, alarm_message_queue):
                 alarmed = True
                 lastAlarmTime = getTimeSec()
                 updateCurrentlyTriggeredDevices()
-                #TODO: show missing devices on oled?
                 addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
             alarmed = False
+            addEvent({"event": "FINISHED_ALARM", "time": getReadableTimeFromTimestamp(lastAlarmTime)})
             alarmedDevices = {}
             currentlyAlarmedDevices = {}
             updateCurrentlyTriggeredDevices()

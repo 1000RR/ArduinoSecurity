@@ -17,6 +17,7 @@ struct can_frame incomingCanMsg;
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 long lastSentMillis = 0;
 bool debug = false;
+int deviceType = 5;
 
 /// MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///             [1] MSG (1 byte)
@@ -55,7 +56,7 @@ void setup()
   myCanMessage.can_dlc = 3;
   myCanMessage.data[0] = homebaseCanId;
   myCanMessage.data[1] = 0x00;
-  myCanMessage.data[2] = 0x02;
+  myCanMessage.data[2] = deviceType;
 
   if (debug == true) Serial.println("Example: Write to CAN");
 }

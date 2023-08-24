@@ -19,6 +19,7 @@ struct can_frame incomingCanMsg;
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 long lastSentMillis = 0;
 int sendEveryMillis = 750;
+int deviceType = 2;
 
 /// MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///             [1] MSG (1 byte)
@@ -59,13 +60,11 @@ void setup()
     digitalWrite(relayPin, HIGH); // high = off
   }
 
-  // first 0x75 hall
-  // second 0x80 garage (hipower)
   myCanMessage.can_id = myCanId;
   myCanMessage.can_dlc = 3;
   myCanMessage.data[0] = homebaseCanId;
   myCanMessage.data[1] = 0x00;
-  myCanMessage.data[2] = 0x02;
+  myCanMessage.data[2] = deviceType;
 
   Serial.println("Example: Write to CAN");
 }

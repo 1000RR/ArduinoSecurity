@@ -19,7 +19,7 @@ int alarmConstantOnDevicePin = 7;
 int alarmVaribleDevicePin = 17; //17 is A3. A0 is 14, etc.
 long loopIndexMax = 30000;
 long sendEveryXLoops = 10000; //tied to loopIndexMax
-
+int deviceType = 3;
 int armedLedPin = 6;
 bool isAlarmed = false;
 const int BROADCAST_ADDR = 0x00;
@@ -63,7 +63,7 @@ void loop() {
   //must be able to reset trip for (determine) with the push of a button
 
   if (loopIndex % sendEveryXLoops == 0) { //every so often, let bus know this device exists
-    sendMessage(0x00, currentStatus, myCanId, 0x03); //bell is ok
+    sendMessage(0x00, currentStatus, myCanId, deviceType); //bell is ok
   }
 
   canMessageError = mcp2515.readMessage(&incomingCanMsg);
