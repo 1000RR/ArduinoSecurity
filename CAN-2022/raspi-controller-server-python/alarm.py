@@ -36,7 +36,7 @@ missingDevices = []
 lastAlarmTime = 0
 armed = False #initial condition
 lastArmedTogglePressed = 0
-alarmTimeLengthSec = 5 #audible and visual alarm will be this long
+alarmTimeLengthSec = 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 deviceAbsenceThresholdSec = 5
 firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
@@ -440,7 +440,7 @@ def run(webserver_message_queue, alarm_message_queue):
                 addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
-        if (alarmed and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
+        if (alarmed and alarmTimeLengthSec > -1 and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
             alarmed = False
             addEvent({"event": "FINISHED_ALARM", "time": getReadableTimeFromTimestamp(lastAlarmTime)})
             alarmedDevices = {}
