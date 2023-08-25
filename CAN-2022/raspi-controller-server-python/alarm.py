@@ -30,6 +30,7 @@ broadcastId = 0x00
 pastEvents = []
 alarmed = False
 alarmedDevicesInCurrentArmCycle = {}
+missingDevicesInCurrentArmCycle = {}
 alarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 currentlyAlarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 missingDevices = []
@@ -70,7 +71,6 @@ checkForMissingDevicesEveryMsec = 750
 #04 visual alarm
 #05 door open sensor
 
-#TODO - ADJUST AND FLASH ALL DEVICES WITH CORRECT DEVICETYPES!!
 
 np.set_printoptions(formatter={'int':hex})
 
@@ -92,6 +92,7 @@ def toggleArmed(now, method):
     global deviceDictionary
     global alarmedDevices
     global alarmedDevicesInCurrentArmCycle
+    global missingDevicesInCurrentArmCycle
     
     lastArmedTogglePressed = now
     if (armed == True):
@@ -101,6 +102,7 @@ def toggleArmed(now, method):
         alarmed = False #reset alarmed state
         alarmedDevices = {}
         alarmedDevicesInCurrentArmCycle = {}
+        missingDevicesInCurrentArmCycle = {}
     else:
         print(f">>>>>>>>TURNING ON ALARM AT {getReadableTimeFromTimestamp(now)} PER {method}<<<<<<<<<")
         addEvent({"event": "ARMED", "time": getReadableTimeFromTimestamp(now), "method": method})
@@ -109,8 +111,8 @@ def toggleArmed(now, method):
         alarmedDevices = {}
     
     
-    sendPowerCommandDependingOnArmedState() #TODO - here?
-    sendArmedLedSignal() #TODO - here?
+    sendPowerCommandDependingOnArmedState() 
+    sendArmedLedSignal() 
     print("Clearing member devices list")
     memberDevices = {} #reset all members on the bus when turning on/off
 
@@ -199,13 +201,14 @@ def getFriendlyNamesFromDeviceDict(dict):
 def checkMembersOnline():
     now = getTimeSec()
     global lastCheckedMissingDevicesMsec
+    global missingDevicesInCurrentArmCycle
     lastCheckedMissingDevicesMsec = getTimeMsec()
     missingMembers = []
     for memberId in memberDevices :
         if (memberDevices[memberId]['lastSeen'] + deviceAbsenceThresholdSec < now) :
             print(f"Adding missing device {memberId} at {getReadableTime()}. missing for {(getTimeSec()-memberDevices[memberId]['lastSeen'])} seconds")
             missingMembers.append(memberId)
-        ##TODO WRITE A FOUND MISSING DEVICE HANDLER THAT OUTPUTS TO LOG
+            missingDevicesInCurrentArmCycle[memberId] = now
     return missingMembers
 
 
@@ -275,6 +278,7 @@ def handleMessage(msg):
     global currentlyAlarmedDevices
     global alarmedDevices
     global alarmedDevicesInCurrentArmCycle
+    global missingDevicesInCurrentArmCycle
     now = getTimeSec()
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
@@ -324,6 +328,7 @@ def getStatusJsonString():
     global lastArmedTogglePressed
     global strAlarmedStatus
     global alarmedDevicesInCurrentArmCycle
+    global missingDevicesInCurrentArmCycle
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
@@ -332,6 +337,7 @@ def getStatusJsonString():
     outgoingMessage += '"currentMissingDevices": ' + str(missingDevices).replace("'","\"") + ','
     outgoingMessage += '"everTriggeredWithinAlarmCycle": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
     outgoingMessage += '"everTriggeredWithinArmCycle": ' + str(list(alarmedDevicesInCurrentArmCycle.keys())).replace("'","\"") + ","
+    outgoingMessage += '"everMissingWithinArmCycle": ' + str(list(missingDevicesInCurrentArmCycle.keys())).replace("'","\"") + ","
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberCount": ' + str(len(memberDevices)) + ','
     outgoingMessage += '"memberDevices": ' + str(list(memberDevices.keys())).replace("'","\"") + ','
@@ -464,16 +470,17 @@ def run(webserver_message_queue, alarm_message_queue):
 
 
 #TODO:
-#This should be in the polling thread
-#Other thread should have a web server that is behind good auth, APIs should control things.
-#DONE Other thread should take care of tracking what devices are present, and alarming if any disappear
-#Other thread should have configurable profiles of which devices: are on, should be listened to, what the outcome is when tripped
-#DONE Other thread should be able to switch between armed and disarmed
-#Other thread should be able to switch current profile
-#DONE Other thread should allow for genie remote on/off operation
-#DONE Other thread should log first land last occurrence of presence of a device
-#Other thread should log REASON for alarm (alarm, absence of device for X, policy at the time, and time)
-#DONE Other thread should enable high current-drawing alarm devices in a staged way with a delay- THE SECOND DIGIT OF THE DEVICE TYPE SHOULD BE (0 - low current draw; 1 - high current draw)
+#ADJUST AND FLASH ALL DEVICES WITH CORRECT DEVICETYPES!!
+#web server certs auth
+#profiles
+#profiles with trigger conditions and overridable default alarm (specific-device alarms)
+#overlapping profiles (multiple alarm sessions at the same time)
+#rename variables
+#long antenna for key fob
+#remote garage opener
+#light alarm 24v
+#wire the wall
+#power things for any device with relay into 5v
 
 
 #pmd.reset_output_buffer()

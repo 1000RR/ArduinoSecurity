@@ -49,9 +49,6 @@ void setup()
   // pinMode(led, OUTPUT);      // initalize LED as an output
   pinMode(sensorPin, INPUT_PULLUP); // initialize sensor as an input
 
-
-  // first 0x75 hall
-  // second 0x80 garage (hipower)
   myCanMessage.can_id = myCanId;
   myCanMessage.can_dlc = 3;
   myCanMessage.data[0] = homebaseCanId;
