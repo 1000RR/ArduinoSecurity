@@ -389,6 +389,20 @@ def getPasEventsJsonString():
     outgoingMessage += '}'
     return outgoingMessage
 
+def stopAlarm():
+    global alarmed
+    global lastAlarmTime
+    global alarmedDevices
+    global currentlyAlarmedDevices
+    global homeBaseId
+
+    alarmed = False
+    addEvent({"event": "FINISHED_ALARM", "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+    alarmedDevices = {}
+    currentlyAlarmedDevices = {}
+    updateCurrentlyTriggeredDevices()
+    sendMessage([homeBaseId, 0xFF, 0xC0, 0x01])
+
 
 def run(webserver_message_queue, alarm_message_queue):
     global debug
@@ -476,7 +490,7 @@ def run(webserver_message_queue, alarm_message_queue):
         handleMessage(msg)
 
 
-        if (lastCheckedMissingDevicesMsec+checkForMissingDevicesEveryMsec < getTimeMsec()):
+        if (lastCheckedMissingDevicesMsec+checkForMissingDevicesEveryMsec < getTimeMsec()):  #do a check for missing devices
             if (debug): 
                 print(f">>>Checking for missing devices at {getTimeMsec()}")
             missingDevices = checkMembersOnline()
@@ -484,45 +498,38 @@ def run(webserver_message_queue, alarm_message_queue):
             if (armed and len(missingDevices) > 0):
                 updateCurrentlyTriggeredDevices()
                 print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
-                alarmed = True
-                lastAlarmTime = getTimeSec()
-                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                shouldSetNewAlarm = false;
+                for missingDevice in missingDevices:
+                    if (missingDevice in alarmProfiles[currentAlarmProfile]["missingDevicesThatTriggerAlarm"]):
+                        shouldSetNewAlarm = True
+                        break;
+                if (shouldSetNewAlarm):
+                    alarmed = True
+                    lastAlarmTime = getTimeSec()
+                    addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                else :
+                    addEvent({"event": "DEVICE-MISSING-NOALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and alarmTimeLengthSec > -1 and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
-            alarmed = False
-            addEvent({"event": "FINISHED_ALARM", "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+            stopAlarm()
+
+        elif (not alarmed):
             alarmedDevices = {}
             currentlyAlarmedDevices = {}
             updateCurrentlyTriggeredDevices()
-            sendMessage([homeBaseId, 0xFF, 0xC0, 0x01]) #TODO: send to those nodes that need to be reset
 
-        elif (alarmed and len(missingDevices) > 0):
-            alarmed = True
-            updateCurrentlyTriggeredDevices();
-
-        elif (alarmed and len(currentlyAlarmedDevices) > 0):
-            alarmed = True
-            updateCurrentlyTriggeredDevices();
-
+        else:
+            updateCurrentlyTriggeredDevices()
 
         #possibly send a message (if it's been sendTimeoutMsec)
         if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
-            if (armed and alarmed):
-                if (currentAlarmProfile > 0):
-                    for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
-                        sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xBB, 0x01])
-                else:
-                    sendMessage([homeBaseId, 0x00, 0xBB, 0x01])
+            if (currentAlarmProfile > 0):
+                for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
+                    sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xBB if armed and alarmed else 0xCC, 0x01])
             else:
-                alarmed = False
-                if (currentAlarmProfile > 0):
-                    for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
-                        sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xCC, 0x01])
-                else:
-                    sendMessage([homeBaseId, 0x00, 0xCC, 0x01])
-                alarmedDevices = {}
-                currentlyAlarmedDevices = {}
+                sendMessage([homeBaseId, 0x00, 0xBB if armed and alarmed else 0xCC, 0x01])
+            
 
 
 #TODO:
