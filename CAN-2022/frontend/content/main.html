@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <title>BOBIK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
@@ -14,8 +15,27 @@
     border-radius: 4px;
 }
 
+@supports (-webkit-touch-callout: none) {
+    body {
+        font-size: 35px;
+    }
+
+    #arm-status-light {
+        width: 200px !important;
+    }
+
+    text {
+        transform: scaleY(4) !important;
+        transform-origin: 0 0 !important;
+    }
+}
+
+@supports not (-webkit-touch-callout: none) {
+  
+}
+
 #span-title {
-    margin-right: auto;
+
 }
 
 .json-key {
@@ -43,32 +63,93 @@
 }
 
 .blue {
-    color: white;
-    background-color: blue;
+    color: white !important;
+    background-color: blue !important;
 }
 
 .red {
-    color: white;
-    background-color: red;
+    color: white !important;
+    background-color: red !important;
+}
+
+.bluebg {
+    background-color: rgba(100, 87, 255, 0.52) !important;
+}
+
+.redbg {
+    background-color: rgba(255, 87, 87, 0.52) !important;
 }
 
 .green {
-    color: white;
-    background-color: green;
+    color: white !important;
+    background-color: green !important ;
 }
 
 .gray {
-    color: black;
-    background-color: lightgray;
+    color: black !important;
+    background-color: lightgray !important;
+}
+
+#title-image {
+    padding: 20px;
+}
+
+.angry-dog {
+    content: url("dog.jpg") !important;
+}
+
+hr {
+    height: 0px;
+    border: none;
+}
+
+#arm-status-controls-holder {
+    width: 150px;
+    height: 150px;
+    padding: 20px;
+    margin: 0px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#alarm-status-light {
+    background-color: white;
+    width: 75%;
+    height: 160px;
+    border: 0px solid red;
+    border-radius: 25px;
+    -moz-border-radius: 25px;
+    display: flex;
+    flex-direction: row;
+    padding-left: 20px;
+    padding-right: 20px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#arm-status-light {
+    background-color: white;
+    margin: 10px;
+    width: 150px;
+    height: 150px;
+    padding: 0px;
+    border: 0px solid red;
+    border-radius: 25px;
+    -moz-border-radius: 25px;
+    align-items: center;
+    justify-content: space-around;
+    display: flex;
+
 }
 
 button {
     border-radius: 8px;
-    height: 40px;
-    padding-left: 20px;
-    padding-right: 20px;
+    height: 120px;
+    width: 180px;
     transition-duration: .4s;
-    margin-left: 20px;
+    font-size: inherit;
 }
 
 button:hover {
@@ -82,10 +163,11 @@ button:hover {
     animation-duration: .2s;
     animation-iteration-count: infinite;
     animation-direction: alternate;
+    animation-timing-function: linear;
 }
 
 nav {
-    background-color: darkgray;
+    background-color: rgba(0, 0, 0, 0.53);
     margin-bottom: 20px;
     margin-top: 20px;
     justify-content: space-around;
@@ -123,15 +205,22 @@ div {
 </style>
 <body>    
     <script type="text/javascript">
-        var socket = io.connect('http://bobikwifi:8080');
+        var socket = io.connect('http://bobik:8080');
+        let strOldData = "";
 
         socket.on('connect', function() {
             console.log('Connected to server');
         });
 
         socket.on('postStatus', function(data) {
-            console.log('Message from server:', data.message);
-            renderMessage(data.message);
+            //console.log('Message from server:', data.message);
+            if (strOldData == JSON.stringify(data.message))
+                return;
+            else {
+                renderMessage(data.message);
+                strOldData = JSON.stringify(data.message)    
+            }
+            
             blinkAlarmStatus(data.message.alarmStatus === "ALARM");
 
         });
@@ -139,19 +228,34 @@ div {
         function paintArmStatus(isArmed) {
             let divs = document.getElementsByClassName('class-armStatus');
             if (!divs.length) return;
-            let parent = divs[0].parentElement;
-
+            let armStatusJsonRow = divs[0].parentElement;
             let armButton = document.getElementById('button-arm');
             let disarmButton = document.getElementById('button-disarm');
+            let armStatusDiv = document.getElementById('arm-status-light');
+            let titleImage = document.getElementById('title-image');
+            let body = document.body;
 
-            parent.classList.remove(!isArmed ? "blue" : "red")
-            parent.classList.add(isArmed ? "blue" : "red")
+            armStatusDiv.classList.remove(!isArmed ? "blue" : "red")
+            armStatusDiv.classList.add(isArmed ? "blue" : "red")
+            armStatusDiv.innerText = (isArmed ? "ARMED" : "DISARMED") //direct DOM ACCESS
+
+            armStatusJsonRow.classList.remove(!isArmed ? "blue" : "red")
+            armStatusJsonRow.classList.add(isArmed ? "blue" : "red")
+
+            body.classList.remove(!isArmed ? "bluebg" : "redbg")
+            body.classList.add(isArmed ? "bluebg" : "redbg")
 
             armButton.classList.remove(!isArmed ? "gray" : "blue");
             armButton.classList.add(isArmed ? "gray" : "blue");
 
             disarmButton.classList.remove(!isArmed ? "red" : "gray");
             disarmButton.classList.add(isArmed ? "red" : "gray");
+
+            if (isArmed) {
+                titleImage.classList.add("angry-dog");
+            } else {
+                titleImage.classList.remove("angry-dog");
+            }
         }
 
         function blinkAlarmStatus(blink) {
@@ -160,6 +264,9 @@ div {
             let parent = divs[0].parentElement;
             parent.classList.remove(!blink ? 'blinkingTransitions' : 'green')
             parent.classList.add(blink ? 'blinkingTransitions' : 'green')
+            let alarmStatusDiv = document.getElementById('alarm-status-light');
+            alarmStatusDiv.classList.remove(!blink ? 'blinkingTransitions' : 'green')
+            alarmStatusDiv.classList.add(blink ? 'blinkingTransitions' : 'green')
         }
 
         function sendMessage() {
@@ -174,7 +281,11 @@ div {
             socket.emit('disarm', {message: undefined});
         }
 
-        setInterval(sendMessage, 500);
+        function toggleMissingAlarm() {
+            socket.emit('toggleMissingAlarm', {message: undefined});
+        }
+
+        setInterval(sendMessage, 1000);
 
         function renderMessage(message) {
             var node = document.getElementById('container');
@@ -208,7 +319,7 @@ div {
                 var value = document.createElement('div');
                 value.id = 'div-' + key;
                 value.classList.add('class-' + key);
-                value.innerHTML = getJSONtext(message[key]);
+                value.innerHTML = getJSONtext(message[key]); //DIRECT DOM ACCESS
 
                 column.appendChild(title);
                 column.appendChild(value);
@@ -256,9 +367,18 @@ div {
         }
     </script>
     <nav>
-        <span id="span-title"><img src="dogue.jpg" width="100px" /></span>
-        <button id="button-arm" onclick="arm()">ARM</button>
-        <button id="button-disarm" onclick="disarm()">DISARM</button>
+        <span id="span-title">
+            <img id="title-image" src="dogue.jpg" width="130px" height="170px" />
+        </span>
+        <div id="alarm-status-light">
+            <button id="button-arm" onclick="arm()">ARM</button>
+            <button id="button-toggle-missing-alarm" onclick="toggleMissingAlarm()">TOGGLE<hr>MISSING<hr>ALARMS</button>
+            <button id="button-disarm" onclick="disarm()">DISARM</button>
+        </div>
+        <div id="arm-status-controls-holder">
+            <div id="arm-status-light"></div>
+            
+        </div>
     </nav>
     <div class="container" id="container"></div>
 </body>

@@ -61,6 +61,11 @@ def main():
         webserver_message_queue.put("DISABLE-ALARM")
         return jsonify({"status": "DISARMED"}), 200
 
+    @app.route('/togglemissingalarm', methods=['GET'])
+    def togglemissingalarm():
+        webserver_message_queue.put("TOGGLE-MISSING-DEVICE-ALARM")
+        return jsonify({"status": "toggled"}), 200
+
     @app.route('/status', methods=['GET'])
     def status():
         webserver_message_queue.put("ALARM-STATUS")
@@ -104,6 +109,10 @@ def main():
         #print(json.dumps(json.loads(message), indent=2))
         emit('postStatus', {'message': json.loads(message)}, broadcast=True)
 
+    @socketio.on('toggleMissingAlarm')
+    def toggleMissingAlarm(message):
+        webserver_message_queue.put('TOGGLE-MISSING-DEVICE-ALARM')
+
     @socketio.on('arm')
     def arm(message):
         webserver_message_queue.put("ENABLE-ALARM")
@@ -112,7 +121,7 @@ def main():
     def disarm(message):
         webserver_message_queue.put("DISABLE-ALARM")
 
-    @socketio.on('pastevents')
+    @socketio.on('pastEvents')
     def disarm(message):
         webserver_message_queue.put("PAST-EVENTS")
 

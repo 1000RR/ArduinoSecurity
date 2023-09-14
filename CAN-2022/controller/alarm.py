@@ -38,7 +38,7 @@ lastAlarmTime = 0
 armed = False #initial condition
 lastArmedTogglePressed = 0
 alarmTimeLengthSec = 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-deviceAbsenceThresholdSec = 5
+deviceAbsenceThresholdSec = 7
 firstPowerCommandNeedsToBeSent = True
 timeAllottedToBuildOutMembersSec = 2
 initWaitSeconds = 5
@@ -46,7 +46,7 @@ alarmReason = ""
 sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
-
+shouldAlarmIfMissing = True
 
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
@@ -329,10 +329,12 @@ def getStatusJsonString():
     global strAlarmedStatus
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
+    global shouldAlarmIfMissing
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
+    outgoingMessage += '"missingDeviceShouldAlarm": "' + str(shouldAlarmIfMissing) + '",'
     outgoingMessage += '"currentTriggeredDevices": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
     outgoingMessage += '"currentMissingDevices": ' + str(missingDevices).replace("'","\"") + ','
     outgoingMessage += '"everTriggeredWithinAlarmCycle": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
@@ -377,6 +379,7 @@ def run(webserver_message_queue, alarm_message_queue):
     global missingDevices
     global checkForMissingDevicesEveryMsec
     global lastCheckedMissingDevicesMsec
+    global shouldAlarmIfMissing
 
     atexit.register(exitSteps)
     print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTimeSec())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
@@ -402,6 +405,8 @@ def run(webserver_message_queue, alarm_message_queue):
                 alarm_message_queue.put(getStatusJsonString())
             elif (message == "PAST-EVENTS") :
                 alarm_message_queue.put(getPasEventsJsonString())
+            elif (message == "TOGGLE-MISSING-DEVICE-ALARM") :
+                shouldAlarmIfMissing = not shouldAlarmIfMissing
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
         
@@ -439,11 +444,14 @@ def run(webserver_message_queue, alarm_message_queue):
             missingDevices = checkMembersOnline()
 
             if (armed and len(missingDevices) > 0):
-                print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
-                alarmed = True
-                lastAlarmTime = getTimeSec()
                 updateCurrentlyTriggeredDevices()
-                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
+                if (shouldAlarmIfMissing):
+                    alarmed = True
+                    lastAlarmTime = getTimeSec()
+                    addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                else :
+                    addEvent({"event": "MISSING-DEVICE", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and alarmTimeLengthSec > -1 and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
@@ -454,9 +462,15 @@ def run(webserver_message_queue, alarm_message_queue):
             updateCurrentlyTriggeredDevices()
             sendMessage([homeBaseId, 0xFF, 0xC0, 0x01]) #TODO: send to those nodes that need to be reset
 
-        elif (alarmed and (len(missingDevices) > 0 or len(currentlyAlarmedDevices) > 0)):
+        elif (alarmed and len(missingDevices) > 0):
+            if (shouldAlarmIfMissing):
+                alarmed = True
+            updateCurrentlyTriggeredDevices();
+
+        elif (alarmed and len(currentlyAlarmedDevices) > 0):
             alarmed = True
             updateCurrentlyTriggeredDevices();
+
 
         #possibly send a message (if it's been sendTimeoutMsec)
         if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
