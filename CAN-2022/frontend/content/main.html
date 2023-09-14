@@ -28,6 +28,10 @@
         transform: scaleY(4) !important;
         transform-origin: 0 0 !important;
     }
+
+    select {
+        scale: 150%;
+    }
 }
 
 @supports not (-webkit-touch-callout: none) {
@@ -100,8 +104,21 @@ hr {
 }
 
 select {
-    font-size: 15px;
+    scale: 150%;
 }
+
+#right-button-spacer {
+    height: 20px;
+}
+
+.vertical-button-holder {
+    height: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
 
 #arm-status-controls-holder {
     width: 150px;
@@ -117,14 +134,12 @@ select {
 #alarm-status-light {
     background-color: white;
     width: 75%;
-    height: 160px;
+    height: 200px;
     border: 0px solid red;
-    border-radius: 25px;
+    border-radius: 10px;
     -moz-border-radius: 25px;
     display: flex;
     flex-direction: row;
-    padding-left: 20px;
-    padding-right: 20px;
     align-items: center;
     justify-content: space-between;
 }
@@ -426,9 +441,14 @@ div {
             <img id="title-image" src="dogue.jpg" width="130px" height="170px" />
         </span>
         <div id="alarm-status-light">
-            <button id="button-arm" onclick="arm()">ARM</button>
-            <div id="profiles-dropdown-container"></div>
-            <button id="button-disarm" onclick="disarm()">DISARM</button>
+            <div id="vertical-button-holder-left" class="vertical-button-holder">
+                <button id="button-arm" onclick="arm()">ARM</button>
+                <div id="profiles-dropdown-container"></div>
+            </div>
+            <div id="vertical-button-holder-right" class="vertical-button-holder">
+                <button id="button-disarm" onclick="disarm()">DISARM</button>
+                <div id="right-button-spacer"></div>
+            </div>
         </div>
         <div id="arm-status-controls-holder">
             <div id="arm-status-light"></div>
