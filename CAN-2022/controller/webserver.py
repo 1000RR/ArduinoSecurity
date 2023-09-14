@@ -61,11 +61,6 @@ def main():
         webserver_message_queue.put("DISABLE-ALARM")
         return jsonify({"status": "DISARMED"}), 200
 
-    @app.route('/togglemissingalarm', methods=['GET'])
-    def togglemissingalarm():
-        webserver_message_queue.put("TOGGLE-MISSING-DEVICE-ALARM")
-        return jsonify({"status": "toggled"}), 200
-
     @app.route('/status', methods=['GET'])
     def status():
         webserver_message_queue.put("ALARM-STATUS")
@@ -99,7 +94,6 @@ def main():
 
     @socketio.on('getStatus')
     def handle_message(message):
-        print(message)
         #emit('message_from_server', {'message': message['message']}, broadcast=True)
         webserver_message_queue.put("ALARM-STATUS")
         try:
@@ -108,10 +102,6 @@ def main():
             message = "NO RESPONSE"
         #print(json.dumps(json.loads(message), indent=2))
         emit('postStatus', {'message': json.loads(message)}, broadcast=True)
-
-    @socketio.on('toggleMissingAlarm')
-    def toggleMissingAlarm(message):
-        webserver_message_queue.put('TOGGLE-MISSING-DEVICE-ALARM')
 
     @socketio.on('arm')
     def arm(message):
@@ -125,6 +115,18 @@ def main():
     def disarm(message):
         webserver_message_queue.put("PAST-EVENTS")
 
+    @socketio.on('getAlarmProfiles')
+    def getProfiles(message):
+        webserver_message_queue.put("GET-ALARM-PROFILES")
+        try:
+            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
+        except Queue.empty: 
+            message = "NO RESPONSE"
+        emit('postAlarmProfiles', {'message': json.loads(message)}, broadcast=True)
+
+    @socketio.on('setAlarmProfile')
+    def setAlarmProfile(message):
+        webserver_message_queue.put("SET-ALARM-PROFILE-" + str(message['message']))
 
     @socketio.on_error()
     def error(e):

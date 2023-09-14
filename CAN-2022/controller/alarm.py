@@ -24,6 +24,14 @@ deviceDictionary = {
     "0x15": "piezo 120db alarm 0x15",
     "0x99": "indoor buzzer with led 0x99"
 }
+alarmProfiles = [{
+    "name": "Default (all->all)" #all missing and all triggers BROADCAST ALARM
+}, {
+    "name": "Night",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "alarmOutputDevices": ["0x99"]
+}]
 lastSentMessageTimeMsec = 0
 homeBaseId = 0x14 #interdependent with deviceDictionary
 broadcastId = 0x00
@@ -46,7 +54,7 @@ alarmReason = ""
 sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
-shouldAlarmIfMissing = True
+currentAlarmProfile = 0 # 0 = default
 
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
@@ -73,6 +81,12 @@ shouldAlarmIfMissing = True
 
 
 np.set_printoptions(formatter={'int':hex})
+
+def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices trigger. Alarms are broadcast to all devices.
+    global currentAlarmProfile
+    global alarmProfiles
+    if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
+        currentAlarmProfile = profileNumber
 
 def addEvent(event):
     global pastEvents
@@ -191,12 +205,14 @@ def getFriendlyName(address):
     strAddress = hex(address)
     return deviceDictionary[strAddress] if strAddress in deviceDictionary else "unlisted"
 
+
 def getFriendlyNamesFromDeviceDict(dict):
     friendlyDeviceNames = []
     for key in dict:
         if key in deviceDictionary:
             friendlyDeviceNames.append(deviceDictionary[key])
     return friendlyDeviceNames;
+
 
 def checkMembersOnline():
     now = getTimeSec()
@@ -279,6 +295,8 @@ def handleMessage(msg):
     global alarmedDevices
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
+    global currentAlarmProfile
+
     now = getTimeSec()
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
@@ -287,7 +305,7 @@ def handleMessage(msg):
         return
 
     #alarm message coming in from a device that isn't in the currentlyAlarmedDevices list
-    if (armed and (msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices): 
+    if (armed and (msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices and (currentAlarmProfile == 0 or (currentAlarmProfile > 0 and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"]))): 
         print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
         alarmed = True
         lastAlarmTime = now;
@@ -296,6 +314,7 @@ def handleMessage(msg):
         alarmedDevices[hex(msg[0])] = now;
         updateCurrentlyTriggeredDevices();
         addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+        print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
         sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
@@ -306,9 +325,7 @@ def handleMessage(msg):
         sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]])
         updateCurrentlyTriggeredDevices();
 
-        
 
-        
 def updateCurrentlyTriggeredDevices():
     global alarmReason
     global currentlyAlarmedDevices
@@ -321,6 +338,20 @@ def updateCurrentlyTriggeredDevices():
         alarmReason += ("" if not alarmReason else " ") +"tripped " + alarmedId
     if (debug): print("Updated alarm reason to: " + alarmReason)
 
+
+def getProfilesJsonString():
+    global currentAlarmProfile
+    global alarmProfiles
+
+    profilesJSON = ""
+    for profile in alarmProfiles:
+        profilesJSON += json.dumps(profile) + ","
+    profilesJSON = profilesJSON[:-1]
+
+    strReturn = '{"profiles": [' + profilesJSON + ']}'
+    return strReturn
+
+
 def getStatusJsonString():
     global currentlyAlarmedDevices
     global alarmedDevices
@@ -329,12 +360,14 @@ def getStatusJsonString():
     global strAlarmedStatus
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
-    global shouldAlarmIfMissing
+    global currentAlarmProfile
+    global alarmProfiles
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
-    outgoingMessage += '"missingDeviceShouldAlarm": "' + str(shouldAlarmIfMissing) + '",'
+    outgoingMessage += '"profile": "' + alarmProfiles[currentAlarmProfile]["name"] + '",'
+    outgoingMessage += '"profileNumber": "' + str(currentAlarmProfile) + '",'
     outgoingMessage += '"currentTriggeredDevices": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
     outgoingMessage += '"currentMissingDevices": ' + str(missingDevices).replace("'","\"") + ','
     outgoingMessage += '"everTriggeredWithinAlarmCycle": ' + str(list(alarmedDevices.keys())).replace("'","\"") + ","
@@ -347,6 +380,7 @@ def getStatusJsonString():
     #outgoingMessage += '"memberDetails": ' + str(memberDevices).replace("'","\"")
     outgoingMessage += '}'
     return outgoingMessage
+
 
 def getPasEventsJsonString():
     global pastEvents
@@ -379,7 +413,8 @@ def run(webserver_message_queue, alarm_message_queue):
     global missingDevices
     global checkForMissingDevicesEveryMsec
     global lastCheckedMissingDevicesMsec
-    global shouldAlarmIfMissing
+    global alarmProfiles
+    global currentAlarmProfile
 
     atexit.register(exitSteps)
     print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTimeSec())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
@@ -405,8 +440,11 @@ def run(webserver_message_queue, alarm_message_queue):
                 alarm_message_queue.put(getStatusJsonString())
             elif (message == "PAST-EVENTS") :
                 alarm_message_queue.put(getPasEventsJsonString())
-            elif (message == "TOGGLE-MISSING-DEVICE-ALARM") :
-                shouldAlarmIfMissing = not shouldAlarmIfMissing
+            elif (message.startswith("SET-ALARM-PROFILE-")):
+                print("SETTING ALARM PROFILE " + str(message.split("SET-ALARM-PROFILE-",1)[1]))
+                setCurrentAlarmProfile(int(message.split("SET-ALARM-PROFILE-",1)[1]))
+            elif (message == "GET-ALARM-PROFILES") :
+                 alarm_message_queue.put(getProfilesJsonString())
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
         
@@ -446,12 +484,9 @@ def run(webserver_message_queue, alarm_message_queue):
             if (armed and len(missingDevices) > 0):
                 updateCurrentlyTriggeredDevices()
                 print(f">>>>>>>>>>>>>>>>>>>> ADDING MISSING DEVICES {arrayToString(missingDevices)} at {getReadableTime()}<<<<<<<<<<<<<<<<<<<")
-                if (shouldAlarmIfMissing):
-                    alarmed = True
-                    lastAlarmTime = getTimeSec()
-                    addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
-                else :
-                    addEvent({"event": "MISSING-DEVICE", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                alarmed = True
+                lastAlarmTime = getTimeSec()
+                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and alarmTimeLengthSec > -1 and lastAlarmTime + alarmTimeLengthSec < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
@@ -463,8 +498,7 @@ def run(webserver_message_queue, alarm_message_queue):
             sendMessage([homeBaseId, 0xFF, 0xC0, 0x01]) #TODO: send to those nodes that need to be reset
 
         elif (alarmed and len(missingDevices) > 0):
-            if (shouldAlarmIfMissing):
-                alarmed = True
+            alarmed = True
             updateCurrentlyTriggeredDevices();
 
         elif (alarmed and len(currentlyAlarmedDevices) > 0):
@@ -475,10 +509,18 @@ def run(webserver_message_queue, alarm_message_queue):
         #possibly send a message (if it's been sendTimeoutMsec)
         if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
             if (armed and alarmed):
-                sendMessage([homeBaseId, 0x00, 0xBB, 0x01]) #TODO: send to those nodes that need to be triggered
+                if (currentAlarmProfile > 0):
+                    for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
+                        sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xBB, 0x01])
+                else:
+                    sendMessage([homeBaseId, 0x00, 0xBB, 0x01])
             else:
                 alarmed = False
-                sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #TODO: send to those nodes that need to be reset
+                if (currentAlarmProfile > 0):
+                    for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
+                        sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xCC, 0x01])
+                else:
+                    sendMessage([homeBaseId, 0x00, 0xCC, 0x01])
                 alarmedDevices = {}
                 currentlyAlarmedDevices = {}
 

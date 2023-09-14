@@ -34,10 +34,6 @@
   
 }
 
-#span-title {
-
-}
-
 .json-key {
     color: blue;
 }
@@ -101,6 +97,10 @@
 hr {
     height: 0px;
     border: none;
+}
+
+select {
+    font-size: 15px;
 }
 
 #arm-status-controls-holder {
@@ -206,7 +206,9 @@ div {
 <body>    
     <script type="text/javascript">
         var socket = io.connect('http://bobik:8080');
-        let strOldData = "";
+        let strOldStatusData = "";
+        let strOldProfilesData = "";
+        let intProfileNumber = 0;
 
         socket.on('connect', function() {
             console.log('Connected to server');
@@ -214,15 +216,29 @@ div {
 
         socket.on('postStatus', function(data) {
             //console.log('Message from server:', data.message);
-            if (strOldData == JSON.stringify(data.message))
+            if (strOldStatusData == JSON.stringify(data.message))
                 return;
             else {
-                renderMessage(data.message);
-                strOldData = JSON.stringify(data.message)    
+                renderMessage(data.message, 'statusContainer');
+                updateProfilesDropdownSelection(data.message);
+                strOldStatusData = JSON.stringify(data.message);
             }
             
             blinkAlarmStatus(data.message.alarmStatus === "ALARM");
+        });
 
+        socket.on('postAlarmProfiles', function(data) {
+            //console.log('Message from server:', data.message);
+            if (!(data && data.message && data.message.profiles)) {
+                return;
+            }
+            if (strOldProfilesData == JSON.stringify(data.message))
+                return;
+            else {
+                renderMessage(data.message, 'profilesContainer');
+                renderProfilesDropdown(data.message.profiles)
+                strOldProfilesData = JSON.stringify(data.message)    
+            }
         });
 
         function paintArmStatus(isArmed) {
@@ -281,26 +297,65 @@ div {
             socket.emit('disarm', {message: undefined});
         }
 
-        function toggleMissingAlarm() {
-            socket.emit('toggleMissingAlarm', {message: undefined});
-        }
+        function setAlarmProfile() {
+            let selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
+            intProfileNumber = selectedIndex;
+            socket.emit('setAlarmProfile', {message: selectedIndex});
+        } 
 
         setInterval(sendMessage, 1000);
+        setTimeout(() => {socket.emit('getAlarmProfiles', { message: undefined });}, 500);
+        
+        function updateProfilesDropdownSelection(newStatusData) {
+            let oldProfileNumber = intProfileNumber; //global
+            let newProfileNumber = Number(newStatusData.profileNumber);
+            if (oldProfileNumber !== newProfileNumber && document.getElementById('profiles-dropdown').selectedIndex !== newProfileNumber) {
+                document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
+                intProfileNumber = newProfileNumber;
+            }
+        }
 
-        function renderMessage(message) {
-            var node = document.getElementById('container');
-            // if (node.hasChildNodes()) {
-            //     for (child in node.children) {
-            //         node.children[child].removeChild(node.children[child].lastChild)
-            //     }
-            // }
+        function renderProfilesDropdown(arrProfiles) {
+            var container = document.getElementById("profiles-dropdown-container");
+            let dropdown;
+            
+            if (!container.hasChildNodes()) {
+                dropdown = document.createElement('select');
+                dropdown.setAttribute('id', 'profiles-dropdown');
+                dropdown.addEventListener('change', setAlarmProfile);
+            } else {
+                dropdown = document.getElementById('profiles-dropdown');
+            }
+
+            while (dropdown.hasChildNodes()) {
+                dropdown.removeChild(dropdown.lastChild);
+            }
+
+            arrProfiles.forEach((profile, index) => {
+                const option = document.createElement('option');
+                option.value = profile.index+1;
+                option.text = profile.name;
+                dropdown.appendChild(option);
+            });
+
+            container.appendChild(dropdown);
+
+
+            // Append the select element to the container
+            if (!container.hasChildNodes()) {
+                container.appendChild(dropdown);
+            }
+        }
+
+        function renderMessage(message, containerName) {
+            var node = document.getElementById(containerName);
             while (node.hasChildNodes()) {
                 node.removeChild(node.lastChild);
             }
 
-            let excludedFields = {"memberDevices": true}
+            let excludedFields = {"memberDevices": true, "profileNumber": true}
 
-            var container = document.getElementById('container');
+            var container = document.getElementById(containerName);
             let counter = 0;
 
             for (var key in message) {
@@ -372,7 +427,7 @@ div {
         </span>
         <div id="alarm-status-light">
             <button id="button-arm" onclick="arm()">ARM</button>
-            <button id="button-toggle-missing-alarm" onclick="toggleMissingAlarm()">TOGGLE<hr>MISSING<hr>ALARMS</button>
+            <div id="profiles-dropdown-container"></div>
             <button id="button-disarm" onclick="disarm()">DISARM</button>
         </div>
         <div id="arm-status-controls-holder">
@@ -380,6 +435,7 @@ div {
             
         </div>
     </nav>
-    <div class="container" id="container"></div>
+    <div class="container" id="statusContainer"></div>
+    <div class="container" id="profilesContainer"></div>
 </body>
 </html>
