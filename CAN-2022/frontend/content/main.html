@@ -5,236 +5,55 @@
     <meta charset="UTF-8">
     <title>BOBIK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
-</head>
-<style>
-    .json-render {
-    font-family: monospace;
-    padding: 10px;
-    background-color: #f5f5f5;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
 
-@supports (-webkit-touch-callout: none) {
-    body {
-        font-size: 35px;
-    }
-
-    #arm-status-light {
-        width: 200px !important;
-    }
-
-    text {
-        transform: scaleY(4) !important;
-        transform-origin: 0 0 !important;
-    }
-
-    select {
-        scale: 150%;
-    }
-}
-
-@supports not (-webkit-touch-callout: none) {
-  
-}
-
-.json-key {
-    color: blue;
-}
-
-.json-string {
-    color: green;
-}
-
-.json-number {
-    color: red;
-}
-
-.json-boolean, .json-null {
-    color: purple;
-}
-
-.item-even {
-    background-color: #ffffcc;
-}
-
-.item-odd {
-    background-color: #ffffff;
-}
-
-.blue {
-    color: white !important;
-    background-color: blue !important;
-}
-
-.red {
-    color: white !important;
-    background-color: red !important;
-}
-
-.bluebg {
-    background-color: rgba(100, 87, 255, 0.52) !important;
-}
-
-.redbg {
-    background-color: rgba(255, 87, 87, 0.52) !important;
-}
-
-.green {
-    color: white !important;
-    background-color: green !important ;
-}
-
-.gray {
-    color: black !important;
-    background-color: lightgray !important;
-}
-
-#title-image {
-    padding: 20px;
-}
-
-.angry-dog {
-    content: url("dog.jpg") !important;
-}
-
-hr {
-    height: 0px;
-    border: none;
-}
-
-select {
-    scale: 150%;
-}
-
-#right-button-spacer {
-    height: 20px;
-}
-
-.vertical-button-holder {
-    height: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-}
-
-
-#arm-status-controls-holder {
-    width: 150px;
-    height: 150px;
-    padding: 20px;
-    margin: 0px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-}
-
-#alarm-status-light {
-    background-color: white;
-    width: 75%;
-    height: 200px;
-    border: 0px solid red;
-    border-radius: 10px;
-    -moz-border-radius: 25px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-}
-
-#arm-status-light {
-    background-color: white;
-    margin: 10px;
-    width: 150px;
-    height: 150px;
-    padding: 0px;
-    border: 0px solid red;
-    border-radius: 25px;
-    -moz-border-radius: 25px;
-    align-items: center;
-    justify-content: space-around;
-    display: flex;
-
-}
-
-button {
-    border-radius: 8px;
-    height: 120px;
-    width: 180px;
-    transition-duration: .4s;
-    font-size: inherit;
-}
-
-button:hover {
-    color: black;
-    font-weight: bold;
-    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-}
-
-.blinkingTransitions {
-    animation-name: blink;
-    animation-duration: .2s;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    animation-timing-function: linear;
-}
-
-nav {
-    background-color: rgba(0, 0, 0, 0.53);
-    margin-bottom: 20px;
-    margin-top: 20px;
-    justify-content: space-around;
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-}
-
-div {
-    white-space: pre;
-}
-
-@keyframes blink {
-    from {background-color: red;}
-    to {background-color: blue;}
-    from {color: white}
-    to {color: white}
-}
-
-.container {
-    display: flex;
-    flex-direction: column;
-}
-
-.column {
-    display: flex;
-    align-items: center;
-    margin-right: 10px;
-}
-
-.title {
-    font-weight: bold;
-    margin-right: 10px;
-}
-</style>
-<body>    
     <script type="text/javascript">
+        function registerCollapsibleHandler() {
+            let collapsible = document.getElementsByClassName("collapsible");
+
+            for (let i = 0; i < collapsible.length; i++) {
+              collapsible[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight){
+                  content.style.maxHeight = null;
+                } else {
+                  content.style.maxHeight = content.scrollHeight + "px";
+                }
+              });
+            }
+        }
+
+        setTimeout(registerCollapsibleHandler, 500);
+
         var socket = io.connect('http://bobik:8080');
         let strOldStatusData = "";
         let strOldProfilesData = "";
         let intProfileNumber = 0;
+        let messageInterval = false;
 
         socket.on('connect', function() {
             console.log('Connected to server');
+            setDisconnectedOverlayHidden(false);
+            establishConnection();
         });
+
+        function handleErrors(error) {
+            setDisconnectedOverlayHidden(true);
+            strOldProfilesData = "{}";
+            strOldStatusData = "{}";
+            intProfileNumber = -1;
+            clearInterval(messageInterval);
+        }
+
+        socket.on('connect_error', err => handleErrors(err))
+        socket.on('connect_failed', err => handleErrors(err))
 
         socket.on('postStatus', function(data) {
             //console.log('Message from server:', data.message);
             if (strOldStatusData == JSON.stringify(data.message))
                 return;
             else {
-                renderMessage(data.message, 'statusContainer');
+                renderMessage(data.message, 'status-container');
                 updateProfilesDropdownSelection(data.message);
                 strOldStatusData = JSON.stringify(data.message);
             }
@@ -250,11 +69,26 @@ div {
             if (strOldProfilesData == JSON.stringify(data.message))
                 return;
             else {
-                renderMessage(data.message, 'profilesContainer');
+                renderMessage(data.message, 'profiles-container');
                 renderProfilesDropdown(data.message.profiles)
                 strOldProfilesData = JSON.stringify(data.message)    
             }
         });
+
+        
+
+        function setDisconnectedOverlayHidden(flag) {
+            if (flag) {
+                document.getElementById('overlay').classList.remove('hidden');
+            } else {
+                document.getElementById('overlay').classList.add('hidden');
+            }
+        }
+
+        function establishConnection() {
+            messageInterval = setInterval(sendMessage, 1000);
+            setTimeout(() => {socket.emit('getAlarmProfiles', { message: undefined });}, 500);
+        }
 
         function paintArmStatus(isArmed) {
             let divs = document.getElementsByClassName('class-armStatus');
@@ -312,19 +146,21 @@ div {
             socket.emit('disarm', {message: undefined});
         }
 
+        function alarmSoundOn() {
+            socket.emit('alarmSoundOn', {message: undefined});
+        }
+
         function setAlarmProfile() {
             let selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
             intProfileNumber = selectedIndex;
             socket.emit('setAlarmProfile', {message: selectedIndex});
         } 
-
-        setInterval(sendMessage, 1000);
-        setTimeout(() => {socket.emit('getAlarmProfiles', { message: undefined });}, 500);
         
         function updateProfilesDropdownSelection(newStatusData) {
             let oldProfileNumber = intProfileNumber; //global
             let newProfileNumber = Number(newStatusData.profileNumber);
-            if (oldProfileNumber !== newProfileNumber && document.getElementById('profiles-dropdown').selectedIndex !== newProfileNumber) {
+            let element = document.getElementById('profiles-dropdown');
+            if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
                 document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
                 intProfileNumber = newProfileNumber;
             }
@@ -436,18 +272,299 @@ div {
             );
         }
     </script>
+</head>
+<style>
+    .json-render {
+    font-family: monospace;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+@supports (-webkit-touch-callout: none) {
+    body {
+        font-size: 35px;
+    }
+
+    #arm-status-light {
+        width: 200px !important;
+    }
+
+    text {
+        transform: scaleY(4) !important;
+        transform-origin: 0 0 !important;
+    }
+
+    select {
+        scale: 210% !important;
+    }
+}
+
+@supports not (-webkit-touch-callout: none) {
+  
+}
+
+.hidden {
+    display: none;
+}
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black overlay */
+    z-index: 999; /* Ensure it's above other content */
+}
+
+/* Styles for the warning box */
+#warning-box {
+    position: absolute;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+}
+
+.json-key {
+    color: blue;
+}
+
+.json-string {
+    color: green;
+}
+
+.json-number {
+    color: red;
+}
+
+.json-boolean, .json-null {
+    color: purple;
+}
+
+.item-even {
+    background-color: #ffffcc;
+}
+
+.item-odd {
+    background-color: #ffffff;
+}
+
+.blue {
+    color: white !important;
+    background-color: blue !important;
+}
+
+.red {
+    color: white !important;
+    background-color: red !important;
+}
+
+.bluebg {
+    background-color: rgba(100, 87, 255, 0.52) !important;
+}
+
+.redbg {
+    background-color: rgba(255, 87, 87, 0.52) !important;
+}
+
+.green {
+    color: white !important;
+    background-color: green !important ;
+}
+
+.gray {
+    color: black !important;
+    background-color: lightgray !important;
+}
+
+#title-image {
+    padding: 20px;
+}
+
+.angry-dog {
+    content: url("dog.jpg") !important;
+}
+
+hr {
+    height: 0px;
+    border: none;
+}
+
+select {
+    scale: 140%;
+}
+
+.horizontal-button-holder {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.horizontal-dropdown-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+#arm-status-controls-holder {
+    width: 150px;
+    height: 150px;
+    padding: 20px;
+    margin: 0px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#alarm-status-light {
+    background-color: white;
+    width: 75%;
+    height: 240px;
+    border: 0px solid red;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#arm-status-light {
+    background-color: white;
+    width: 135px;
+    height: 135px;
+    padding: 0px;
+    border: 0px solid red;
+    border-radius: 15px;
+    -moz-border-radius: 15px;
+    align-items: center;
+    justify-content: space-around;
+    display: flex;
+
+}
+
+.flexbox-row {
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: row;
+}
+
+.mybutton {
+    border-radius: 8px;
+    height: 200px;
+    width: 200px;
+    transition-duration: .4s;
+    font-size: inherit;
+}
+
+.mybutton:hover {
+    color: black;
+    font-weight: bold;
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+}
+
+.wide-button {
+    width: 400px !important;
+}
+
+.blinkingTransitions {
+    animation-name: blink;
+    animation-duration: .2s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: linear;
+}
+
+nav {
+    background-color: rgba(0, 0, 0, 0.53);
+    margin-bottom: 20px;
+    margin-top: 20px;
+    justify-content: space-around;
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+}
+
+div {
+    white-space: pre;
+}
+
+@keyframes blink {
+    from {background-color: red;}
+    to {background-color: blue;}
+    from {color: white}
+    to {color: white}
+}
+
+.column {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.title {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.collapsible {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.active, .collapsible:hover {
+  background-color: #ccc;
+}
+
+.collapsible-content {
+  padding: 0 18px;
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+</style>
+<body>
+    <div id="overlay" class="hidden">
+        <div id="warning-box">
+            <h2>Warning!</h2>
+            <p>The Alarm Service is unreachable</p>
+        </div>
+    </div>
     <nav>
         <span id="span-title">
             <img id="title-image" src="dogue.jpg" width="130px" height="170px" />
         </span>
         <div id="alarm-status-light">
-            <div id="vertical-button-holder-left" class="vertical-button-holder">
-                <button id="button-arm" onclick="arm()">ARM</button>
-                <div id="profiles-dropdown-container"></div>
+            <div id="horizontal-button-holder" class="horizontal-button-holder">
+                <button id="button-arm" class="mybutton" onclick="arm()">ARM</button>
+                <button id="button-disarm" class="mybutton" onclick="disarm()">DISARM</button>
+                
             </div>
-            <div id="vertical-button-holder-right" class="vertical-button-holder">
-                <button id="button-disarm" onclick="disarm()">DISARM</button>
-                <div id="right-button-spacer"></div>
+            <div id="horizontal-dropdown-holder" class="horizontal-dropdown-holder">
+                <div id="profiles-dropdown-container"></div>
+                
             </div>
         </div>
         <div id="arm-status-controls-holder">
@@ -455,7 +572,12 @@ div {
             
         </div>
     </nav>
-    <div class="container" id="statusContainer"></div>
-    <div class="container" id="profilesContainer"></div>
+    <div class="" id="status-container"></div>
+    <button type="button" class="collapsible">Profiles</button>
+    <div class="collapsible-content" id="profiles-container"></div>
+    <button type="button" class="collapsible">Debug Buttons</button>
+    <div class="flexbox-row collapsible-content" id="debug-buttons-cotainer">
+        <button id="button-alarm-sound-on" class="mybutton wide-button red" onclick="alarmSoundOn()">ALARMS ON</button>
+    </div>
 </body>
 </html>

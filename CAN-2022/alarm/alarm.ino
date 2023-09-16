@@ -14,7 +14,7 @@ struct MessageStruct {
 MCP2515 mcp2515(10);
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 const int ID_NOT_USED = -1;
-int myCanId = 0x99;
+int myCanId = 0x10;
 int alarmConstantOnDevicePin = 7;
 int alarmVaribleDevicePin = 17; //17 is A3. A0 is 14, etc.
 long loopIndexMax = 30000;

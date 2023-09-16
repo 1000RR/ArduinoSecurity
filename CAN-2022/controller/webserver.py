@@ -111,6 +111,10 @@ def main():
     def disarm(message):
         webserver_message_queue.put("DISABLE-ALARM")
 
+    @socketio.on('alarmSoundOn')
+    def arm(message):
+        webserver_message_queue.put("FORCE-ALARM-SOUND-ON")
+
     @socketio.on('pastEvents')
     def disarm(message):
         webserver_message_queue.put("PAST-EVENTS")
