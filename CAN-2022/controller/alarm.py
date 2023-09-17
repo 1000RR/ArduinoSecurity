@@ -58,6 +58,16 @@ alarmProfiles = [{
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
+    "playSound": "scaryalarm.mp3",
+    "playSoundVolume": 45,
+    "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Away SCARY LOUD DENON - all sensors / office and denon / 30s",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId)],
+    "playSound": "scaryalarm.mp3",
+    "playSoundVolume": 65,
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "name": "All sensors / all alarms / as long as alarmed",
@@ -241,17 +251,35 @@ def sendMessage(messageArray):
     global denonPlayThread
     global everTriggeredWithinAlarmCycle
     global mp3AlarmDictionary
+
     outgoing = encodeLine(messageArray)
     ser.write(bytearray(outgoing, 'ascii'))
     ser.flushOutput()
     lastSentMessageTimeMsec = getTimeMsec()
     if (messageArray[1] == denonId or messageArray[1] == 0x00):
-        if (messageArray[2] == 0xCC):
-            print('DENON ALARM OFF')
-            
-        elif (messageArray[2] == 0xBB and not (denonPlayThread and denonPlayThread.is_alive())):
-            denonPlayThread = Thread(target = playDenon, args = (everTriggeredWithinAlarmCycle, mp3AlarmDictionary, ))
+        if (messageArray[2] == 0xBB and not (denonPlayThread and denonPlayThread.is_alive())):
+            soundByteOverride, volumeOverride = getCurrentProfileSoundByteData()
+            denonPlayThread = Thread(target = playDenon, args = (everTriggeredWithinAlarmCycle, mp3AlarmDictionary, soundByteOverride, volumeOverride, ))
             denonPlayThread.start()
+
+
+def getCurrentProfileSoundByteData():
+    global alarmProfiles
+    global currentAlarmProfile
+    playSoundVolume = -1
+    playSound = ""
+
+    for index, profile in enumerate(alarmProfiles):
+        print(">>>>>> PROFILE INDEX " + str(index))
+        if (index != currentAlarmProfile):
+            continue
+        if ('playSound' in profile and profile['playSound']):
+            playSound = profile['playSound']
+        if ('playSoundVolume' in profile and profile['playSoundVolume']):
+            playSoundVolume = profile['playSoundVolume']
+    print(">>>>>>> PLAYSOUND " + playSound)
+    print(">>>>>>> PLAYSOUNDVOLUME " + str(playSoundVolume))
+    return playSound, playSoundVolume
     
 def getThisDirAddress():
     return os.path.dirname(__file__)
@@ -299,25 +327,37 @@ def possiblyAddMember(msg):
             memberDevices[hex(msg[0])]['lastSeen'] = now
             memberDevices[hex(msg[0])]['lastSeenReadable'] = readableTimestamp
 
-def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
+def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary, soundByteOverride, volumeOverride):
     directory = getThisDirAddress()
-    playCommandArray = ["/usr/bin/mpg123", "./alert.mp3"]
+    playCommandArray = ["/usr/bin/mpg123"]
     added = False
+    skipAddingSounds = False
 
-    for device in currentlyAlarmedDevices:
-        print('>>>>>>>' + device)
-        resolvedMp3 = mp3AlarmDictionary[device]
-        if (resolvedMp3):
-            playCommandArray.append(resolvedMp3)
-            added = True
+    if (soundByteOverride and volumeOverride > -1):
+        playCommandArray.append('./scaryalarm.mp3')
+        skipAddingSounds = True
 
-    if (not added):
-        playCommandArray.append("./thisisatest.mp3")
-    if (added and not "checkyourphones.mp3" in playCommandArray ):
-        playCommandArray.append("./compromised.mp3")
+    if (not skipAddingSounds):
+        playCommandArray.append("./alert.mp3")
+
+        for device in currentlyAlarmedDevices:
+            print('>>>>>>>' + device)
+            resolvedMp3 = mp3AlarmDictionary[device]
+            if (resolvedMp3):
+                playCommandArray.append(resolvedMp3)
+                added = True
+
+        if (not added):
+            playCommandArray.append("./thisisatest.mp3")
+        if (added and not "checkyourphones.mp3" in playCommandArray ):
+            playCommandArray.append("./compromised.mp3")
 
     startPowerStatus = str(
         subprocess.run("./denonpowerstatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
+        ).translate({ord(c): None for c in 'b\\n\''})
+
+    startChannelStatus = str(
+        subprocess.run("./denonchannelstatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
         ).translate({ord(c): None for c in 'b\\n\''})
 
     if (startPowerStatus == ''):
@@ -332,10 +372,23 @@ def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
 
     startVolume = str(int(float(myvol)+81))
     
-    if (not startPowerStatus == 'ON'):
+    
+
+
+    if (startPowerStatus != 'ON' or startChannelStatus != 'CD'):
         subprocess.run("./denonon.sh", cwd=directory)
     
-    subprocess.run(["./denonvol.sh", "35" if not "checkyourphones.mp3" in playCommandArray else "70"], cwd=directory)
+    def determineVolume(playCommandArray, volumeOverride):
+        default = "35"
+        volume = default
+        if (volumeOverride > -1):
+            volume = str(volumeOverride)
+        elif ("checkyourphones.mp3" in playCommandArray):
+            volume = "70"
+        return volume
+
+
+    subprocess.run(["./denonvol.sh", determineVolume(playCommandArray, volumeOverride)], cwd=directory)
     if (not startPowerStatus == 'ON'):
         time.sleep(8) #enough time for Denon to turn on and warm up
     subprocess.run(
@@ -346,6 +399,9 @@ def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
         subprocess.run(os.path.dirname(__file__) + "/denonoff.sh", cwd=directory)
     else :
         subprocess.run(["./denonvol.sh", startVolume], cwd=directory)
+
+    if (startChannelStatus != 'CD'):
+        subprocess.run(["./denonchannel.sh", startChannelStatus], cwd=directory)
 
 def getFriendlyName(address):
     strAddress = hex(address)
