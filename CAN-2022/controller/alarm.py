@@ -318,19 +318,29 @@ def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
     startPowerStatus = str(
         subprocess.run("./denonpowerstatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
         ).translate({ord(c): None for c in 'b\\n\''})
+
+    myvol = str(
+        subprocess.run("./denonvolumestatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
+        ).translate({ord(c): None for c in 'b\\n\''})
+    if (myvol == '--'):
+        myvol = '0'
+
+    startVolume = str(int(float(myvol)+81))
     
     if (not startPowerStatus == 'ON'):
         subprocess.run("./denonon.sh", cwd=directory)
     
     subprocess.run(["./denonvol.sh", "50" if not "checkyourphones.mp3" in playCommandArray else "70"], cwd=directory)
     if (not startPowerStatus == 'ON'):
-        time.sleep(10) #enough time for Denon to turn on and warm up
+        time.sleep(8) #enough time for Denon to turn on and warm up
     subprocess.run(
         playCommandArray, 
         cwd=directory
     )
     if (not startPowerStatus == 'ON'): #TODO: add condition: and the alarm has been canceled
         subprocess.run(os.path.dirname(__file__) + "/denonoff.sh", cwd=directory)
+    else :
+        subprocess.run(["./denonvol.sh", startVolume], cwd=directory)
 
 def getFriendlyName(address):
     strAddress = hex(address)
