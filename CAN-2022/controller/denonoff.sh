@@ -1,5 +1,5 @@
 #!/bin/bash
-curl 'http://192.168.2.191/MainZone/index.put.asp' \
+curl --connect-timeout .5 'http://192.168.2.191/MainZone/index.put.asp' \
   -H 'Accept: */*' \
   -H 'Accept-Language: en-US,en' \
   -H 'Connection: keep-alive' \

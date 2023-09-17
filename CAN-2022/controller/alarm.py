@@ -126,6 +126,7 @@ currentAlarmProfile = 0 # 0 = default
 #0x30 - door sensor
 #0x31 - door sensor
 #0xD0 - garage door opener
+#0x17 - virtual sensor device that is used to alert people to pick up their phones
 
 #serial message format: 
 #   {sender id hex}-{receiver id hex}-{message hex}-{devicetype hex}\n
@@ -238,7 +239,7 @@ def encodeLine(message): #[myCanId, addressee, message, myDeviceType]
 def sendMessage(messageArray): 
     global lastSentMessageTimeMsec
     global denonPlayThread
-    global currentlyAlarmedDevices
+    global everTriggeredWithinAlarmCycle
     global mp3AlarmDictionary
     outgoing = encodeLine(messageArray)
     ser.write(bytearray(outgoing, 'ascii'))
@@ -249,7 +250,7 @@ def sendMessage(messageArray):
             print('DENON ALARM OFF')
             
         elif (messageArray[2] == 0xBB and not (denonPlayThread and denonPlayThread.is_alive())):
-            denonPlayThread = Thread(target = playDenon, args = (currentlyAlarmedDevices, mp3AlarmDictionary, ))
+            denonPlayThread = Thread(target = playDenon, args = (everTriggeredWithinAlarmCycle, mp3AlarmDictionary, ))
             denonPlayThread.start()
     
 def getThisDirAddress():
@@ -319,6 +320,10 @@ def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
         subprocess.run("./denonpowerstatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
         ).translate({ord(c): None for c in 'b\\n\''})
 
+    if (startPowerStatus == ''):
+        print('>>>>DENON NOT FOUND')
+        return
+
     myvol = str(
         subprocess.run("./denonvolumestatus.sh", cwd=directory, stderr=None, capture_output=True).stdout
         ).translate({ord(c): None for c in 'b\\n\''})
@@ -330,7 +335,7 @@ def playDenon(currentlyAlarmedDevices, mp3AlarmDictionary):
     if (not startPowerStatus == 'ON'):
         subprocess.run("./denonon.sh", cwd=directory)
     
-    subprocess.run(["./denonvol.sh", "50" if not "checkyourphones.mp3" in playCommandArray else "70"], cwd=directory)
+    subprocess.run(["./denonvol.sh", "35" if not "checkyourphones.mp3" in playCommandArray else "70"], cwd=directory)
     if (not startPowerStatus == 'ON'):
         time.sleep(8) #enough time for Denon to turn on and warm up
     subprocess.run(
@@ -613,10 +618,10 @@ def run(webserver_message_queue, alarm_message_queue):
             elif (message == "CLEAR-OLD-DATA") :
                 clearOldData()
             elif (message == "ALERT-CHECK-PHONES") :
-                currentlyAlarmedDevices[hex(0x17)] = firstTurnedOnTimestamp;
+                everTriggeredWithinAlarmCycle[hex(0x17)] = firstTurnedOnTimestamp;
                 sendAlarmMessage(True, True)
                 time.sleep(.1)
-                currentlyAlarmedDevices.pop(hex(0x17))
+                everTriggeredWithinAlarmCycle.pop(hex(0x17))
                 sendAlarmMessage(False, False)
 
 
