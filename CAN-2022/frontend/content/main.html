@@ -409,7 +409,7 @@
 
 .green {
     color: white !important;
-    background-color: RGBA(61, 138, 61, .5) !important ;
+    background-color: RGBA(61, 138, 61, 1) !important ;
 }
 
 .gray {
@@ -496,7 +496,7 @@ select {
     height: 200px;
     width: 100%;
     transition-duration: .4s;
-    font-size: 50px;
+    font-size: 40px;
 }
 
 .mybutton:hover {
@@ -506,7 +506,7 @@ select {
 }
 
 .wide-button {
-    width: 75% !important;
+    width: 100% !important;
 }
 
 .blinkingTransitions {
@@ -577,6 +577,14 @@ div {
   background-color: #ccc;
 }
 
+#collapsibles-container {
+    width: 100%;
+}
+
+#profiles-container {
+    width: 100%;
+}
+
 .collapsible-content {
   background-color: white;
   max-height: 0;
@@ -588,6 +596,20 @@ div {
 #profiles-dropdown-container {
     width: 100%;
     padding-top:20px;
+}
+
+.left-half {
+    width: 50% !important;
+    align-self: start;
+}
+
+.right-half {
+    width: 50% !important;
+    align-self: end;
+}
+
+body {
+    margin: 10px;
 }
 </style>
 <body>
@@ -613,19 +635,20 @@ div {
     <div class="flexbox-row justify-content-center" id="status-images-container">
         <image id="garage_status"></image>
     </div>
-    
-    <button type="button" class="collapsible">Garage Door</button>
-    <div class="flexbox-row collapsible-content justify-content-center" id="garage-button-container">
-        <button id="button-garage-toggle" class="mybutton wide-button emerald" onclick="toggleGarageDoor()">TOGGLE GARAGE DOOR</button>
-    </div>
+    <div id="collapsibles-container" class="flexbox-column">
+        <button type="button" class="collapsible left-half">Garage Door</button>
+        <div class="flexbox-row collapsible-content justify-content-center left-half" id="garage-button-container">
+            <button id="button-garage-toggle" class="mybutton wide-button emerald" onclick="toggleGarageDoor()">TOGGLE GARAGE DOOR</button>
+        </div>
 
-    <button type="button" class="collapsible">Profiles</button>
-    <div class="collapsible-content" id="profiles-container"></div>
-    
+        <button type="button" class="collapsible">Profiles</button>
+        <div class="collapsible-content" id="profiles-container"></div>
+        
 
-     <button type="button" class="collapsible">Debug Buttons</button>
-    <div class="flexbox-row collapsible-content justify-content-center" id="debug-buttons-container">
-        <button id="button-alarm-sound-on" class="mybutton wide-button red" onclick="alarmSoundOn()">TEST ALARMS BRIEFLY</button>
+         <button type="button" class="collapsible right-half">Debug Buttons</button>
+        <div class="flexbox-row collapsible-content justify-content-center right-half" id="debug-buttons-container">
+            <button id="button-alarm-sound-on" class="mybutton wide-button red" onclick="alarmSoundOn()">TEST ALARMS BRIEFLY</button>
+        </div>
     </div>
     <div class="" id="status-container"></div>
 </body>
