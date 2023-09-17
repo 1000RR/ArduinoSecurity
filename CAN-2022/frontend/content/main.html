@@ -157,6 +157,14 @@
             socket.emit('alarmSoundOn', {message: undefined});
         }
 
+        function clearOldData() {
+            socket.emit('clearOldData', {message: undefined});
+        }
+
+        function checkPhones() {
+            socket.emit('checkPhones', {message: undefined});
+        }
+
         function toggleGarageDoor() {
             socket.emit('toggleGarageDoorState', {message: undefined});
         }
@@ -394,6 +402,11 @@
     background-color: red !important;
 }
 
+.orange {
+    color: white !important;
+    background-color: orange !important;
+}
+
 .emerald {
     color: white !important;
     background-color: #019875 !important;
@@ -451,6 +464,7 @@ select {
     flex-direction: row;
     justify-content: space-between;
     width: 100%;
+    flex-wrap: wrap;
 }
 
 .horizontal-dropdown-holder {
@@ -496,7 +510,7 @@ select {
     height: 200px;
     width: 100%;
     transition-duration: .4s;
-    font-size: 40px;
+    font-size: 35px;
 }
 
 .mybutton:hover {
@@ -636,18 +650,20 @@ body {
         <image id="garage_status"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
-        <button type="button" class="collapsible left-half">Garage Door</button>
-        <div class="flexbox-row collapsible-content justify-content-center left-half" id="garage-button-container">
-            <button id="button-garage-toggle" class="mybutton wide-button emerald" onclick="toggleGarageDoor()">TOGGLE GARAGE DOOR</button>
+        <button type="button" class="collapsible">Garage Door</button>
+        <div class="horizontal-button-holder collapsible-content" id="garage-button-container">
+            <button id="button-garage-toggle" class="mybutton wide-button emerald" onclick="toggleGarageDoor()">GARAGE OPENER BUTON</button>
         </div>
 
         <button type="button" class="collapsible">Profiles</button>
         <div class="collapsible-content" id="profiles-container"></div>
         
 
-         <button type="button" class="collapsible right-half">Debug Buttons</button>
-        <div class="flexbox-row collapsible-content justify-content-center right-half" id="debug-buttons-container">
+         <button type="button" class="collapsible">Debug Buttons</button>
+        <div class="horizontal-button-holder collapsible-content" id="debug-buttons-container">
             <button id="button-alarm-sound-on" class="mybutton wide-button red" onclick="alarmSoundOn()">TEST ALARMS BRIEFLY</button>
+            <button id="button-clear-old-data" class="mybutton wide-button blue" onclick="clearOldData()">CLEAR OLD DATA</button>
+            <button id="button-alert-check-phone" class="mybutton wide-button orange" onclick="checkPhones()">CHECK YOUR PHONES!</button>
         </div>
     </div>
     <div class="" id="status-container"></div>

@@ -128,6 +128,14 @@ def main():
     def arm(message):
         webserver_message_queue.put("FORCE-ALARM-SOUND-ON")
 
+    @socketio.on('clearOldData')
+    def arm(message):
+        webserver_message_queue.put("CLEAR-OLD-DATA")
+
+    @socketio.on('checkPhones')
+    def arm(message):
+        webserver_message_queue.put("ALERT-CHECK-PHONES")
+
     @socketio.on('pastEvents')
     def disarm(message):
         webserver_message_queue.put("PAST-EVENTS")

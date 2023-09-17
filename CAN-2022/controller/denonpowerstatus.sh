@@ -1,0 +1,3 @@
+#!/bin/bash
+
+curl -s 'http://192.168.2.191/goform/formMainZone_MainZoneXml.xml?_=1694976906082'   -H 'Accept: */*'   -H 'Accept-Language: en-US,en'   -H 'Cache-Control: no-cache'   -H 'Connection: keep-alive'   -H 'Pragma: no-cache'   -H 'Referer: http://192.168.2.191/MainZone/index.html'   -H 'Sec-GPC: 1'   -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'   -H 'X-Requested-With: XMLHttpRequest'   -H 'dnt: 1'   --compressed   --insecure | grep -v "xml" | xmllint --xpath "//item/Power/value/text()" -
