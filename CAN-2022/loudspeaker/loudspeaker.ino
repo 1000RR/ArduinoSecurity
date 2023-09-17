@@ -16,6 +16,7 @@
 #include <SPI.h>
 #include <Adafruit_VS1053.h>
 #include <SD.h>
+#include <mcp2515.h>
 
 // define the pins used
 //#define CLK 13       // SPI Clock, shared with SD card
@@ -24,10 +25,7 @@
 // Connect CLK, MISO and MOSI to hardware SPI pins. 
 // See http://arduino.cc/en/Reference/SPI "Connections"
 
-// These are the pins used for the breakout example
-#define BREAKOUT_RESET  9      // VS1053 reset pin (output)
-#define BREAKOUT_CS     10     // VS1053 chip select pin (output)
-#define BREAKOUT_DCS    8      // VS1053 Data/command select pin (output)
+
 // These are the pins used for the music maker shield
 #define SHIELD_RESET  -1      // VS1053 reset pin (unused!)
 #define SHIELD_CS     7      // VS1053 chip select pin (output)
@@ -38,10 +36,39 @@
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
+bool debug = true ; //debug output printing to Serial
+bool suppressErrorDebugText = true; //debug output
+struct can_frame incomingCanMsg;
+struct can_frame myCanMessage;
+struct MessageStruct {
+    int id;
+    int addressee;
+    int message;
+    int deviceType;
+};
+MCP2515 mcp2515(10);
+String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
+const int ID_NOT_USED = -1;
+int myCanId = 0x20;
+long loopIndexMax = 30000;
+long sendEveryXLoops = 10000; //tied to loopIndexMax
+int deviceType = 3;
+bool isAlarmed = false;
+const int BROADCAST_ADDR = 0x00;
+const int DELAY_LOOP_TIME = 50;
+MCP2515::ERROR canMessageError;
+long loopIndex = 0;
+int currentStatus = 0x00;
+
+bool haventStarted = true;
+
 Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
   
 void setup() {
   Serial.begin(115200);
+//  mcp2515.reset();
+//  mcp2515.setBitrate(CAN_125KBPS);
+//  mcp2515.setNormalMode();
 
   if (! musicPlayer.begin()) { // initialise the music player
      Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
@@ -79,6 +106,96 @@ void setup() {
 }
 
 void loop() {
+  
+//check for all expected senders trigger if sender is deeemed to not have responded in a while (determine), or is explicitly alarmed.
+  //this can be done by keeping a list of unique identifiers burned into each sender and periodically expecting messages from them
+  //must be able to reset trip for (determine) with the push of a button
+
+  if (loopIndex % sendEveryXLoops == 0) { //every so often, let bus know this device exists
+    sendMessage(0x00, currentStatus, myCanId, deviceType); //bell is ok
+  }
+
+  canMessageError = mcp2515.readMessage(&incomingCanMsg);
+
+  if (canMessageError == MCP2515::ERROR_OK) {
+    if (incomingCanMsg.can_id == 0x14 && (incomingCanMsg.data[0] == 0x00 || incomingCanMsg.data[0] == myCanId)) { //if home base addresses to me/broadcasts a reset trip signal, stand down
+      if (incomingCanMsg.data[1] == 0xBB) {
+        isAlarmed = true;    
+        currentStatus = 0xBB;
+        
+
+      } else if (incomingCanMsg.data[1] == 0xCC) {
+        isAlarmed = false;
+        currentStatus = 0x00;
+        musicPlayer.stopPlaying();
+      }
+    }
+    Serial.print("CAN MSG RECEIVED");
+
+    Serial.print("0x");
+    Serial.print(incomingCanMsg.can_id, HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[0], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[1], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMsg.data[2], HEX);
+    Serial.print("\n");
+    Serial.flush();
+
+  } else {
+    if (debug && !suppressErrorDebugText) {
+      Serial.print("ERROR READING CAN: ");
+      Serial.println(ERROR_NAMES[canMessageError]);
+    }
+  }
+  playMusic();
+
+  if (haventStarted) {
+        
+        //musicPlayer.startPlayingFile("/CONDEMN.MP3");
+        haventStarted = false;
+  }
+  
+  if (loopIndex < loopIndexMax-1) loopIndex++;
+  else loopIndex = 0;
+  
+  if (debug && loopIndex % sendEveryXLoops == 0) {Serial.print("loopIndex "); Serial.println(loopIndex);}
+}
+
+
+void playMusic() {
+  if (isAlarmed) {
+    musicPlayer.startPlayingFile("/CONDEMN.MP3");
+  }
+}
+
+//COMMON
+MessageStruct parseIncomingCanMessage() {
+  MessageStruct messageStruct;
+
+  messageStruct.id = incomingCanMsg.can_id;
+  messageStruct.addressee = incomingCanMsg.data[0];
+  messageStruct.message = incomingCanMsg.data[1];
+  messageStruct.deviceType = incomingCanMsg.data[2];
+
+  return messageStruct;
+}
+
+void _makeMessage(int message, int addressee, int myCanId, int myDeviceType) {
+  myCanMessage.can_id  = myCanId;
+  myCanMessage.can_dlc = 3;
+  myCanMessage.data[0] = addressee;
+  myCanMessage.data[1] = message;
+  myCanMessage.data[2] = myDeviceType;
+}
+
+void sendMessage(int message, int addressee, int myCanId, int myDeviceType) {
+  _makeMessage(message, addressee, myCanId, myDeviceType);
+  mcp2515.sendMessage(&myCanMessage);
+}
+
+//void loop() {
 //  // File is playing in the background
 //  if (musicPlayer.stopped()) {
 //    Serial.println("Done playing music");
@@ -107,9 +224,7 @@ void loop() {
 //  }
 //
 //  delay(100);
-
-
-}
+//}
 
 
 /// File listing helper

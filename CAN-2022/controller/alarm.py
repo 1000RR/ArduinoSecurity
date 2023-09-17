@@ -7,47 +7,58 @@ import atexit
 import tornado.ioloop
 import tornado.web
 import json
+import subprocess
+
+
+
+
 
 debug = False
 LISTEN_PORT=8080
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
 print("Arduino: serial connection with PI established")
 memberDevices = {} #map of {string hex id:{properties}}
+denonId = 0x33
+garageDoorOpenerId = 0xD0
+garageDoorSensorId = 0x30
+exceptMissingDevices = {hex(denonId): True, hex(garageDoorOpenerId): True}
 deviceDictionary = {
     "0x80": "garage motion sensor 0x80",
     "0x75": "inside motion sensor 0x75",
-    "0x30": "garage car door sensor 0x30",
+    hex(garageDoorSensorId): "garage car door sensor " + hex(garageDoorSensorId),
     "0x31": "garage side door sensor 0x31",
     "0x14": "home base",
     "0xFF": "home base communicating to its arduino",
     "0x10": "fire alarm bell 0x10",
     "0x15": "piezo 120db alarm 0x15",
-    "0x99": "office led and buzzer 0x99"
+    "0x99": "office led and buzzer 0x99",
+    hex(denonId): "denon via curl " + hex(denonId),
+    hex(garageDoorOpenerId): "garage door opener " + hex(garageDoorOpenerId)
 }
 alarmProfiles = [{
-    "name": "Default (all->all)", #all missing and all triggers BROADCAST ALARM
+    "name": "Default - all sensors / all alarms / 5s", #all missing and all triggers BROADCAST ALARM
     "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 
 }, {
-    "name": "Night - 10s alarm / office alarm only",
+    "name": "Night - all sensors / office alarm only / 10s",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Away - all sensors / all alarms",
+    "name": "Away - all sensors / all alarms / 30s",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "alarmOutputDevices": ["0x99", "0x15", "0x10"],
+    "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "As long as alarmed - all sensors / all alarms",
+    "name": "All sensors / all alarms / as long as alarmed",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "alarmOutputDevices": ["0x99", "0x15", "0x10"],
+    "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "As long as alarmed - all sensors / office alarm only",
+    "name": "All sensors / office alarm only / as long as alarmed",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99"],
@@ -77,6 +88,19 @@ lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
 currentAlarmProfile = 0 # 0 = default
 
+
+###################### MESSAGES #######################
+# 0xBB - alarm on signal
+# 0xCC - alarm off signal
+# 0xD1 - sent to home base arduino - arm 
+# 0xD0 - sent to home base arduino - disarm
+# 0x0F - power off sensor
+# 0x01 - power on sensor
+# 0xA0 - sending over to home base arduino (address 0xFF) the address of the alarmed device
+# 0xB0 - sending over to home base arduino (address 0xFF) the address of the no longer alarmed device
+# 0xC0 - sending over to home base arduino (address 0xFF) stop alarm signal
+
+###################### ADDRESSES ######################
 #0x00 - broadcast
 #0xFF - code for home base's arduino. Message isn't forwarded by arduino to CANBUS.
 #0x80 - garage, commercial type (high emmissions, long range)
@@ -87,6 +111,7 @@ currentAlarmProfile = 0 # 0 = default
 #0x99 - indoor siren with led
 #0x30 - door sensor
 #0x31 - door sensor
+#0xD0 - garage door opener
 
 #serial message format: 
 #   {sender id hex}-{receiver id hex}-{message hex}-{devicetype hex}\n
@@ -158,7 +183,24 @@ def toggleArmed(now, method):
     sendPowerCommandDependingOnArmedState() 
     sendArmedLedSignal() 
     print("Clearing member devices list")
-    memberDevices = {} #reset all members on the bus when turning on/off
+    resetMemberDevices() #reset all members on the bus when turning on/off
+
+def resetMemberDevices():
+    global memberDevices
+    global denonId
+    now = getTimeSec()
+    readableTimestamp = getReadableTime()
+    memberDevices = {
+        hex(denonId): {
+            'id': hex(denonId),
+            'firstSeen': now,
+            'firstSeenReadable': readableTimestamp,
+            'deviceType': '0x10',
+            'lastSeen': now,
+            'lastSeenReadable': readableTimestamp,
+            'friendlyName': getFriendlyName(denonId)
+        }
+    }
 
 
 def decodeLine(line):
@@ -185,7 +227,14 @@ def sendMessage(messageArray):
     ser.write(bytearray(outgoing, 'ascii'))
     ser.flushOutput()
     lastSentMessageTimeMsec = getTimeMsec()
-
+    if (messageArray[1] == denonId or messageArray[1] == 0x00):
+        if (messageArray[2] == 0xCC):
+            print('DENON ALARM OFF')
+            #subprocess.run(["wget", "-O", "/dev/null", "192.168.2.191/MainZone/index.put.asp?cmd0=PutMasterVolumeSet%2F50"]) 
+        elif (messageArray[2] == 0xBB):
+            print('DENON ALARM ON')
+            #subprocess.run(["wget", "-O", "/dev/null", "192.168.2.191/MainZone/index.put.asp?cmd0=PutMasterVolumeSet%2F25"])
+    
 
 def getTime():
     return datetime.now().timestamp()
@@ -248,13 +297,14 @@ def checkMembersOnline():
     now = getTimeSec()
     global lastCheckedMissingDevicesMsec
     global missingDevicesInCurrentArmCycle
+    global exceptMissingDevices
     lastCheckedMissingDevicesMsec = getTimeMsec()
     missingMembers = []
     for memberId in memberDevices :
-        if (memberDevices[memberId]['lastSeen'] + deviceAbsenceThresholdSec < now) :
+        if (not memberId in exceptMissingDevices and memberDevices[memberId]['lastSeen'] + deviceAbsenceThresholdSec < now) :
             print(f"Adding missing device {memberId} at {getReadableTime()}. missing for {(getTimeSec()-memberDevices[memberId]['lastSeen'])} seconds")
             missingMembers.append(memberId)
-            everMissingDevices[memberId] = true;
+            everMissingDevices[memberId] = True;
             missingDevicesInCurrentArmCycle[memberId] = now
     return missingMembers
 
@@ -335,17 +385,18 @@ def handleMessage(msg):
         return
 
     #alarm message coming in from a device that isn't in the currentlyAlarmedDevices list
-    if (armed and (msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices and (currentAlarmProfile == 0 or (currentAlarmProfile > 0 and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"]))): 
-        print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
-        alarmed = True
-        lastAlarmTime = now;
+    if ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices) :
         currentlyAlarmedDevices[hex(msg[0])] = now;
-        alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
-        alarmedDevices[hex(msg[0])] = now;
-        updateCurrentlyTriggeredDevices();
-        addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
-        print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
-        sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
+        if (armed and (not "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] or ("sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"]))): 
+            print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
+            alarmed = True
+            lastAlarmTime = now;
+            alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
+            alarmedDevices[hex(msg[0])] = now;
+            updateCurrentlyTriggeredDevices();
+            addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+            print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
+            sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
     elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in currentlyAlarmedDevices):
@@ -370,7 +421,6 @@ def updateCurrentlyTriggeredDevices():
 
 
 def getProfilesJsonString():
-    global currentAlarmProfile
     global alarmProfiles
 
     profilesJSON = ""
@@ -392,10 +442,12 @@ def getStatusJsonString():
     global missingDevicesInCurrentArmCycle
     global currentAlarmProfile
     global alarmProfiles
+    global garageDoorOpenerId
 
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
+    outgoingMessage += '"garageOpen": ' + ('true' if hex(garageDoorSensorId) in currentlyAlarmedDevices else 'false') + ','
     outgoingMessage += '"profile": "' + alarmProfiles[currentAlarmProfile]["name"] + '",'
     outgoingMessage += '"profileNumber": "' + str(currentAlarmProfile) + '",'
     outgoingMessage += '"currentTriggeredDevices": ' + str(list(currentlyAlarmedDevices.keys())).replace("'","\"") + ","
@@ -457,6 +509,7 @@ def run(webserver_message_queue, alarm_message_queue):
     global lastCheckedMissingDevicesMsec
     global alarmProfiles
     global currentAlarmProfile
+    resetMemberDevices()
 
     atexit.register(exitSteps)
     print(f"STARTING ALARM SCRIPT AT {getReadableTimeFromTimestamp(getTimeSec())}.\nWAITING {initWaitSeconds} SECONDS TO SET UP SERIAL BUS...")
@@ -491,6 +544,8 @@ def run(webserver_message_queue, alarm_message_queue):
                 sendAlarmMessage(True, True)
                 time.sleep(.15)
                 sendAlarmMessage(False, False)
+            elif (message == "TOGGLE-GARAGE-DOOR-STATE") :
+                sendMessage([homeBaseId, garageDoorOpenerId, 0x0D, 0x00])
 
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
@@ -546,10 +601,6 @@ def run(webserver_message_queue, alarm_message_queue):
         #if currently alarmed and there are no missing or alarmed devices and it's been long enough that alarmTimeLengthSec has run out, DISABLE ALARM FLAG
         if (alarmed and getCurrentProfileAlarmTime() > -1 and lastAlarmTime + getCurrentProfileAlarmTime() < getTimeSec() and len(missingDevices) == 0 and len(currentlyAlarmedDevices) == 0):
             stopAlarm()
-
-        elif (not alarmed):
-            alarmedDevices = {}
-            currentlyAlarmedDevices = {}
             updateCurrentlyTriggeredDevices()
 
         else:
@@ -563,13 +614,15 @@ def sendAlarmMessage(armed, alarmed):
     global currentAlarmProfile
     global alarmProfiles
     global homeBaseId
-    if (currentAlarmProfile > 0 and armed and alarmed): #send alarms to chosen devices under this profile (non-default profile)
+    if ("alarmOutputDevices" in alarmProfiles[currentAlarmProfile] and armed and alarmed): #send alarms to chosen devices under this profile (non-default profile)
         for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
             sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xBB , 0x01])
             time.sleep(5/100) #bugfix - can't send in immediate rapid succession, or can fails
-    elif (currentAlarmProfile > 0): #send cancel alarms to all devices under this profile (non-default profile)
-        sendMessage([homeBaseId, 0x00, 0xCC , 0x01])
-    else: # for default profile - broadcast
+    elif ("alarmOutputDevices" in alarmProfiles[currentAlarmProfile]): #send cancel alarms to all devices under this profile (non-default profile)
+        for deviceToBeAlarmed in alarmProfiles[currentAlarmProfile]["alarmOutputDevices"]:
+            sendMessage([homeBaseId, int(deviceToBeAlarmed, 16), 0xCC , 0x01])
+            time.sleep(5/100) #bugfix - can't send in immediate rapid succession, or can fails
+    else: # for profiles missing alarmOutputDevices - broadcast alarm on or off
         sendMessage([homeBaseId, 0x00, 0xBB if armed and alarmed else 0xCC, 0x01])
 
 def getCurrentProfileAlarmTime():

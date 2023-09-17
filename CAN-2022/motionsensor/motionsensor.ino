@@ -10,7 +10,7 @@ int sensorPin = 5; // the pin that the sensor is atteched to
 int state = LOW;   // by default, no motion detected
 int sensorVal = 0; // variable to store the sensor status (value)
 int relayPin = 6;
-int myCanId = 0x80;
+int myCanId = 0x75;
 const int BROADCAST_ADDR = 0x00;
 int homebaseCanId = 0x14;
 bool relayState = true; // false = off; true = on; MUST BE SET SAME AS effectivelyEnabled

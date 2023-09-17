@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
+from uuid import uuid4
 
 # Replace with your OAuth credentials
 CLIENT_ID = 'your_client_id'
@@ -23,6 +24,10 @@ alarm_message_queue = Queue()
 # Set up the Flask web API
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+thread = None
+thread_lock = threading.Lock()
+client_count = 0
+client_last_uuid = uuid4()
 
 def main():
     global alarm_message_queue
@@ -33,8 +38,6 @@ def main():
     # Create a thread for the raspi alarm python script and pass the global variable and message queue
     alarm_thread = threading.Thread(target=alarm.run, args=(webserver_message_queue,alarm_message_queue), daemon=True)
     alarm_thread.start()
-
-    
 
     @app.after_request
     def add_no_cache_header(response):
@@ -66,8 +69,8 @@ def main():
         webserver_message_queue.put("ALARM-STATUS")
         try:
             message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Queue.empty: 
-            message = "NO RESPONSE"
+        except Exception as e: 
+            message = "{}"
         print(json.dumps(json.loads(message), indent=2))
         return json.loads(message), 200
 
@@ -76,39 +79,49 @@ def main():
         webserver_message_queue.put("PAST-EVENTS")
         try:
             message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Queue.empty: 
-            message = "NO RESPONSE"
+        except Exception as e: 
+            message = "{}"
         print(json.dumps(json.loads(message), indent=2))
         return json.loads(message), 200
 
     @socketio.on('connect')
     def handle_connect():
         #authenticate()
-        print('Client connected')
-        emit('my response', {'data': 'Connected'})
+        global client_count
+        global client_last_uuid
+        client_count += 1
+        client_last_uuid = uuid4()
+        print('Client connected. Left:' + str(client_count))
+        global thread
+        with thread_lock:
+            if thread is None:
+                thread = socketio.start_background_task(update_status_thread, sendAlarmStatus, getClientCount, getClientUuid)
+
+    
 
     @socketio.on('disconnect')
     def disconnect():
-        print('Disconnected')
-        emit('broadcast', {'data': 'Disconnected'}, broadcast=True)
+        global client_count
+        client_count -= 1
+        if (client_count == 0):
+            thread.kill()
+        print('Disconnected. Left:' + str(client_count))
+
 
     @socketio.on('getStatus')
     def handle_message(message):
-        #emit('message_from_server', {'message': message['message']}, broadcast=True)
-        webserver_message_queue.put("ALARM-STATUS")
-        try:
-            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Queue.empty: 
-            message = "NO RESPONSE"
-        #print(json.dumps(json.loads(message), indent=2))
-        emit('postStatus', {'message': json.loads(message)}, broadcast=True)
+        def getClientCount():
+            return -1
+        sendAlarmStatus("something", "somethingelse", getClientCount, 0, getClientCount, 0)
 
     @socketio.on('arm')
     def arm(message):
+        print('>>>>ARMING')
         webserver_message_queue.put("ENABLE-ALARM")
 
     @socketio.on('disarm')
     def disarm(message):
+        print('>>>DISARMING')
         webserver_message_queue.put("DISABLE-ALARM")
 
     @socketio.on('alarmSoundOn')
@@ -119,14 +132,18 @@ def main():
     def disarm(message):
         webserver_message_queue.put("PAST-EVENTS")
 
+    @socketio.on('toggleGarageDoorState')
+    def disarm(message):
+        webserver_message_queue.put("TOGGLE-GARAGE-DOOR-STATE")
+
     @socketio.on('getAlarmProfiles')
     def getProfiles(message):
         webserver_message_queue.put("GET-ALARM-PROFILES")
         try:
             message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Queue.empty: 
-            message = "NO RESPONSE"
-        emit('postAlarmProfiles', {'message': json.loads(message)}, broadcast=True)
+        except Exception as e: 
+            message = "{}"
+        emit('postAlarmProfiles', {'message': json.loads(message)})
 
     @socketio.on('setAlarmProfile')
     def setAlarmProfile(message):
@@ -136,7 +153,6 @@ def main():
     def error(e):
         print('Error', e)
        
-
     #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     #ssl_context.load_cert_chain(certfile='path/to/your/cert.pem', keyfile='path/to/your/key.pem')
 
@@ -144,6 +160,44 @@ def main():
     socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
     #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context)
 
+def update_status_thread(sendAlarmStatus, getClientCount, getClientUuid):
+    last_status = 0
+    message = 0
+    last_client_count = 0
+    last_client_uuid = 0
+    while True:    
+        print(f"before update last_client_count {last_client_count}")
+
+        last_status, last_client_count, last_client_uuid = sendAlarmStatus(message, last_status, getClientCount, last_client_count, getClientUuid, last_client_uuid)
+        print(f"updated last_client_count {last_client_count}")
+        socketio.sleep(1)
+
+def getClientCount():
+    global client_count
+    #print('RETURNING CLIENT COUNT ' + str(client_count))
+    return client_count
+
+def getClientUuid():
+    global client_last_uuid
+    return client_last_uuid
+
+def sendAlarmStatus (message, last_status, getClientCount, last_client_count, getClientUuid, last_client_uuid):
+    #print(">>>THREAD polling")
+    webserver_message_queue.put("ALARM-STATUS")
+    newClientUuid = getClientUuid()
+    newClientCount = getClientCount()
+    try:
+        message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
+    except Exception as e: 
+            message = "{}"
+    if (message != last_status or newClientUuid != last_client_uuid ):
+        print("Sending status to connected clients")
+        socketio.emit('postStatus', {'message': json.loads(message)})
+        
+
+    #print(">>>THREAD END polling")
+
+    return message, newClientCount, newClientUuid
 
 def authenticate():
     try:
