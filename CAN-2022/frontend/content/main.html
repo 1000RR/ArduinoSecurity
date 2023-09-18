@@ -30,10 +30,11 @@
         let strOldProfilesData = "";
         let intProfileNumber = 0;
         let messageInterval = false;
+        let waitForFirstMessageToRemoveModal = true;
 
         socket.on('connect', function() {
             console.log('Connected to server');
-            setDisconnectedOverlayHidden(false);
+            waitForFirstMessage = true
             establishConnection();
         });
 
@@ -60,6 +61,10 @@
             }
             
             blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
+            if (waitForFirstMessageToRemoveModal) {
+                setDisconnectedOverlayHidden(false);
+                waitForFirstMessageToRemoveModal = false;
+            }
         });
 
         socket.on('postAlarmProfiles', function(data) {
@@ -229,7 +234,7 @@
                 node.removeChild(node.lastChild);
             }
 
-            let excludedFields = {"memberDevices": true, "profileNumber": true}
+            let excludedFields = { "profileNumber": true}
 
             var container = document.getElementById(containerName);
             let counter = 0;
@@ -508,9 +513,10 @@ select {
 .mybutton {
     border-radius: 15px;
     height: 200px;
-    width: 100%;
+    width: 33%;
     transition-duration: .4s;
     font-size: 35px;
+    word-wrap: break-word;
 }
 
 .mybutton:hover {
@@ -519,7 +525,7 @@ select {
     box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
 }
 
-.wide-button {
+.full-width {
     width: 100% !important;
 }
 
@@ -595,7 +601,7 @@ div {
     width: 100%;
 }
 
-#profiles-container {
+.data-container {
     width: 100%;
 }
 
@@ -603,7 +609,7 @@ div {
   background-color: white;
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.2s ease-out;
+  transition: max-height 0.2s ease-out;shouldReturn
   margin-bottom: 10px;
 }
 
@@ -636,7 +642,7 @@ body {
     <nav>
     <div id="alarm-status-holder">
         <div id="horizontal-button-holder" class="horizontal-button-holder">
-            <button id="button-arm" class="mybutton flexbox-row" onclick="armButton()">
+            <button id="button-arm" class="mybutton flexbox-row full-width" onclick="armButton()">
                 <img id="title-image" src="dogue.jpg"/>
                 <span id="button-arm-title"></span>
             </button>
@@ -650,22 +656,26 @@ body {
         <image id="garage_status"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
+        <button type="button" class="collapsible">Status</button>
+        <div class="collapsible-content data-container" id="status-container"></div>
+
         <button type="button" class="collapsible">Garage Door</button>
         <div class="horizontal-button-holder collapsible-content" id="garage-button-container">
-            <button id="button-garage-toggle" class="mybutton wide-button emerald" onclick="toggleGarageDoor()">GARAGE OPENER BUTON</button>
+            <button id="button-garage-toggle" class="mybutton full-width emerald" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
         </div>
 
-        <button type="button" class="collapsible">Profiles</button>
-        <div class="collapsible-content" id="profiles-container"></div>
+        <button type="button" class="collapsible">Special Functions</button>
+        <div class="horizontal-button-holder collapsible-content" id="debug-buttons-container">
+            <button id="button-alarm-sound-on" class="mybutton red" onclick="alarmSoundOn()">TEST ALARMS</button>
+            <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
+            <button id="button-alert-check-phone" class="mybutton  orange" onclick="checkPhones()">GET ATTENTION</button>
+        </div>
+
         
 
-         <button type="button" class="collapsible">Debug Buttons</button>
-        <div class="horizontal-button-holder collapsible-content" id="debug-buttons-container">
-            <button id="button-alarm-sound-on" class="mybutton wide-button red" onclick="alarmSoundOn()">TEST ALARMS BRIEFLY</button>
-            <button id="button-clear-old-data" class="mybutton wide-button blue" onclick="clearOldData()">CLEAR OLD DATA</button>
-            <button id="button-alert-check-phone" class="mybutton wide-button orange" onclick="checkPhones()">CHECK YOUR PHONES!</button>
-        </div>
+        <button type="button" class="collapsible">Profiles</button>
+        <div class="collapsible-content data-container" id="profiles-container"></div>
     </div>
-    <div class="" id="status-container"></div>
+    
 </body>
 </html>

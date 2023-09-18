@@ -1,3 +1,7 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////PERMANENTLY ENABLED - DOES NOT RESPOND TO POWER MESSAGES/////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <SPI.h>
 #include <mcp2515.h>
 
@@ -9,7 +13,7 @@ MCP2515::ERROR canMessageError;
 int sensorPin = 5; // the pin that the sensor is atteched to
 int state = LOW;   // by default, no motion detected
 int sensorVal = 0; // variable to store the sensor status (value)
-int myCanId = 0x31;
+int myCanId = 0x30;
 const int BROADCAST_ADDR = 0x00;
 int homebaseCanId = 0x14;
 bool effectivelyEnabled = true;
@@ -56,6 +60,8 @@ void setup()
   myCanMessage.data[2] = deviceType;
 
   if (debug == true) Serial.println("Example: Write to CAN");
+
+  setEnabledState(true); //keep this permanent on door sensors
 }
 
 void setEnabledState(bool state)
@@ -151,42 +157,17 @@ bool matchMessageToThisDevice()
   return false;
 }
 
-bool processMessage()
-{
-  if (matchMessageToThisDevice() == true)
-  {
-    if (incomingCanMsg.data[1] == 0x0F)
-    { // enable
-      setEnabledState(true);
-      return 0; // don't send a message back
-    }
-    else if (incomingCanMsg.data[1] == 0x01)
-    { // disable
-      setEnabledState(false);
-      return 0; // dont send a message back
-    }
-  }
-  else
-  {
-    return 1;
-  }
-}
-
 void loop()
 {
   if (debug == true) Serial.print(">>>> effectively enabled: ");
   if (debug == true) Serial.println(effectivelyEnabled);
 
-
-  bool needToReply = true;
   if (readMessage())
   {
     if (debug == true) Serial.println(">>>>>>>READMESSAGE TRUE");
     if (debug == true) Serial.print(">>>>>>>MESSAGE: ");
-    debugPrintIncoming();
-    needToReply = processMessage();
+    
   }
-// if (needToReply == true) {
   long now = millis();
   if ((now > lastSentMillis + 500) || now < lastSentMillis)
   { // only send a message if it's been 500ms OR the timer has cycled around LONG
