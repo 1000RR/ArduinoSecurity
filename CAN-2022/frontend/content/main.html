@@ -34,12 +34,15 @@
 
         socket.on('connect', function() {
             console.log('Connected to server');
-            waitForFirstMessage = true
+            waitForFirstMessageToRemoveModal = true
             establishConnection();
+            setDisconnectedOverlayHidden(true);
+            setLoadingOverlayHidden(false);
         });
 
         function handleErrors(error) {
-            setDisconnectedOverlayHidden(true);
+            setLoadingOverlayHidden(true);
+            setDisconnectedOverlayHidden(false);
             strOldProfilesData = "{}";
             strOldStatusData = "{}";
             intProfileNumber = -1;
@@ -62,7 +65,7 @@
             
             blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
             if (waitForFirstMessageToRemoveModal) {
-                setDisconnectedOverlayHidden(false);
+                setLoadingOverlayHidden(true);
                 waitForFirstMessageToRemoveModal = false;
             }
         });
@@ -93,10 +96,22 @@
         }        
 
         function setDisconnectedOverlayHidden(flag) {
-            if (flag) {
+            if (!flag) {
                 document.getElementById('overlay').classList.remove('hidden');
+                document.getElementById('disconnected-warning-box').classList.remove('hidden');
             } else {
                 document.getElementById('overlay').classList.add('hidden');
+                document.getElementById('disconnected-warning-box').classList.add('hidden');
+            }
+        }
+
+        function setLoadingOverlayHidden(flag) {
+            if (!flag) {
+                document.getElementById('overlay').classList.remove('hidden');
+                document.getElementById('loading-message-box').classList.remove('hidden');
+            } else {
+                document.getElementById('overlay').classList.add('hidden');
+                document.getElementById('loading-message-box').classList.add('hidden');
             }
         }
 
@@ -358,7 +373,7 @@
 }
 
 /* Styles for the warning box */
-#warning-box {
+.warning-box {
     position: absolute;
     font-weight: bold;
     top: 50%;
@@ -634,9 +649,12 @@ body {
 </style>
 <body>
     <div id="overlay" class="hidden">
-        <div id="warning-box">
+        <div id="disconnected-warning-box" class="hidden warning-box">
             <h2>Warning!</h2>
             <p>The Alarm Service is unreachable</p>
+        </div>
+        <div id="loading-message-box" class="hidden warning-box">
+            <h2>Loading Server</h2>
         </div>
     </div>
     <nav>

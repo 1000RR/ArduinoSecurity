@@ -174,10 +174,10 @@ def update_status_thread(sendAlarmStatus, getClientCount, getClientUuid):
     last_client_count = 0
     last_client_uuid = 0
     while True:    
-        print(f"before update last_client_count {last_client_count}")
+        #print(f"before update last_client_count {last_client_count}")
 
         last_status, last_client_count, last_client_uuid = sendAlarmStatus(message, last_status, getClientCount, last_client_count, getClientUuid, last_client_uuid)
-        print(f"updated last_client_count {last_client_count}")
+        #print(f"updated last_client_count {last_client_count}")
         socketio.sleep(1)
 
 def getClientCount():

@@ -357,7 +357,7 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
     #sound byte override
     #fall back to saying the sensors that are activated
 
-    playCommandArray, volume = determineStuffToPlay(playCommandArray, volume)
+    playCommandArray, volume = determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices)
     startPowerStatus, startChannelStatus, startVolume = getDenonInitialState(cwd)
     if (startPowerStatus == False and startChannelStatus == False and startVolume == False):
         return
@@ -365,7 +365,8 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
     playDenonSounds(playCommandArray, cwd)
     setDenonOriginalState(startPowerStatus, startChannelStatus, startVolume, cwd)
 
-def determineStuffToPlay(playCommandArray, volume):
+def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices):
+    sound = ""
     playCommandArray.append("./alert.mp3")
 
     if ('0xDE' in currentlyAlarmedDevices):
