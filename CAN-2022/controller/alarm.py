@@ -15,7 +15,7 @@ from threading import Thread
 debug = False
 LISTEN_PORT=8080
 memberDevices = {} #map of {string hex id:{properties}}
-denonId = 0x33
+denonId = 0x77
 garageDoorOpenerId = 0xD0
 garageDoorSensorId = 0x30
 exceptMissingDevices = {hex(denonId): True, hex(garageDoorOpenerId): True}
@@ -43,6 +43,7 @@ sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
 currentAlarmProfile = 0 # 0 = default
+threadShouldTerminate = False
 
 
 
@@ -184,6 +185,12 @@ def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices
     global currentAlarmProfile
     global alarmProfiles
     if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
+        oldDevices, newDevices = getDiffOfProfileSensorDevices(currentAlarmProfile, profileNumber)
+        if oldDevices:
+            sendPowerCommand(oldDevices, False, False)
+        if newDevices:
+            sendPowerCommand(newDevices, False, True)
+
         currentAlarmProfile = profileNumber
     print("SETTING ALARM PROFILE " + str(profileNumber) + " - " + getProfileName(profileNumber))
     addEvent({
@@ -232,7 +239,7 @@ def toggleArmed(now, method):
         everTriggeredWithinAlarmCycle = {}
     
     
-    sendPowerCommandDependingOnArmedState() 
+    sendPowerCommandDependingOnArmedState([], True if not armed else False) #should be done after new value for armed is set. broadcast power off / appropriately cast power on
     sendArmedLedSignal() 
     print("Clearing member devices list")
     resetMemberDevices() #reset all members on the bus when turning on/off
@@ -506,22 +513,38 @@ def sendArmedLedSignal():
         print(f">>>> SENDING DISARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
     sendMessage(messageToSend)
 
+def getDiffOfProfileSensorDevices(oldProfileNumber, newProfileNumber):
+    global alarmProfiles
+    global memberDevices
 
-def sendPowerCommandDependingOnArmedState():
+    oldProfilesSet = set(alarmProfiles[oldProfileNumber]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[oldProfileNumber] else set(memberDevices)
+    newProfilesSet = set(alarmProfiles[newProfileNumber]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[newProfileNumber] else set(memberDevices)
+
+    diffOldDevices = list(oldProfilesSet - newProfilesSet)
+    allNewDevices = list(newProfilesSet)
+
+    return diffOldDevices, allNewDevices
+
+#by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
+def sendPowerCommandDependingOnArmedState(devicesOverrideArray, shouldBroadcast): #params are mutually exclusive
+    global armed
+    sendPowerCommand(devicesOverrideArray, shouldBroadcast, 0x0F if armed else 0x01)
+        
+
+#by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
+def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
     global memberDevices
     global homeBaseId
-    global armed
-    if (armed == False):
-        messageToSend = [homeBaseId, 0x00, 0x01, 0x01]
-        sendMessage(messageToSend) #stand down power - 0x0F enabled / 0x01 disabled
-        print(f">>>> BROADCASTING POWER OFF SIGNAL {np.array(messageToSend)}")
-    else:
-        for member in memberDevices:
-            intMemberId = int(member, 16)
-            messageToSend = [homeBaseId, intMemberId, 0x0F, 0x01]
-            sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
-            print(f">>>> SENDING POWER ON SIGNAL {np.array(messageToSend)}")
-            time.sleep(.25) #in seconds, double - 500 msec sleep
+    global currentAlarmProfile
+    global alarmProfiles
+    
+    devicesToSendTo = devicesOverrideArray if devicesOverrideArray else memberDevices if shouldBroadcast else alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"] if "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] else memberDevices
+    for member in devicesToSendTo:
+        intMemberId = int(member, 16)
+        messageToSend = [homeBaseId, intMemberId, 0x0F if powerState else 0x01, 0x01]
+        sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
+        print(f">>>> SENDING POWER {'ON' if powerState else 'OFF'} SIGNAL {np.array(messageToSend)}")
+        time.sleep(.25) #in seconds, double - 500 msec sleep
 
 
 def exitSteps():
@@ -755,7 +778,7 @@ def run(webserver_message_queue, alarm_message_queue):
             for member in memberDevices:
                 print(f"{member} : {memberDevices[member]}")
             print("\n\n\n")
-            sendPowerCommandDependingOnArmedState()
+            sendPowerCommandDependingOnArmedState([], True)
         try:
             decodedLine = line.decode('utf-8')
         except:
