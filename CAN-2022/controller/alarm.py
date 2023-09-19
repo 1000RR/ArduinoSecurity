@@ -12,11 +12,8 @@ import os
 from threading import Thread
 
 
-
 debug = False
 LISTEN_PORT=8080
-ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
-print("Arduino: serial connection with PI established")
 memberDevices = {} #map of {string hex id:{properties}}
 denonId = 0x33
 garageDoorOpenerId = 0xD0
@@ -46,6 +43,8 @@ sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
 currentAlarmProfile = 0 # 0 = default
+
+
 
 deviceDictionary = {
     "0x80": "garage motion sensor 0x80",
@@ -81,6 +80,12 @@ alarmProfiles = [{
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 1 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Daytime - garage doors only / office and denon / 10s",
+    "sensorsThatTriggerAlarm": ["0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId)],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "name": "Night - all sensors / office alarm only / 10s",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
@@ -171,6 +176,8 @@ alarmProfiles = [{
 #05 door open sensor
 
 
+ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
+print("Arduino: serial connection with PI established")
 np.set_printoptions(formatter={'int':hex})
 
 def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices trigger. Alarms are broadcast to all devices.
@@ -347,11 +354,13 @@ def possiblyAddMember(msg):
             memberDevices[hex(msg[0])]['lastSeen'] = now
             memberDevices[hex(msg[0])]['lastSeenReadable'] = readableTimestamp
 
+
 def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3AlarmDictionary):
     cwd = getThisDirAddress()
     playCommandArray = ["/usr/bin/mpg123"]
     volume = "35" #default
 
+    ####types of sounds####
     #test sound from #0xDE
     #pick up your phones from #0x17
     #sound byte override
@@ -364,6 +373,7 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
     setDenonPlayState(startPowerStatus, startChannelStatus, volume, cwd)
     playDenonSounds(playCommandArray, cwd)
     setDenonOriginalState(startPowerStatus, startChannelStatus, startVolume, cwd)
+
 
 def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices):
     sound = ""
@@ -797,6 +807,7 @@ def run(webserver_message_queue, alarm_message_queue):
         if (getTimeMsec() > (lastSentMessageTimeMsec+sendTimeoutMsec)):
             sendAlarmMessage(armed, alarmed)
 
+
 def sendAlarmMessage(armed, alarmed):
     global currentAlarmProfile
     global alarmProfiles
@@ -812,14 +823,17 @@ def sendAlarmMessage(armed, alarmed):
     else: # for profiles missing alarmOutputDevices - broadcast alarm on or off
         sendMessage([homeBaseId, 0x00, 0xBB if armed and alarmed else 0xCC, 0x01])
 
+
 def getCurrentProfileAlarmTime():
     global alarmProfiles
     global currentAlarmProfile
     return alarmProfiles[currentAlarmProfile]["alarmTimeLengthSec"]
 
+
 def getProfileName(profileNumber):
     global alarmProfiles
     return alarmProfiles[profileNumber]["name"]
+
 
 def clearOldData():
     global everTriggeredWithinAlarmCycle

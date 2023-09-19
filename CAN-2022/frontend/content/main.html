@@ -249,7 +249,7 @@
                 node.removeChild(node.lastChild);
             }
 
-            let excludedFields = { "profileNumber": true}
+            let excludedFields = {"profileNumber": true, "memberDevices": true}
 
             var container = document.getElementById(containerName);
             let counter = 0;
@@ -281,6 +281,10 @@
                     paintArmStatus(message[key] == 'ARMED')
                 }
                 counter++;
+            }
+
+            if (container.previousElementSibling.classList.contains('active')) {
+                container.style.maxHeight = container.scrollHeight + "px"; //adjust vertical size
             }
         }
 
@@ -378,8 +382,10 @@
     font-weight: bold;
     top: 50%;
     left: 50%;
+    width: 80%;
+    height: 80%;
     transform: translate(-50%, -50%);
-    background-color: #fff;
+    background-color: rgba(255, 255, 255, .8);
     padding: 20px;
     border-radius: 5px;
     text-align: center;
@@ -654,7 +660,7 @@ body {
             <p>The Alarm Service is unreachable</p>
         </div>
         <div id="loading-message-box" class="hidden warning-box">
-            <h2>Loading Server</h2>
+            <h2>Loading Data...</h2>
         </div>
     </div>
     <nav>

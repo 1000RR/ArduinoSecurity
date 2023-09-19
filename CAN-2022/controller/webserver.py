@@ -15,8 +15,6 @@ CLIENT_ID = 'your_client_id'
 CLIENT_SECRET = 'your_client_secret'
 TOKEN_URL = 'https://example.com/oauth/token'
 
-# Define a global variable
-global_var = "This is a global variable from main_program"
 
 # Create a queue for communication between main program and daemon thread
 webserver_message_queue = Queue()
@@ -165,7 +163,7 @@ def main():
     #ssl_context.load_cert_chain(certfile='path/to/your/cert.pem', keyfile='path/to/your/key.pem')
 
     # Run the Flask app
-    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=8080)
     #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context)
 
 def update_status_thread(sendAlarmStatus, getClientCount, getClientUuid):
