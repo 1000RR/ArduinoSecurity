@@ -163,7 +163,7 @@ def main():
     #ssl_context.load_cert_chain(certfile='path/to/your/cert.pem', keyfile='path/to/your/key.pem')
 
     # Run the Flask app
-    socketio.run(app, host='0.0.0.0', port=8080)
+    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
     #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context)
 
 def update_status_thread(sendAlarmStatus, getClientCount, getClientUuid):
