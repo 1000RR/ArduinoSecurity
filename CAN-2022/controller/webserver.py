@@ -95,8 +95,6 @@ def main():
             if thread is None:
                 thread = socketio.start_background_task(update_status_thread, sendAlarmStatus, getClientCount, getClientUuid)
 
-    
-
     @socketio.on('disconnect')
     def disconnect():
         global client_count
