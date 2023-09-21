@@ -186,6 +186,28 @@
             socket.emit('toggleGarageDoorState', {message: undefined});
         }
 
+        function sendRepeatedlyCan(){
+            let message = 
+                document.getElementById('sender-field').getAttribute('value') + ':' +
+                document.getElementById('receiver-field').getAttribute('value') + ':' +
+                document.getElementById('message-field').getAttribute('value') + ':' +
+                document.getElementById('type-field').getAttribute('value');
+            socket.emit('cansendrepeatedly', {message: message});
+        }
+
+        function sendSingleCan(){
+            let message = 
+                document.getElementById('sender-field').getAttribute('value') + ':' +
+                document.getElementById('receiver-field').getAttribute('value') + ':' +
+                document.getElementById('message-field').getAttribute('value') + ':' +
+                document.getElementById('type-field').getAttribute('value');
+            socket.emit('cansendsingle', {message: message});
+        }
+
+        function stopSendingCan(){
+            socket.emit('canstopsending', {message: undefined});
+        }
+
         function setAlarmProfile() {
             let selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
             intProfileNumber = selectedIndex;
@@ -697,11 +719,24 @@ body {
         </div>
 
         <button type="button" class="collapsible">Special Functions</button>
-        <div class="horizontal-button-holder collapsible-content" id="debug-buttons-container">
-            <button id="button-alarm-sound-on" class="mybutton red" onclick="alarmSoundOn()">TEST ALARMS</button>
-            <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
-            <button id="button-alert-check-phone" class="mybutton  orange" onclick="checkPhones()">GET ATTENTION</button>
+        <div class="flexbow-row collapsible-content" id="special-functions-container">
+            <div class="horizontal-button-holder" id="special-functions-buttons-container">
+                <button id="button-alarm-sound-on" class="mybutton red" onclick="alarmSoundOn()">TEST ALARMS</button>
+                <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
+                <button id="button-alert-check-phone" class="mybutton  orange" onclick="checkPhones()">GET ATTENTION</button>
+            </div>
+            <div class="horizontal-button-holder" id="can-field-container">
+                <input type="text" id="sender-field" placeholder="sender" name="sender" value="0x75" required minlength="4" maxlength="4" size="10" />
+                <input type="text" id="receiver-field" placeholder="receiver" name="receiver" value="0x14" required minlength="4" maxlength="8" size="10" />
+                <input type="text" id="message-field" placeholder="message" name="message" value="0xAA" required minlength="4" maxlength="8" size="10" />
+                <input type="text" id="type-field" placeholder="type" name="type" value="0x00" required minlength="4" maxlength="8" size="10" />
+                <button id="can-send-single" class="" onclick="sendSingleCan()">send once</button>
+                <button id="can-send-repeatedly" class="" onclick="sendRepeatedlyCan()">send repeatedly</button>
+                <button id="can-stop-send" class="" onclick="stopSendingCan()">stop sending</button>
+            </div>
         </div>
+
+
 
         
 

@@ -44,7 +44,9 @@ lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
 currentAlarmProfile = 0 # 0 = default
 threadShouldTerminate = False
-
+canDebugMessage = ""
+shouldSendDebugRepeatedly = False
+shouldSendDebugMessage = False
 
 
 deviceDictionary = {
@@ -183,6 +185,7 @@ np.set_printoptions(formatter={'int':hex})
 
 def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices trigger. Alarms are broadcast to all devices.
     global currentAlarmProfile
+    global currentlyAlarmedDevices
     global alarmProfiles
     if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
         oldDevices, newDevices = getDiffOfProfileSensorDevices(currentAlarmProfile, profileNumber)
@@ -198,6 +201,8 @@ def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices
         "time": getReadableTimeFromTimestamp(getTimeSec()),
         "method": "WEB API"
     })
+    currentlyAlarmedDevices = {}
+    alarmed = False
     sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #turn off all alarms as part of this change
 
 
@@ -586,8 +591,18 @@ def handleMessage(msg):
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
     global currentAlarmProfile
+    global canDebugMessage
+    global shouldSendDebugRepeatedly
+    global shouldSendDebugMessage
 
     now = getTimeSec()
+
+    #if we are faking output from a certain device, ignore all messages from that device and replace with 
+    if (shouldSendDebugMessage and msg[0] == canDebugMessage[0]):
+        msg = canDebugMessage
+        if (not shouldSendDebugRepeatedly):
+            shouldSendDebugMessage = False
+            canDebugMessage = []
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
     if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): #0xEE - arm toggle pressed
@@ -766,6 +781,12 @@ def run(webserver_message_queue, alarm_message_queue):
                 sendAlarmMessage(True, True)
                 time.sleep(.1)
                 sendAlarmMessage(False, False)
+            elif (message.startswith("CAN-REPEATEDLY-SEND-")) :
+                sendcan(message.split('CAN-REPEATEDLY-SEND-')[1], True)
+            elif (message.startswith("CAN-SINGLE-SEND-")) :
+                sendcan(message.split('CAN-SINGLE-SEND-')[1], False)
+            elif (message == "CAN-STOP-SENDING") :
+                stopsendingcan()
 
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
@@ -873,7 +894,51 @@ def clearOldData():
     currentlyMissingDevices = []
     resetMemberDevices()
 
-#TODO:
+def stopsendingcan():
+    global canDebugMessage
+    global shouldSendDebugRepeatedly
+    global shouldSendDebugMessage
+    global currentlyAlarmedDevices
+
+    canDebugMessage = []
+    shouldSendDebugRepeatedly = False
+    shouldSendDebugMessage = False
+    currentlyAlarmedDevices = {}
+
+    print('STOPPING SENDING FAKE MESSAGE FROM UI')
+    addEvent({
+        "event": "STOPPING SENDING DEBUG CAN MESSAGE FROM UI",
+        "time": getReadableTimeFromTimestamp(getTimeSec()),
+        "method": "WEB API"
+    })
+
+
+def sendcan(message, repeatedly):
+    global canDebugMessage
+    global shouldSendDebugRepeatedly
+    global shouldSendDebugMessage
+    messageConforms = True
+
+    arrCanDebugMessage = message.split(':')
+    if (len(arrCanDebugMessage) == 4):
+        for index, i in enumerate(arrCanDebugMessage):
+            if not i.startswith('0x') or len(i) != 4:
+                messageConforms = False
+                break
+            else:
+                arrCanDebugMessage[index]=int(i, 16)
+        if messageConforms:
+            print('SENDING FAKE MESSAGE FROM UI ' + str(arrCanDebugMessage) + (" REPEATEDLY " if repeatedly else ""))
+            addEvent({
+                "event": "STARTING SENDING DEBUG CAN MESSAGE " + str(arrCanDebugMessage) + " FROM UI" + (" REPEATEDLY" if repeatedly else ""),
+                "time": getReadableTimeFromTimestamp(getTimeSec()),
+                "method": "WEB API"
+            })
+            canDebugMessage = arrCanDebugMessage
+            shouldSendDebugRepeatedly = True if repeatedly else False
+            shouldSendDebugMessage = True
+
+#TODO: 
 #ADJUST AND FLASH ALL DEVICES WITH CORRECT DEVICETYPES!!
 #web server certs auth
 #profiles

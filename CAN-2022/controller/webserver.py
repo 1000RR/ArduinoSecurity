@@ -140,6 +140,18 @@ def main():
     def disarm(message):
         webserver_message_queue.put("TOGGLE-GARAGE-DOOR-STATE")
 
+    @socketio.on('cansendrepeatedly')
+    def cansendrepeatedly(message):
+        webserver_message_queue.put("CAN-REPEATEDLY-SEND-" + message['message'])
+
+    @socketio.on('cansendsingle')
+    def cansendsingle(message):
+        webserver_message_queue.put("CAN-SINGLE-SEND-" + message['message'])
+
+    @socketio.on('canstopsending')
+    def canstopsending(message):
+        webserver_message_queue.put("CAN-STOP-SENDING")
+
     @socketio.on('getAlarmProfiles')
     def getProfiles(message):
         webserver_message_queue.put("GET-ALARM-PROFILES")
