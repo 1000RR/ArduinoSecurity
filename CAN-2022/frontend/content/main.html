@@ -668,6 +668,15 @@ div {
     padding-top:20px;
 }
 
+.left-justify {
+    align-self: flex-start;
+}
+
+.right-justify {
+    align-self: end;
+}
+
+
 .left-half {
     width: 50% !important;
     align-self: start;
@@ -719,13 +728,13 @@ body {
         </div>
 
         <button type="button" class="collapsible">Special Functions</button>
-        <div class="flexbow-row collapsible-content" id="special-functions-container">
+        <div class="flexbow-row collapsible-content full-width" id="special-functions-container">
             <div class="horizontal-button-holder" id="special-functions-buttons-container">
                 <button id="button-alarm-sound-on" class="mybutton red" onclick="alarmSoundOn()">TEST ALARMS</button>
                 <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
-                <button id="button-alert-check-phone" class="mybutton  orange" onclick="checkPhones()">GET ATTENTION</button>
+                <button id="button-alert-check-phone" class="mybutton orange" onclick="checkPhones()">GET ATTENTION</button>
             </div>
-            <div class="horizontal-button-holder" id="can-field-container">
+            <div class="flexbow-row left-justify" id="can-field-container">
                 <input type="text" id="sender-field" placeholder="sender" name="sender" value="0x75" required minlength="4" maxlength="4" size="10" />
                 <input type="text" id="receiver-field" placeholder="receiver" name="receiver" value="0x14" required minlength="4" maxlength="8" size="10" />
                 <input type="text" id="message-field" placeholder="message" name="message" value="0xAA" required minlength="4" maxlength="8" size="10" />

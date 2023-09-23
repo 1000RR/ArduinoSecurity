@@ -47,22 +47,23 @@ threadShouldTerminate = False
 canDebugMessage = ""
 shouldSendDebugRepeatedly = False
 shouldSendDebugMessage = False
+alwaysKeepOnSet = {"0x30", "0x31"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors.
 
 
 deviceDictionary = {
-    "0x80": "garage motion sensor 0x80",
-    "0x75": "inside motion sensor 0x75",
-    hex(garageDoorSensorId): "garage car door sensor " + hex(garageDoorSensorId),
-    "0x31": "garage side door sensor 0x31",
+    "0x80": "SENSOR - garage motion 0x80",
+    "0x75": "SENSOR - kitchen motion 0x75",
+    hex(garageDoorSensorId): "SENSOR - garage car door " + hex(garageDoorSensorId),
+    "0x31": "SENSOR - garage side door 0x31",
     "0x14": "home base",
     "0xFF": "home base communicating to its arduino",
-    "0x10": "fire alarm bell 0x10",
-    "0x15": "piezo 120db alarm 0x15",
-    "0x99": "office led and buzzer 0x99",
-    hex(denonId): "VIRTUAL denon via curl " + hex(denonId),
+    "0x10": "ALARM - fire alarm bell in laundry room 0x10",
+    "0x15": "ALARM - piezo 120db alarm in garage 0x15",
+    "0x99": "ALARM - office led and buzzer 0x99",
+    hex(denonId): "ALARM (VIRTUAL) - denon via curl " + hex(denonId),
     "0x17": "VIRTUAL sensor for getting attention 0x17",
     "0xDE": "VIRTUAL sensor for triggering a test alarm 0xDE",
-    hex(garageDoorOpenerId): "garage door opener " + hex(garageDoorOpenerId)
+    hex(garageDoorOpenerId): "OPENER - garage door opener " + hex(garageDoorOpenerId)
 }
 
 mp3AlarmDictionary = {
@@ -73,36 +74,60 @@ mp3AlarmDictionary = {
     "0x17": "checkyourphones.mp3"
 }
 
-alarmProfiles = [{
-    "name": "Default - all sensors / all alarms / 5s", #all missing and all triggers BROADCAST ALARM
-    "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 
+alarmProfiles = [{
+    "name": "All Alarms 5s | All Sensors", #all missing and all triggers BROADCAST ALARM
+    "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Watch sensors - all sensors / no alarm",
+    "name": "Visual Alarm 10s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x51"],
-    "alarmTimeLengthSec": 1 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Daytime - garage doors only / office and denon / 10s",
+    "name": "Visual Alarm 10s | Perimeter Sensors",
+    "sensorsThatTriggerAlarm": ["0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
+    "alarmOutputDevices": ["0x51"],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "At Home Daytime - All Alarms Except Garage 10s | Perimeter Sensors",
+    "sensorsThatTriggerAlarm": ["0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId), "0x10"],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "At Home Daytime - Office Alarms 10s | Perimeter Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Night - all sensors / office alarm only / 10s",
-    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "alarmOutputDevices": ["0x99"],
+    "name": "Night Time - Office Alarms 10s | Perimeter Sensors",
+    "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Night - all sensors / office and denon / 10s",
+    "name": "Night Time - All Alarms 10s | Perimeter Sensors",
+    "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId), "0x15", "0x10"],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Night Time - Office Alarms 10s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-},{
-    "name": "Away - all sensors / all alarms / 30s",
+}, {
+    "name": "Night Time - All Alarms 10s | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "alarmOutputDevices": ["0x99", hex(denonId), "0x15", "0x10"],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Away - All Alarms 30s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
@@ -110,30 +135,30 @@ alarmProfiles = [{
     "playSoundVolume": 45,
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Away SCARY LOUD DENON - all sensors / office and denon / 30s",
+    "name": "Away SCARY LOUD DENON - All Alarms (loud denon) 30s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "alarmOutputDevices": ["0x99", hex(denonId)],
+    "alarmOutputDevices": ["0x99", hex(denonId), "0x10", "0x15"],
     "playSound": "scaryalarm.mp3",
     "playSoundVolume": 65,
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "All sensors / all alarms / as long as alarmed",
+    "name": "All Alarms As Long As Alarmed | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "All sensors / office alarm only / as long as alarmed",
-    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
-    "alarmOutputDevices": ["0x99"],
-    "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-}, {
-    "name": "All sensors / office and denon / as long as alarmed",
+    "name": "Office and Denon As Long As Alarmed | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
+    "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Office Buzzer As Long As Alarmed | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }]
 
@@ -183,18 +208,49 @@ ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, 
 print("Arduino: serial connection with PI established")
 np.set_printoptions(formatter={'int':hex})
 
+#NEW DEVICES POWER FUNCTION
+
+def setDevicesPower():
+    global armed
+    global alwaysKeepOnSet
+
+    offDevices = []
+    onDevices = []
+    # if not armed, send OFF to all
+    # if armed, send OFF or ON to all depending on whether the device is in the profile's sensorsthattrigger
+    if not armed:
+        sendPowerCommand([], True, False)
+        sendPowerCommand(list(alwaysKeepOnSet), False, True)
+    else:
+        offDevices, onDevices = getDevicesPowerStatusLists()
+        sendPowerCommand(offDevices, False, False)
+        sendPowerCommand(onDevices, False, True)
+
+def getDevicesPowerStatusLists():
+    global currentAlarmProfile
+    global alarmProfiles
+    global memberDevices
+    global alwaysKeepOnSet
+
+    oldProfilesSet = set(memberDevices)
+    newProfilesSet = set(alarmProfiles[currentAlarmProfile]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[currentAlarmProfile] else set(memberDevices)
+
+    newProfilesSet = newProfilesSet.union(alwaysKeepOnSet)
+
+    offDevices = list(oldProfilesSet - newProfilesSet)
+    onDevices = list(newProfilesSet)
+
+    return offDevices, onDevices
+
+
 def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices trigger. Alarms are broadcast to all devices.
     global currentAlarmProfile
     global currentlyAlarmedDevices
     global alarmProfiles
     if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
-        oldDevices, newDevices = getDiffOfProfileSensorDevices(currentAlarmProfile, profileNumber)
-        if oldDevices:
-            sendPowerCommand(oldDevices, False, False)
-        if newDevices:
-            sendPowerCommand(newDevices, False, True)
-
         currentAlarmProfile = profileNumber
+        setDevicesPower()
+
     print("SETTING ALARM PROFILE " + str(profileNumber) + " - " + getProfileName(profileNumber))
     addEvent({
         "event": "SET PROFILE : " + str(profileNumber) + " - " + getProfileName(profileNumber),
@@ -243,8 +299,8 @@ def toggleArmed(now, method):
         alarmed = False #reset alarmed state
         everTriggeredWithinAlarmCycle = {}
     
-    
-    sendPowerCommandDependingOnArmedState([], True if not armed else False) #should be done after new value for armed is set. broadcast power off / appropriately cast power on
+    #turn on or off devices depending on armed state
+    setDevicesPower()
     sendArmedLedSignal() 
     print("Clearing member devices list")
     resetMemberDevices() #reset all members on the bus when turning on/off
@@ -255,15 +311,15 @@ def resetMemberDevices():
     now = getTimeSec()
     readableTimestamp = getReadableTime()
     memberDevices = {
-        hex(denonId): {
-            'id': hex(denonId),
-            'firstSeen': now,
-            'firstSeenReadable': readableTimestamp,
-            'deviceType': '0x10',
-            'lastSeen': now,
-            'lastSeenReadable': readableTimestamp,
-            'friendlyName': getFriendlyDeviceName(denonId)
-        }
+        # hex(denonId): {
+        #     'id': hex(denonId),
+        #     'firstSeen': now,
+        #     'firstSeenReadable': readableTimestamp,
+        #     'deviceType': '0x10',
+        #     'lastSeen': now,
+        #     'lastSeenReadable': readableTimestamp,
+        #     'friendlyName': getFriendlyDeviceName(denonId)
+        # }
     }
 
 
@@ -531,12 +587,6 @@ def getDiffOfProfileSensorDevices(oldProfileNumber, newProfileNumber):
     return diffOldDevices, allNewDevices
 
 #by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
-def sendPowerCommandDependingOnArmedState(devicesOverrideArray, shouldBroadcast): #params are mutually exclusive
-    global armed
-    sendPowerCommand(devicesOverrideArray, shouldBroadcast, 0x0F if armed else 0x01)
-        
-
-#by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
 def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
     global memberDevices
     global homeBaseId
@@ -736,6 +786,7 @@ def run(webserver_message_queue, alarm_message_queue):
     global lastCheckedMissingDevicesMsec
     global alarmProfiles
     global currentAlarmProfile
+    global alwaysKeepOnSet
     resetMemberDevices()
 
     atexit.register(exitSteps)
@@ -799,7 +850,8 @@ def run(webserver_message_queue, alarm_message_queue):
             for member in memberDevices:
                 print(f"{member} : {memberDevices[member]}")
             print("\n\n\n")
-            sendPowerCommandDependingOnArmedState([], True)
+            sendPowerCommand([], True, False) #turn off all - broadcast
+            sendPowerCommand(set(alwaysKeepOnSet), False, True) #turn on those devices that are meant to stay on always
         try:
             decodedLine = line.decode('utf-8')
         except:
