@@ -17,7 +17,7 @@
             let collapsible = document.getElementsByClassName("collapsible");
 
             for (let i = 0; i < collapsible.length; i++) {
-              collapsible[i].addEventListener("click", function() {
+              collapsible[i].addEventListener(collapsible[i].classList.contains('double_click') ? "dblclick" : "click", function() {
                 this.classList.toggle("active");
                 var content = this.nextElementSibling;
                 if (content.style.maxHeight){
@@ -375,7 +375,15 @@
 
 @media (prefers-color-scheme: dark) {
     .dimmable, select, option {
-        filter: brightness(60%);
+        filter: brightness(50%);
+    }
+
+    .item-even {
+        background-color: rgba(197, 197, 158, 0.8);
+    }
+
+    .item-odd {
+        background-color: rgba(197, 197, 197, 0.8);
     }
 }
 
@@ -821,7 +829,7 @@ body {
             <button id="button-garage-toggle" class="mybutton full-width emerald dimmable" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
         </div>
 
-        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners double_click">Special Functions (double click)</button>
         <div class="flexbow-row collapsible-content full-width bottom-rounded-corners " id="special-functions-container">
             <div class="horizontal-button-holder" id="special-functions-buttons-container">
                 <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>
