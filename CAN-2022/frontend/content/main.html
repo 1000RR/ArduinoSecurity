@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <meta name="color-scheme" content="dark light">
+
     <meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <title>BOBIK</title>
@@ -58,7 +62,7 @@
                 return;
             else {
                 renderMessage(data.message, 'status-container');
-                renderHouse(data.message.garageOpen);
+                renderIcons(data.message);
                 updateProfilesDropdownSelection(data.message);
                 strOldStatusData = JSON.stringify(data.message);
             }
@@ -81,16 +85,30 @@
             }
         });
 
-        function renderHouse(isGarageOpen) {
-            let el = document.getElementById('garage_status');
+        function renderIcons(statusJson) {
+            let isGarageOpen = statusJson.garageOpen;
+            let el = document.getElementById('garage_door_status');
             el.classList.add(isGarageOpen ? 'open-garage' : 'closed-garage')
             el.classList.remove(isGarageOpen ? 'closed-garage' : 'open-garage')
-            if (isGarageOpen) {
-                el.classList.add('invertTransitions')
-            } else {
-                el.classList.remove('invertTransitions')
+            
+            setInvertTransitionsClassOnItem('garage_door_status', isGarageOpen, 'invertTransitions')
+            setInvertTransitionsClassOnItem('garage_side_door_status', statusJson.currentTriggeredDevices.includes('0x31'), 'invertTransitions')
+            setInvertTransitionsClassOnItem('inside_movement_status', statusJson.currentTriggeredDevices.includes('0x75'), 'invertTransitions')
+            setInvertTransitionsClassOnItem('garage_movement_status', statusJson.currentTriggeredDevices.includes('0x80'), 'invertTransitions')
+        }
+
+        function setInvertTransitionsClassOnItem(itemName, shouldSetClass, className) {
+            let el = document.getElementById(itemName);
+            if (!el) {
+                return;
             }
-        }        
+
+            if (shouldSetClass) {
+                el.classList.add(className)
+            } else {
+                el.classList.remove(className)
+            }
+        }
 
         function setDisconnectedOverlayHidden(flag) {
             if (!flag) {
@@ -136,10 +154,10 @@
 
             if (!isArmed){
                 armButton.classList.remove("armed");
-                armButtonTitle.innerText="DISARMED / Click to arm";
+                armButtonTitle.innerText="DISARMED | Click to arm";
             } else {
                 armButton.classList.add("armed");
-                armButtonTitle.innerText="ARMED / Click to disarm";
+                armButtonTitle.innerText="ARMED | Click to disarm";
             }
 
 
@@ -219,15 +237,15 @@
             let newProfileNumber = Number(newStatusData.profileNumber);
             let element = document.getElementById('profiles-dropdown');
 
-            setTimeout(function() {
-                element = document.getElementById('profiles-dropdown');
-                if (!element)
-                    console.error('DROPDOWN NOT YET RENDERED, CANNOT ADJUST SELECTED VALUE!')
-                if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
-                    document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
-                    intProfileNumber = newProfileNumber;
-                }
-            }, element ? 1 : 500)
+            if (!element) {
+                console.error('DROPDOWN NOT YET RENDERED, CANNOT ADJUST SELECTED VALUE! Retrying in 250ms')
+                setTimeout(() => {updateProfilesDropdownSelection(newStatusData)}, 250);
+            }
+            else if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
+                document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
+                intProfileNumber = newProfileNumber;
+            }
+            
         }
 
         function renderProfilesDropdown(arrProfiles) {
@@ -279,6 +297,7 @@
 
                 var column = document.createElement('div');
                 column.classList.add('column');
+                column.classList.add('dimmable');
                 column.classList.add(counter%2 > 0 ? 'item-odd' : 'item-even');
 
                 var title = document.createElement('div');
@@ -342,12 +361,22 @@
     </script>
 </head>
 <style>
-    .json-render {
+.json-render {
     font-family: monospace;
     padding: 10px;
     background-color: #f5f5f5;
     border: 1px solid #ccc;
     border-radius: 4px;
+}
+
+:root {
+  color-scheme: light dark; /* both supported */
+}
+
+@media (prefers-color-scheme: dark) {
+    .dimmable, select, option {
+        filter: brightness(60%);
+    }
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -401,7 +430,7 @@
     width: 80%;
     height: 80%;
     transform: translate(-50%, -50%);
-    background-color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, .3);
     padding: 20px;
     border-radius: 5px;
     text-align: center;
@@ -485,9 +514,24 @@
     content: url("dog.jpg") !important;
 }
 
+.icon_height {
+    height: 170px;
+}
+
 .open-garage {
     content: url("garage_open.png") !important;
+}
 
+#garage_side_door_status {
+    content: url("garagesidedoor.png") !important;
+}
+
+#inside_movement_status {
+    content: url("insidemovement.png") !important;
+}
+
+#garage_movement_status {
+    content: url("garagemovement.png") !important;
 }
 
 .closed-garage {
@@ -567,21 +611,19 @@ select {
     transition-duration: .4s;
     font-size: 35px;
     word-wrap: break-word;
-    filter: grayscale(50%);
 }
 
 .mybutton:hover {
     color: black;
     font-weight: bold;
     box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-    filter: grayscale(25%);
 }
 
 .mybutton:active {
     color: black;
     font-weight: bold;
     box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-    filter: contrast(200%);
+    filter: saturate(200%) !important;
 }
 
 .full-width {
@@ -604,7 +646,6 @@ select {
 }
 
 nav {
-
     justify-content: space-between;
     align-items: center;
     display: flex;
@@ -640,20 +681,23 @@ div {
 }
 
 .collapsible {
-  background-color: #eee;
   color: #444;
   cursor: pointer;
   padding: 25px;
   width: 100%;
-  border: none;
+  border-color: black;
+  border-width: 2px;
+  border-style: solid;
   text-align: left;
   outline: none;
   font-size: 20px;
   font-weight: bold;
+  margin: 1px;
 }
 
 .active, .collapsible:hover {
-  background-color: #ccc;
+  background-color: #444;
+  color: #ddd;
 }
 
 #collapsibles-container {
@@ -665,9 +709,8 @@ div {
 }
 
 .collapsible-content {
-  background-color: white;
   max-height: 0;
-  overflow: hidden;
+  overflow: auto;
   transition: max-height 0.2s ease-out;shouldReturn
   margin-bottom: 10px;
 }
@@ -685,8 +728,16 @@ div {
     gap: 30px;
 }
 
+.flexgap10px {
+    gap: 10px;
+}
+
 .left-justify {
     justify-content: flex-start;
+}
+
+.lower_opacity {
+    opacity: 0.8;
 }
 
 .right-justify {
@@ -702,6 +753,26 @@ div {
 .right-half {
     width: 50% !important;
     align-self: end;
+}
+
+#status-images-container {
+    background-color: rgba(0,0,0,.6);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.top-rounded-corners {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.bottom-rounded-corners {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
 }
 
 input {
@@ -728,7 +799,7 @@ body {
     <nav>
     <div id="alarm-status-holder">
         <div id="horizontal-button-holder" class="horizontal-button-holder">
-            <button id="button-arm" class="mybutton flexbox-row full-width" onclick="armButton()">
+            <button id="button-arm" class="mybutton flexbox-row full-width dimmable" onclick="armButton()">
                 <img id="title-image" src="dogue.jpg"/>
                 <span id="button-arm-title"></span>
             </button>
@@ -738,39 +809,41 @@ body {
             
     </div>
     </nav>
-    <div class="flexbox-row justify-content-center" id="status-images-container">
-        <image id="garage_status"></image>
-        
+    <div class="flexbox-row" id="status-images-container">
+        <image id="garage_door_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="garage_side_door_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="garage_movement_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="inside_movement_status" class="lower_opacity icon_height dimmable"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
-        <button type="button" class="collapsible">Garage Door</button>
-        <div class="horizontal-button-holder collapsible-content" id="garage-button-container">
-            <button id="button-garage-toggle" class="mybutton full-width emerald" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Garage Door</button>
+        <div class="horizontal-button-holder collapsible-content bottom-rounded-corners " id="garage-button-container">
+            <button id="button-garage-toggle" class="mybutton full-width emerald dimmable" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
         </div>
 
-        <button type="button" class="collapsible">Special Functions</button>
-        <div class="flexbow-row collapsible-content full-width" id="special-functions-container">
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
+        <div class="flexbow-row collapsible-content full-width bottom-rounded-corners " id="special-functions-container">
             <div class="horizontal-button-holder" id="special-functions-buttons-container">
-                <button id="button-alarm-sound-on" class="mybutton red" onclick="alarmSoundOn()">TEST ALARMS</button>
-                <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
-                <button id="button-alert-check-phone" class="mybutton orange" onclick="checkPhones()">GET ATTENTION</button>
+                <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>
+                <button id="button-clear-old-data" class="mybutton blue dimmable" onclick="clearOldData()">CLEAR DATA</button>
+                <button id="button-alert-check-phone" class="mybutton orange dimmable" onclick="checkPhones()">GET ATTENTION</button>
             </div>
             <div class="flexbox-row flexwrap flexgap30px" id="can-field-container">
-                <input type="text" id="sender-field" placeholder="sender" name="sender" value="0x75" required />
-                <input type="text" id="receiver-field" placeholder="receiver" name="receiver" value="0x14" required />
-                <input type="text" id="message-field" placeholder="message" name="message" value="0xAA" required />
-                <input type="text" id="type-field" placeholder="type" name="type" value="0x00" required />
-                <button id="can-send-single" class="smallbutton" onclick="sendSingleCan()">send once</button>
-                <button id="can-send-repeatedly" class="smallbutton" onclick="sendRepeatedlyCan()">send repeatedly</button>
-                <button id="can-stop-send" class="smallbutton" onclick="stopSendingCan()">stop sending</button>
+                <input type="text" id="sender-field" class="dimmable" placeholder="sender" name="sender" value="0x75" required />
+                <input type="text" id="receiver-field" class="dimmable" placeholder="receiver" name="receiver" value="0x14" required />
+                <input type="text" id="message-field" class="dimmable" placeholder="message" name="message" value="0xAA" required />
+                <input type="text" id="type-field" class="dimmable" placeholder="type" name="type" value="0x00" required />
+                <button id="can-send-single" class="smallbutton dimmable" onclick="sendSingleCan()">send once</button>
+                <button id="can-send-repeatedly" class="smallbutton dimmable" onclick="sendRepeatedlyCan()">send repeatedly</button>
+                <button id="can-stop-send" class="smallbutton dimmable" onclick="stopSendingCan()">stop sending</button>
             </div>
         </div>
 
-        <button type="button" class="collapsible">Status</button>
-        <div class="collapsible-content data-container" id="status-container"></div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Status</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="status-container"></div>
 
-        <button type="button" class="collapsible">Profiles</button>
-        <div class="collapsible-content data-container" id="profiles-container"></div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
     </div>
     
 </body>
