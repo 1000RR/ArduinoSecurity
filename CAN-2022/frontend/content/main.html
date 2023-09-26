@@ -188,19 +188,19 @@
 
         function sendRepeatedlyCan(){
             let message = 
-                document.getElementById('sender-field').getAttribute('value') + ':' +
-                document.getElementById('receiver-field').getAttribute('value') + ':' +
-                document.getElementById('message-field').getAttribute('value') + ':' +
-                document.getElementById('type-field').getAttribute('value');
+                document.getElementById('sender-field').value + ':' +
+                document.getElementById('receiver-field').value + ':' +
+                document.getElementById('message-field').value + ':' +
+                document.getElementById('type-field').value;
             socket.emit('cansendrepeatedly', {message: message});
         }
 
         function sendSingleCan(){
             let message = 
-                document.getElementById('sender-field').getAttribute('value') + ':' +
-                document.getElementById('receiver-field').getAttribute('value') + ':' +
-                document.getElementById('message-field').getAttribute('value') + ':' +
-                document.getElementById('type-field').getAttribute('value');
+                document.getElementById('sender-field').value + ':' +
+                document.getElementById('receiver-field').value + ':' +
+                document.getElementById('message-field').value + ':' +
+                document.getElementById('type-field').value;
             socket.emit('cansendsingle', {message: message});
         }
 
@@ -551,6 +551,15 @@ select {
     justify-content: center !important
 }
 
+.smallbutton {
+    border-radius: 15px;
+    height: 100px;
+    width: 300px;
+    transition-duration: .4s;
+    font-size: 35px;
+    word-wrap: break-word;
+}
+
 .mybutton {
     border-radius: 15px;
     height: 200px;
@@ -668,12 +677,20 @@ div {
     padding-top:20px;
 }
 
+.flexwrap {
+    flex-wrap: wrap;
+}
+
+.flexgap30px {
+    gap: 30px;
+}
+
 .left-justify {
-    align-self: flex-start;
+    justify-content: flex-start;
 }
 
 .right-justify {
-    align-self: end;
+    justify-content: flex-end;
 }
 
 
@@ -685,6 +702,13 @@ div {
 .right-half {
     width: 50% !important;
     align-self: end;
+}
+
+input {
+    minlength: 4;
+    maxlength: 4;
+    width: 160px;
+    font-size: 40px;
 }
 
 body {
@@ -719,9 +743,6 @@ body {
         
     </div>
     <div id="collapsibles-container" class="flexbox-column">
-        <button type="button" class="collapsible">Status</button>
-        <div class="collapsible-content data-container" id="status-container"></div>
-
         <button type="button" class="collapsible">Garage Door</button>
         <div class="horizontal-button-holder collapsible-content" id="garage-button-container">
             <button id="button-garage-toggle" class="mybutton full-width emerald" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
@@ -734,20 +755,19 @@ body {
                 <button id="button-clear-old-data" class="mybutton blue" onclick="clearOldData()">CLEAR DATA</button>
                 <button id="button-alert-check-phone" class="mybutton orange" onclick="checkPhones()">GET ATTENTION</button>
             </div>
-            <div class="flexbow-row left-justify" id="can-field-container">
-                <input type="text" id="sender-field" placeholder="sender" name="sender" value="0x75" required minlength="4" maxlength="4" size="10" />
-                <input type="text" id="receiver-field" placeholder="receiver" name="receiver" value="0x14" required minlength="4" maxlength="8" size="10" />
-                <input type="text" id="message-field" placeholder="message" name="message" value="0xAA" required minlength="4" maxlength="8" size="10" />
-                <input type="text" id="type-field" placeholder="type" name="type" value="0x00" required minlength="4" maxlength="8" size="10" />
-                <button id="can-send-single" class="" onclick="sendSingleCan()">send once</button>
-                <button id="can-send-repeatedly" class="" onclick="sendRepeatedlyCan()">send repeatedly</button>
-                <button id="can-stop-send" class="" onclick="stopSendingCan()">stop sending</button>
+            <div class="flexbox-row flexwrap flexgap30px" id="can-field-container">
+                <input type="text" id="sender-field" placeholder="sender" name="sender" value="0x75" required />
+                <input type="text" id="receiver-field" placeholder="receiver" name="receiver" value="0x14" required />
+                <input type="text" id="message-field" placeholder="message" name="message" value="0xAA" required />
+                <input type="text" id="type-field" placeholder="type" name="type" value="0x00" required />
+                <button id="can-send-single" class="smallbutton" onclick="sendSingleCan()">send once</button>
+                <button id="can-send-repeatedly" class="smallbutton" onclick="sendRepeatedlyCan()">send repeatedly</button>
+                <button id="can-stop-send" class="smallbutton" onclick="stopSendingCan()">stop sending</button>
             </div>
         </div>
 
-
-
-        
+        <button type="button" class="collapsible">Status</button>
+        <div class="collapsible-content data-container" id="status-container"></div>
 
         <button type="button" class="collapsible">Profiles</button>
         <div class="collapsible-content data-container" id="profiles-container"></div>

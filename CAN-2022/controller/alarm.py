@@ -16,6 +16,8 @@ debug = False
 LISTEN_PORT=8080
 memberDevices = {} #map of {string hex id:{properties}}
 denonId = 0x77
+testAlarmId = 0xDE
+checkPhonesId = 0x17
 garageDoorOpenerId = 0xD0
 garageDoorSensorId = 0x30
 exceptMissingDevices = {hex(denonId): True, hex(garageDoorOpenerId): True}
@@ -55,14 +57,14 @@ deviceDictionary = {
     "0x75": "SENSOR - kitchen motion 0x75",
     hex(garageDoorSensorId): "SENSOR - garage car door " + hex(garageDoorSensorId),
     "0x31": "SENSOR - garage side door 0x31",
-    "0x14": "home base",
-    "0xFF": "home base communicating to its arduino",
+    hex(homeBaseId): "HOME BASE",
+    "0xFF": "HOME BASE communicating to its arduino",
     "0x10": "ALARM - fire alarm bell in laundry room 0x10",
     "0x15": "ALARM - piezo 120db alarm in garage 0x15",
     "0x99": "ALARM - office led and buzzer 0x99",
     hex(denonId): "ALARM (VIRTUAL) - denon via curl " + hex(denonId),
-    "0x17": "VIRTUAL sensor for getting attention 0x17",
-    "0xDE": "VIRTUAL sensor for triggering a test alarm 0xDE",
+    hex(checkPhonesId): "VIRTUAL sensor for getting attention " + hex(checkPhonesId),
+    hex(testAlarmId): "VIRTUAL sensor for triggering a test alarm " + hex(testAlarmId),
     hex(garageDoorOpenerId): "OPENER - garage door opener " + hex(garageDoorOpenerId)
 }
 
@@ -71,7 +73,7 @@ mp3AlarmDictionary = {
     "0x75": "indoormovement.mp3",
     hex(garageDoorSensorId): "garagedoor.mp3",
     "0x31": "garagesidedoor.mp3",
-    "0x17": "checkyourphones.mp3"
+    hex(checkPhonesId): "checkyourphones.mp3"
 }
 
 
@@ -160,6 +162,14 @@ alarmProfiles = [{
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Test Denon Only 1s (volume 35) | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
+    "alarmOutputDevices": [hex(denonId)],
+    "playSound": "scaryalarm.mp3",
+    "playSoundVolume": 35,
+    "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }]
 
 
@@ -197,11 +207,13 @@ alarmProfiles = [{
 #   {homeBaseId}-0x00-{message hex}-{message 2 hex}\n
 
 #DEVICE TYPE DICTIONARY:
-#01 controller
+#01 home base
 #02 pir/microwave sensor
 #03 bell alarm
 #04 visual alarm
 #05 door open sensor
+#06 device controller
+#07 temperature/humidity sensor
 
 
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
@@ -247,19 +259,23 @@ def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices
     global currentAlarmProfile
     global currentlyAlarmedDevices
     global alarmProfiles
+    global alarmed
+
     if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
+        currentlyAlarmedDevices = {}
+        alarmed = False
+        
         currentAlarmProfile = profileNumber
         setDevicesPower()
-
-    print("SETTING ALARM PROFILE " + str(profileNumber) + " - " + getProfileName(profileNumber))
-    addEvent({
-        "event": "SET PROFILE : " + str(profileNumber) + " - " + getProfileName(profileNumber),
-        "time": getReadableTimeFromTimestamp(getTimeSec()),
-        "method": "WEB API"
-    })
-    currentlyAlarmedDevices = {}
-    alarmed = False
-    sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #turn off all alarms as part of this change
+        sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #turn off all alarms as part of this change
+        print("SETTING ALARM PROFILE " + str(profileNumber) + " - " + getProfileName(profileNumber))
+        addEvent({
+            "event": "SET PROFILE : " + str(profileNumber) + " - " + getProfileName(profileNumber),
+            "time": getReadableTimeFromTimestamp(getTimeSec()),
+            "method": "WEB API"
+        })
+    else:
+        print(">>>> PROFILE NUMBER OUT OF RANGE [0," + str(len(alarmProfiles)-1) + "] : " + str(profileNumber))
 
 
 def addEvent(event):
@@ -304,6 +320,7 @@ def toggleArmed(now, method):
     sendArmedLedSignal() 
     print("Clearing member devices list")
     resetMemberDevices() #reset all members on the bus when turning on/off
+
 
 def resetMemberDevices():
     global memberDevices
@@ -375,9 +392,11 @@ def getCurrentProfileSoundByteData():
     print(">>>>>>> PLAYSOUND " + playSound)
     print(">>>>>>> PLAYSOUNDVOLUME " + str(playSoundVolume))
     return playSound, playSoundVolume
-    
+
+
 def getThisDirAddress():
     return os.path.dirname(__file__)
+
 
 def getTime():
     return datetime.now().timestamp()
@@ -429,8 +448,8 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
     volume = "35" #default
 
     ####types of sounds####
-    #test sound from #0xDE
-    #pick up your phones from #0x17
+    #test sound from testAlarmId
+    #pick up your phones from checkPhonesId
     #sound byte override
     #fall back to saying the sensors that are activated
 
@@ -444,16 +463,19 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
 
 
 def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices):
+    global testAlarmId
+    global checkPhonesId
+
     sound = ""
     playCommandArray.append("./alert.mp3")
 
-    if ('0xDE' in currentlyAlarmedDevices):
+    if (hex(testAlarmId) in currentlyAlarmedDevices):
         sound = "thisisatest.mp3"
-        currentlyAlarmedDevices.pop('0xDE');
-    elif ('0x17' in currentlyAlarmedDevices):
+        currentlyAlarmedDevices.pop(hex(testAlarmId));
+    elif (hex(checkPhonesId) in currentlyAlarmedDevices):
         sound = "checkyourphones.mp3"
         volume = "70"
-        currentlyAlarmedDevices.pop('0x17');
+        currentlyAlarmedDevices.pop(hex(checkPhonesId));
     else:
         soundByteOverride, volumeOverride = getCurrentProfileSoundByteData()
         if (soundByteOverride and volumeOverride):
@@ -491,7 +513,7 @@ def setDenonPlayState(startPowerStatus, startChannelStatus, volume, cwd):
         time.sleep(8 if startPowerStatus != 'ON' else 3)
     
     #set volume
-    subprocess.run(["./denonvol.sh", volume], cwd=cwd)
+    subprocess.run(["./denonvol.sh", str(volume)], cwd=str(cwd))
 
 
 def setDenonOriginalState(startPowerStatus, startChannelStatus, startVolume, cwd):
@@ -574,6 +596,7 @@ def sendArmedLedSignal():
         print(f">>>> SENDING DISARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
     sendMessage(messageToSend)
 
+
 def getDiffOfProfileSensorDevices(oldProfileNumber, newProfileNumber):
     global alarmProfiles
     global memberDevices
@@ -585,6 +608,7 @@ def getDiffOfProfileSensorDevices(oldProfileNumber, newProfileNumber):
     allNewDevices = list(newProfilesSet)
 
     return diffOldDevices, allNewDevices
+
 
 #by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
 def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
@@ -747,6 +771,7 @@ def getPasEventsJsonString():
     outgoingMessage += '}'
     return outgoingMessage
 
+
 def stopAlarm():
     global alarmed
     global lastAlarmTime
@@ -787,6 +812,7 @@ def run(webserver_message_queue, alarm_message_queue):
     global alarmProfiles
     global currentAlarmProfile
     global alwaysKeepOnSet
+    global testAlarmId
     resetMemberDevices()
 
     atexit.register(exitSteps)
@@ -819,7 +845,7 @@ def run(webserver_message_queue, alarm_message_queue):
             elif (message == "GET-ALARM-PROFILES") :
                 alarm_message_queue.put(getProfilesJsonString())
             elif (message == "FORCE-ALARM-SOUND-ON") :
-                currentlyAlarmedDevices['0xDE'] = getTimeSec();
+                currentlyAlarmedDevices[hex(testAlarmId)] = getTimeSec();
                 sendAlarmMessage(True, True)
                 time.sleep(.15)
                 sendAlarmMessage(False, False)
@@ -828,7 +854,7 @@ def run(webserver_message_queue, alarm_message_queue):
             elif (message == "CLEAR-OLD-DATA") :
                 clearOldData()
             elif (message == "ALERT-CHECK-PHONES") :
-                currentlyAlarmedDevices['0x17'] = getTimeSec();
+                currentlyAlarmedDevices[hex(checkPhonesId)] = getTimeSec();
                 sendAlarmMessage(True, True)
                 time.sleep(.1)
                 sendAlarmMessage(False, False)
@@ -887,7 +913,7 @@ def run(webserver_message_queue, alarm_message_queue):
                 if (shouldSetNewAlarm):
                     alarmed = True
                     lastAlarmTime = getTimeSec()
-                    addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                    addEvent({"event": "DEVICE-MISSING-ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
                 else :
                     addEvent({"event": "DEVICE-MISSING-NOALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
 
@@ -945,6 +971,7 @@ def clearOldData():
     everMissingDevices = {}
     currentlyMissingDevices = []
     resetMemberDevices()
+
 
 def stopsendingcan():
     global canDebugMessage
