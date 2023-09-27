@@ -13,6 +13,21 @@
     <script type="text/javascript">
         window.addEventListener("focus", getStatus);
 
+        function findAlarmProfileIndexFromName(name) {
+            let el = document.getElementById('profiles-dropdown');
+            if (!el) {
+                throw new Error('PROFILE ELEMENT NOT FOUND');
+            }
+
+            for (let i = 0; i < el.children.length; i++){
+                if (name == el.children[i].innerText) {
+                    return i;
+                }
+            }
+
+            throw new Error('PROFILE NOT FOUND');
+        }
+
         function registerCollapsibleHandler() {
             let collapsible = document.getElementsByClassName("collapsible");
 
@@ -35,7 +50,6 @@
         let strOldStatusData = "";
         let strOldProfilesData = "";
         let intProfileNumber = 0;
-        let messageInterval = false;
 
         socket.on('connect', function() {
             console.log('Connected to server');
@@ -50,7 +64,6 @@
             strOldProfilesData = "{}";
             strOldStatusData = "{}";
             intProfileNumber = -1;
-            clearInterval(messageInterval);
         }
 
         socket.on('connect_error', err => handleErrors(err))
@@ -81,6 +94,7 @@
             else {
                 renderMessage(data.message, 'profiles-container');
                 renderProfilesDropdown(data.message.profiles)
+                renderFastArmButtons(data.message.profiles)
                 strOldProfilesData = JSON.stringify(data.message)    
             }
         });
@@ -166,6 +180,8 @@
             } else {
                 titleImage.classList.remove("angry-dog");
             }
+
+
         }
 
         function blinkAlarmStatus(blink, armed) {
@@ -183,9 +199,20 @@
             socket.emit('getStatus', { message: undefined });
         }
 
-        function armButton() {
-            armed = document.getElementById('button-arm').classList.contains('armed');
-            socket.emit(armed ? 'disarm' : 'arm', {message: undefined});
+        function getArmedStatus() {
+            return document.getElementById('button-arm').classList.contains('armed');
+        }
+
+        function armButton(flag) {
+            armed = getArmedStatus()
+
+            if (flag == true || flag == false) {
+                if ((flag && !armed) || (!flag && armed)) {
+                    socket.emit(flag ? 'arm' : 'disarm', {message: undefined});
+                }
+            } else {
+                socket.emit(armed ? 'disarm' : 'arm', {message: undefined});
+            }
         }
 
         function alarmSoundOn() {
@@ -226,9 +253,13 @@
             socket.emit('canstopsending', {message: undefined});
         }
 
-        function setAlarmProfile() {
-            let selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
-            intProfileNumber = selectedIndex;
+        function setAlarmProfile(overrideIndex) {
+            let selectedIndex = 0;
+            if (!overrideIndex) {
+                selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
+            } else {
+                selectedIndex = overrideIndex;
+            }
             socket.emit('setAlarmProfile', {message: selectedIndex});
         } 
         
@@ -243,6 +274,12 @@
             }
             else if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
                 document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
+                let armed = getArmedStatus();
+                (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
+                    if (!armed || index !== newProfileNumber) button.classList.remove('cyan');
+                    else if (armed && index == newProfileNumber) button.classList.add('cyan');
+                })
+
                 intProfileNumber = newProfileNumber;
             }
             
@@ -278,6 +315,32 @@
             if (!container.hasChildNodes()) {
                 container.appendChild(dropdown);
             }
+        }
+
+        function closeQuickArmDrawer() {
+            document.getElementById('quick-arm-drawer-button').click()
+        }
+
+        function renderFastArmButtons(arrProfiles) {
+            var container = document.getElementById("horizontal-arm2-button-holder");
+            
+            if (!container) {
+                console.debug('CANNOT RENDER FAST ARM BUTTONS - container not found')
+                return;
+            }
+
+            while (container.childElementCount > 1) { //remove all buttons except disarm
+                container.removeChild(container.lastChild);
+            }
+
+            arrProfiles.forEach((profile, index) => {
+                const button = document.createElement('button');
+                button.id = "button-fast-arm-" + profile.name.replace(' ', '-');
+                button.classList.add('mybutton', 'dimmable', 'blue', 'text_align_center', 'full-width', 'button-fast-arm');
+                button.setAttribute('onClick', `armButton(true); setAlarmProfile(${index}); closeQuickArmDrawer();`);
+                button.innerText = profile.name;
+                container.appendChild(button);
+            });
         }
 
         function renderMessage(message, containerName) {
@@ -443,6 +506,10 @@
     z-index: 999; /* Ensure it's above other content */
 }
 
+.text_align_center {
+    text-align: center;
+}
+
 /* Styles for the warning box */
 .warning-box {
     position: absolute;
@@ -492,6 +559,11 @@
 .blue {
     color: white !important;
     background-color: blue !important;
+}
+
+.cyan {
+    color: white !important;
+    background-color: #33ccff !important;
 }
 
 .red {
@@ -807,6 +879,10 @@ input {
     font-size: 40px;
 }
 
+.dull {
+    filter: saturate(30%);
+}
+
 body {
     margin: 10px;
 }
@@ -823,12 +899,11 @@ body {
     </div>
     <nav>
     <div id="alarm-status-holder">
-        <div id="horizontal-button-holder" class="horizontal-button-holder">
+        <div id="horizontal-arm-button-holder" class="horizontal-button-holder">
             <button id="button-arm" class="mybutton flexbox-row full-width dimmable" onclick="armButton()">
                 <img id="title-image" src="dogue.jpg"/>
                 <span id="button-arm-title"></span>
             </button>
-            
         </div>
         <div id="profiles-dropdown-container" class="flexbox-row justify-content-center"></div>
             
@@ -841,6 +916,10 @@ body {
         <image id="inside_movement_status" class="lower_opacity icon_height dimmable"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
+        <button type="button" id="quick-arm-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Quick Arm / Disarm</button>
+        <div id="horizontal-arm2-button-holder" class="horizontal-button-holder collapsible-content">
+            <button id="button-disarm" class="mybutton dimmable red full-width" onclick="armButton(false); closeQuickArmDrawer();"><h3>DISARM</h3></button>
+        </div>
         <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Garage Door</button>
         <div class="horizontal-button-holder collapsible-content bottom-rounded-corners " id="garage-button-container">
             <button id="button-garage-toggle" class="mybutton full-width emerald dimmable" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>

@@ -24,8 +24,7 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 thread = None
 thread_lock = threading.Lock()
-client_count = 0
-client_last_uuid = uuid4()
+new_client_exists = False
 
 def main():
     global alarm_message_queue
@@ -85,15 +84,14 @@ def main():
     @socketio.on('connect')
     def handle_connect():
         #authenticate()
-        global client_count
-        global client_last_uuid
-        client_count += 1
-        client_last_uuid = uuid4()
-        print('Client connected. Left:' + str(client_count))
+        global new_client_exists
+
+        new_client_exists = True
+        print('Client connected')
         global thread
         with thread_lock:
             if thread is None:
-                thread = socketio.start_background_task(update_status_thread, sendAlarmStatus, getClientCount, getClientUuid)
+                thread = socketio.start_background_task(update_status_thread)
 
     @socketio.on('disconnect')
     def disconnect():
@@ -101,14 +99,14 @@ def main():
         client_count -= 1
         if (client_count == 0):
             thread.kill()
-        print('Disconnected. Left:' + str(client_count))
+        print('Disconnected')
 
 
     @socketio.on('getStatus')
     def handle_message(message):
         def getClientCount():
             return -1
-        sendAlarmStatus("something", "somethingelse", getClientCount, 0, getClientCount, 0)
+        sendAlarmStatus("something")
 
     @socketio.on('arm')
     def arm(message):
@@ -176,15 +174,11 @@ def main():
     socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
     #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context)
 
-def update_status_thread(sendAlarmStatus, getClientCount, getClientUuid):
-    last_status = 0
-    message = 0
-    last_client_count = 0
-    last_client_uuid = 0
+def update_status_thread():
+    last_status_str = 0
     while True:    
         #print(f"before update last_client_count {last_client_count}")
-
-        last_status, last_client_count, last_client_uuid = sendAlarmStatus(message, last_status, getClientCount, last_client_count, getClientUuid, last_client_uuid)
+        last_status_str = sendAlarmStatus(last_status_str)
         #print(f"updated last_client_count {last_client_count}")
         socketio.sleep(1)
 
@@ -197,23 +191,23 @@ def getClientUuid():
     global client_last_uuid
     return client_last_uuid
 
-def sendAlarmStatus (message, last_status, getClientCount, last_client_count, getClientUuid, last_client_uuid):
+def sendAlarmStatus (last_status_str):
     #print(">>>THREAD polling")
     webserver_message_queue.put("ALARM-STATUS")
-    newClientUuid = getClientUuid()
-    newClientCount = getClientCount()
+    global new_client_exists
+
     try:
         message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
     except Exception as e: 
             message = "{}"
-    if (message != last_status or newClientUuid != last_client_uuid ):
+    if (message != last_status_str or new_client_exists):
         print("Sending status to connected clients")
         socketio.emit('postStatus', {'message': json.loads(message)})
-        
+        new_client_exists = False
 
     #print(">>>THREAD END polling")
 
-    return message, newClientCount, newClientUuid
+    return message
 
 def authenticate():
     try:
