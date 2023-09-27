@@ -105,6 +105,12 @@ alarmProfiles = [{
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "name": "At Home Daytime - Office Alarms 10s | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80"],
+    "alarmOutputDevices": ["0x99", hex(denonId)],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
     "name": "Night Time - Office Alarms 10s | Perimeter Sensors",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
@@ -167,9 +173,7 @@ alarmProfiles = [{
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": [hex(denonId)],
-    "playSound": "scaryalarm.mp3",
-    "playSoundVolume": 35,
-    "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+    "alarmTimeLengthSec": 1 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }]
 
 

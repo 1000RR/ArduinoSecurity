@@ -76,7 +76,7 @@
             else {
                 renderMessage(data.message, 'status-container');
                 renderIcons(data.message);
-                updateProfilesDropdownSelection(data.message);
+                updateProfilesDropdownSelection(data.message, strOldStatusData);
                 strOldStatusData = JSON.stringify(data.message);
             }
             
@@ -204,13 +204,11 @@
         }
 
         function armButton(flag) {
-            armed = getArmedStatus()
+            let armed = getArmedStatus();
 
-            if (flag == true || flag == false) {
-                if ((flag && !armed) || (!flag && armed)) {
-                    socket.emit(flag ? 'arm' : 'disarm', {message: undefined});
-                }
-            } else {
+            if (typeof flag == 'boolean' && ((flag && !armed) || (!flag && armed))) {
+                socket.emit(flag ? 'arm' : 'disarm', {message: undefined});
+            } else if (typeof flag !== 'boolean') {
                 socket.emit(armed ? 'disarm' : 'arm', {message: undefined});
             }
         }
@@ -255,7 +253,7 @@
 
         function setAlarmProfile(overrideIndex) {
             let selectedIndex = 0;
-            if (!overrideIndex) {
+            if (typeof overrideIndex !== 'number') {
                 selectedIndex = document.getElementById("profiles-dropdown").selectedIndex;
             } else {
                 selectedIndex = overrideIndex;
@@ -267,22 +265,26 @@
             let oldProfileNumber = intProfileNumber; //global
             let newProfileNumber = Number(newStatusData.profileNumber);
             let element = document.getElementById('profiles-dropdown');
+            let armed = getArmedStatus();
 
             if (!element) {
                 console.error('DROPDOWN NOT YET RENDERED, CANNOT ADJUST SELECTED VALUE! Retrying in 250ms')
                 setTimeout(() => {updateProfilesDropdownSelection(newStatusData)}, 250);
+                return;
             }
-            else if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
+            
+
+            if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
                 document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
-                let armed = getArmedStatus();
-                (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
-                    if (!armed || index !== newProfileNumber) button.classList.remove('cyan');
-                    else if (armed && index == newProfileNumber) button.classList.add('cyan');
-                })
 
                 intProfileNumber = newProfileNumber;
             }
-            
+
+           
+            (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
+                if (!armed || index !== newProfileNumber) button.classList.remove('cyan');
+                else if (armed && index == newProfileNumber) button.classList.add('cyan');
+            })
         }
 
         function renderProfilesDropdown(arrProfiles) {
@@ -329,7 +331,7 @@
                 return;
             }
 
-            while (container.childElementCount > 1) { //remove all buttons except disarm
+            while (container.childElementCount >= 2) { //remove all buttons except disarm
                 container.removeChild(container.lastChild);
             }
 
