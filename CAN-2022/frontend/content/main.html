@@ -77,6 +77,7 @@
                 renderMessage(data.message, 'status-container');
                 renderIcons(data.message);
                 updateProfilesDropdownSelection(data.message, strOldStatusData);
+                updateSensorIconsActiveStatus(data.message);
                 strOldStatusData = JSON.stringify(data.message);
             }
             
@@ -260,6 +261,42 @@
             }
             socket.emit('setAlarmProfile', {message: selectedIndex});
         } 
+
+        function updateSensorIconsActiveStatus(newStatusData) {
+            let newProfileNumber = Number(newStatusData.profileNumber);
+            let armed = getArmedStatus();
+            if (strOldProfilesData == "") {
+                setTimeout(() => {updateSensorIconsActiveStatus(newStatusData)}, 250)
+                return;
+            }
+            let profilesJSON = JSON.parse(strOldProfilesData);
+            let sensorsListenedTo = profilesJSON.profiles[newProfileNumber].sensorsThatTriggerAlarm;
+            
+            let imageIdToSensorIdMap = {
+                "inside_movement_status" : "0x75",
+                "garage_movement_status" : "0x80",
+                "garage_side_door_status" : "0x31",
+                "garage_door_status" : "0x30"
+            }
+
+            if (!sensorsListenedTo) {
+                sensorsListenedTo = Object.values(imageIdToSensorIdMap);
+            }
+
+            
+            let sensorImageNodes = Array.from(document.getElementById('status-images-container').children);
+
+            sensorImageNodes.forEach(statusImageNode => {
+                if (armed && sensorsListenedTo.includes(imageIdToSensorIdMap[statusImageNode.id])) {
+                    statusImageNode.classList.add('highlight_green')
+                    statusImageNode.classList.remove('lowlight_gray')
+                } else {
+                    statusImageNode.classList.remove('highlight_green')
+                    statusImageNode.classList.add('lowlight_gray')
+                }
+            })
+
+        }
         
         function updateProfilesDropdownSelection(newStatusData) {
             let oldProfileNumber = intProfileNumber; //global
@@ -282,9 +319,17 @@
 
            
             (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
-                if (!armed || index !== newProfileNumber) button.classList.remove('cyan');
-                else if (armed && index == newProfileNumber) button.classList.add('cyan');
+                if (!armed || index !== newProfileNumber) button.classList.remove('yellow');
+                else if (armed && index == newProfileNumber) button.classList.add('yellow');
             })
+
+            if (!armed) {
+                document.getElementById('button-disarm').classList.add('yellow');
+                document.getElementById('button-disarm').classList.remove('red');
+            } else {
+                document.getElementById('button-disarm').classList.remove('yellow');
+                document.getElementById('button-disarm').classList.add('red');
+            }
         }
 
         function renderProfilesDropdown(arrProfiles) {
@@ -340,7 +385,11 @@
                 button.id = "button-fast-arm-" + profile.name.replace(' ', '-');
                 button.classList.add('mybutton', 'dimmable', 'blue', 'text_align_center', 'full-width', 'button-fast-arm');
                 button.setAttribute('onClick', `armButton(true); setAlarmProfile(${index}); closeQuickArmDrawer();`);
-                button.innerText = profile.name;
+                let buttonText = profile.name;
+                if (profile.name.includes(' - ')) {
+                    buttonText = profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
+                }
+                button.innerText = buttonText;
                 container.appendChild(button);
             });
         }
@@ -563,9 +612,9 @@
     background-color: blue !important;
 }
 
-.cyan {
-    color: white !important;
-    background-color: #33ccff !important;
+.yellow {
+    color: black !important;
+    background-color: yellow !important;
 }
 
 .red {
@@ -581,6 +630,14 @@
 .emerald {
     color: white !important;
     background-color: #019875 !important;
+}
+
+.highlight_green {
+    filter: sepia(100%) hue-rotate(40deg) saturate(10);
+}
+
+.lowlight_gray {
+    filter: opacity(20%) !important;
 }
 
 .lightblue {
