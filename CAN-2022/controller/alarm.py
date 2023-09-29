@@ -34,7 +34,7 @@ currentlyAlarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 currentlyMissingDevices = []
 everMissingDevices = {}
 lastAlarmTime = 0
-armed = False #initial condition
+armed = True #initial condition
 lastArmedTogglePressed = 0
 deviceAbsenceThresholdSec = 7
 firstPowerCommandNeedsToBeSent = True
@@ -44,7 +44,7 @@ alarmReason = ""
 sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
-currentAlarmProfile = 0 # 0 = default
+currentAlarmProfile = 2 # 0 = default
 threadShouldTerminate = False
 canDebugMessage = ""
 shouldSendDebugRepeatedly = False

@@ -48,12 +48,12 @@
 
         var socket = io.connect('http://bobik:8080');
         let strOldStatusData = "";
-        let strOldProfilesData = "";
+        let strOldProfilesData = "{}";
         let intProfileNumber = 0;
 
         socket.on('connect', function() {
             console.log('Connected to server');
-            establishConnection();
+            getProfilesData();
             setDisconnectedOverlayHidden(true);
             setLoadingOverlayHidden(false);
         });
@@ -64,6 +64,9 @@
             strOldProfilesData = "{}";
             strOldStatusData = "{}";
             intProfileNumber = -1;
+            setTimeout(() => {
+                socket.connect();
+            }, 1000);
         }
 
         socket.on('connect_error', err => handleErrors(err))
@@ -71,18 +74,17 @@
 
         socket.on('postStatus', function(data) {
             //console.log('Message from server:', data.message);
-            if (strOldStatusData == JSON.stringify(data.message))
-                return;
-            else {
+            
+            if (strOldStatusData != JSON.stringify(data.message)) {
                 renderMessage(data.message, 'status-container');
                 renderIcons(data.message);
                 updateProfilesDropdownSelection(data.message, strOldStatusData);
                 updateSensorIconsActiveStatus(data.message);
                 strOldStatusData = JSON.stringify(data.message);
+                blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
             }
-            
-            blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
-            setLoadingOverlayHidden(true);
+
+            setLoadingOverlayHidden(true); //could be called after a reconnect - need to hide loading overlay
         });
 
         socket.on('postAlarmProfiles', function(data) {
@@ -145,7 +147,7 @@
             }
         }
 
-        function establishConnection() {
+        function getProfilesData() {
             setTimeout(() => {socket.emit('getAlarmProfiles', { message: undefined });}, 500);
         }
 
@@ -265,7 +267,7 @@
         function updateSensorIconsActiveStatus(newStatusData) {
             let newProfileNumber = Number(newStatusData.profileNumber);
             let armed = getArmedStatus();
-            if (strOldProfilesData == "") {
+            if (strOldProfilesData == "{}") {
                 setTimeout(() => {updateSensorIconsActiveStatus(newStatusData)}, 250)
                 return;
             }
@@ -701,6 +703,10 @@ select {
     height: 30px;
     font-size: 27px;
     color: #444;
+}
+
+option {
+    overlfow: hidden;
 }
 
 .horizontal-button-holder {
