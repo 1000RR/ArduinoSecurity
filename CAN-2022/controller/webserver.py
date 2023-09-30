@@ -43,43 +43,33 @@ def main():
         response.headers['Expires'] = '0'
         return response
 
-    @app.route('/arm', methods=['GET'])
-    def enable():
-        webserver_message_queue.put("ENABLE-ALARM")
-        return jsonify({"status": "ARMED"}), 200
-        # data = request.json
-        # message = data.get('message')
-        # if message:
-        #     # Put the message in the queue to be picked up by the daemon thread
-        #     message_queue.put(message)
-        #     return "Message sent to daemon thread."
-        # else:
-        #     return "No message provided."
+    # @app.route('/arm', methods=['GET'])
+    # def enable():
+    #     webserver_message_queue.put("ENABLE-ALARM")
+    #     return jsonify({"status": "ARMED"}), 200
+    #     # data = request.json
+    #     # message = data.get('message')
+    #     # if message:
+    #     #     # Put the message in the queue to be picked up by the daemon thread
+    #     #     message_queue.put(message)
+    #     #     return "Message sent to daemon thread."
+    #     # else:
+    #     #     return "No message provided."
 
-    @app.route('/disarm', methods=['GET'])
-    def disable():
-        webserver_message_queue.put("DISABLE-ALARM")
-        return jsonify({"status": "DISARMED"}), 200
+    # @app.route('/disarm', methods=['GET'])
+    # def disable():
+    #     webserver_message_queue.put("DISABLE-ALARM")
+    #     return jsonify({"status": "DISARMED"}), 200
 
-    @app.route('/status', methods=['GET'])
-    def status():
-        webserver_message_queue.put("ALARM-STATUS")
-        try:
-            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Exception as e: 
-            message = "{}"
-        print(json.dumps(json.loads(message), indent=2))
-        return json.loads(message), 200
-
-    @app.route('/pastevents', methods=['GET'])
-    def pastevents():
-        webserver_message_queue.put("PAST-EVENTS")
-        try:
-            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Exception as e: 
-            message = "{}"
-        print(json.dumps(json.loads(message), indent=2))
-        return json.loads(message), 200
+    # @app.route('/status', methods=['GET'])
+    # def status():
+    #     webserver_message_queue.put("ALARM-STATUS")
+    #     try:
+    #         message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
+    #     except Exception as e: 
+    #         message = "{}"
+    #     print(json.dumps(json.loads(message), indent=2))
+    #     return json.loads(message), 200
 
     @socketio.on('connect')
     def handle_connect():
@@ -101,6 +91,15 @@ def main():
             thread.kill()
         print('Disconnected')
 
+
+    @socketio.on('getPastEvents')
+    def getpastevents(message):
+        webserver_message_queue.put("GET-PAST-EVENTS")
+        try:
+            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
+        except Exception as e: 
+            message = "{}"
+        emit('postPastEvents', {'message': json.loads(message)})
 
     @socketio.on('getStatus')
     def handle_message(message):
@@ -130,21 +129,17 @@ def main():
     def arm(message):
         webserver_message_queue.put("ALERT-CHECK-PHONES")
 
-    @socketio.on('pastEvents')
-    def disarm(message):
-        webserver_message_queue.put("PAST-EVENTS")
-
     @socketio.on('toggleGarageDoorState')
     def disarm(message):
         webserver_message_queue.put("TOGGLE-GARAGE-DOOR-STATE")
 
     @socketio.on('cansendrepeatedly')
     def cansendrepeatedly(message):
-        webserver_message_queue.put("CAN-REPEATEDLY-SEND-" + message['message'])
+        webserver_message_queue.put("CAN-REPEATEDLY-SEND-" + message['message']) #XSS-prone
 
     @socketio.on('cansendsingle')
     def cansendsingle(message):
-        webserver_message_queue.put("CAN-SINGLE-SEND-" + message['message'])
+        webserver_message_queue.put("CAN-SINGLE-SEND-" + message['message']) #XSS-prone
 
     @socketio.on('canstopsending')
     def canstopsending(message):

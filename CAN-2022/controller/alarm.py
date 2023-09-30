@@ -34,7 +34,7 @@ currentlyAlarmedDevices = {} #map of {string hex id:int alarmTimeSec}
 currentlyMissingDevices = []
 everMissingDevices = {}
 lastAlarmTime = 0
-armed = True #initial condition
+armed = False #initial condition
 lastArmedTogglePressed = 0
 deviceAbsenceThresholdSec = 7
 firstPowerCommandNeedsToBeSent = True
@@ -44,7 +44,7 @@ alarmReason = ""
 sendTimeoutMsec = 500
 lastCheckedMissingDevicesMsec = 0
 checkForMissingDevicesEveryMsec = 750
-currentAlarmProfile = 2 # 0 = default
+currentAlarmProfile = 0 # 0 = default
 threadShouldTerminate = False
 canDebugMessage = ""
 shouldSendDebugRepeatedly = False
@@ -768,7 +768,7 @@ def getStatusJsonString():
     return outgoingMessage
 
 
-def getPasEventsJsonString():
+def getPastEventsJsonString():
     global pastEvents
 
     outgoingMessage = '{"pastEvents": ' + str(pastEvents).replace("'","\"")
@@ -842,7 +842,7 @@ def run(webserver_message_queue, alarm_message_queue):
             elif (message == "ALARM-STATUS") :
                 alarm_message_queue.put(getStatusJsonString())
             elif (message == "PAST-EVENTS") :
-                alarm_message_queue.put(getPasEventsJsonString())
+                alarm_message_queue.put(getPastEventsJsonString())
             elif (message.startswith("SET-ALARM-PROFILE-")):
                 profileNumber = int(message.split("SET-ALARM-PROFILE-",1)[1])
                 setCurrentAlarmProfile(profileNumber)
@@ -868,6 +868,8 @@ def run(webserver_message_queue, alarm_message_queue):
                 sendcan(message.split('CAN-SINGLE-SEND-')[1], False)
             elif (message == "CAN-STOP-SENDING") :
                 stopsendingcan()
+            elif (message == "GET-PAST-EVENTS") :
+                alarm_message_queue.put(getPastEventsJsonString())
 
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)

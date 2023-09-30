@@ -28,19 +28,21 @@
             throw new Error('PROFILE NOT FOUND');
         }
 
+        function collapsibleClickHandler () {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.maxHeight){
+              content.style.maxHeight = null;
+            } else {
+              content.style.maxHeight = content.scrollHeight + "px";
+            }
+        };
+
         function registerCollapsibleHandler() {
             let collapsible = document.getElementsByClassName("collapsible");
 
             for (let i = 0; i < collapsible.length; i++) {
-              collapsible[i].addEventListener(collapsible[i].classList.contains('double_click') ? "dblclick" : "click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                if (content.style.maxHeight){
-                  content.style.maxHeight = null;
-                } else {
-                  content.style.maxHeight = content.scrollHeight + "px";
-                }
-              });
+              collapsible[i].addEventListener(collapsible[i].classList.contains('double_click') ? "dblclick" : "click", collapsibleClickHandler)
             }
         }
 
@@ -73,8 +75,6 @@
         socket.on('connect_failed', err => handleErrors(err))
 
         socket.on('postStatus', function(data) {
-            //console.log('Message from server:', data.message);
-            
             if (strOldStatusData != JSON.stringify(data.message)) {
                 renderMessage(data.message, 'status-container');
                 renderIcons(data.message);
@@ -85,6 +85,11 @@
             }
 
             setLoadingOverlayHidden(true); //could be called after a reconnect - need to hide loading overlay
+            getPastEvents();
+        });
+
+        socket.on('postPastEvents', function(data) {            
+            renderMessage(data.message, 'past-events-container');
         });
 
         socket.on('postAlarmProfiles', function(data) {
@@ -200,6 +205,11 @@
 
         function getStatus() {
             socket.emit('getStatus', { message: undefined });
+        }
+
+        function getPastEvents() {
+            socket.emit('getPastEvents', { message: undefined });
+
         }
 
         function getArmedStatus() {
@@ -1010,6 +1020,9 @@ body {
 
         <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Status</button>
         <div class="collapsible-content data-container bottom-rounded-corners " id="status-container"></div>
+
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners" onclick="getPastEvents()">Past Events</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="past-events-container"></div>
 
         <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
         <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
