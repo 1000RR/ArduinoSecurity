@@ -71,6 +71,10 @@
             }, 1000);
         }
 
+        let lastStatusLoaded = false;
+        let lastProfilesLoaded = false;
+
+
         socket.on('connect_error', err => handleErrors(err))
         socket.on('connect_failed', err => handleErrors(err))
 
@@ -82,6 +86,10 @@
                 updateSensorIconsActiveStatus(data.message);
                 strOldStatusData = JSON.stringify(data.message);
                 blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
+                lastStatusLoaded = data.message;
+                if (lastStatusLoaded && lastProfilesLoaded) {
+                    updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
+                }
             }
 
             setLoadingOverlayHidden(true); //could be called after a reconnect - need to hide loading overlay
@@ -103,7 +111,11 @@
                 renderMessage(data.message, 'profiles-container');
                 renderProfilesDropdown(data.message.profiles)
                 renderFastArmButtons(data.message.profiles)
-                strOldProfilesData = JSON.stringify(data.message)    
+                strOldProfilesData = JSON.stringify(data.message)
+                lastProfilesLoaded = data.message.profiles;
+                if (lastStatusLoaded && lastProfilesLoaded) {
+                    updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
+                }
             }
         });
 
@@ -117,6 +129,36 @@
             setInvertTransitionsClassOnItem('garage_side_door_status', statusJson.currentTriggeredDevices.includes('0x31'), 'invertTransitions')
             setInvertTransitionsClassOnItem('inside_movement_status', statusJson.currentTriggeredDevices.includes('0x75'), 'invertTransitions')
             setInvertTransitionsClassOnItem('garage_movement_status', statusJson.currentTriggeredDevices.includes('0x80'), 'invertTransitions')
+        }
+
+        function updateAlarmIconActivityStatus(profilesJSON, statusData) {
+            let intProfileNumber = Number(statusData.profileNumber);
+            let isArmed = getArmedStatus();
+            let isAlarmed = statusData.alarmStatus === "ALARM";
+            let alarmsActive = profilesJSON[intProfileNumber].alarmOutputDevices;
+
+            let imageIdToAlarmIdMap = {
+                "garage_piezo_alarm_status" : "0x15",
+                "laundry_bell_alarm_status" : "0x10",
+                "office_buzzer_alarm_status" : "0x99",
+                "office_denon_alarm_status" : "0x77"
+            }
+
+            if (!alarmsActive) {
+                alarmsActive = Object.values(imageIdToAlarmIdMap);
+            }
+
+            let alarmImageNodes = Array.from(document.getElementById('alarm-status-images-container').children);
+
+            alarmImageNodes.forEach(alarmImageNode => {
+                if (isArmed && alarmsActive.includes(imageIdToAlarmIdMap[alarmImageNode.id])) {
+                    alarmImageNode.classList.add('highlight_red')
+                    alarmImageNode.classList.remove('lowlight_gray')
+                } else {
+                    alarmImageNode.classList.remove('highlight_red')
+                    alarmImageNode.classList.add('lowlight_gray')
+                }
+            })
         }
 
         function setInvertTransitionsClassOnItem(itemName, shouldSetClass, className) {
@@ -296,7 +338,7 @@
             }
 
             
-            let sensorImageNodes = Array.from(document.getElementById('status-images-container').children);
+            let sensorImageNodes = Array.from(document.getElementById('sensor-status-images-container').children);
 
             sensorImageNodes.forEach(statusImageNode => {
                 if (armed && sensorsListenedTo.includes(imageIdToSensorIdMap[statusImageNode.id])) {
@@ -307,7 +349,6 @@
                     statusImageNode.classList.add('lowlight_gray')
                 }
             })
-
         }
         
         function updateProfilesDropdownSelection(newStatusData) {
@@ -322,14 +363,12 @@
                 return;
             }
             
-
             if (oldProfileNumber !== newProfileNumber && element && element.selectedIndex !== newProfileNumber) {
                 document.getElementById('profiles-dropdown').selectedIndex = newProfileNumber;
 
                 intProfileNumber = newProfileNumber;
             }
 
-           
             (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
                 if (!armed || index !== newProfileNumber) button.classList.remove('yellow');
                 else if (armed && index == newProfileNumber) button.classList.add('yellow');
@@ -397,9 +436,9 @@
                 button.id = "button-fast-arm-" + profile.name.replace(' ', '-');
                 button.classList.add('mybutton', 'dimmable', 'blue', 'text_align_center', 'full-width', 'button-fast-arm');
                 button.setAttribute('onClick', `armButton(true); setAlarmProfile(${index}); closeQuickArmDrawer();`);
-                let buttonText = profile.name;
+                let buttonText = index + "\n" + profile.name;
                 if (profile.name.includes(' - ')) {
-                    buttonText = profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
+                    buttonText = index + "\n" + profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
                 }
                 button.innerText = buttonText;
                 container.appendChild(button);
@@ -648,6 +687,10 @@
     filter: sepia(100%) hue-rotate(40deg) saturate(10);
 }
 
+.highlight_red {
+    filter: sepia(100%) hue-rotate(290deg) saturate(150);
+}
+
 .lowlight_gray {
     filter: opacity(20%) !important;
 }
@@ -697,6 +740,22 @@
 
 #garage_movement_status {
     content: url("garagemovement.png") !important;
+}
+
+#garage_piezo_alarm_status {
+    content: url("garage_piezo_alarm.png") !important;
+}
+
+#laundry_bell_alarm_status {
+    content: url("laundry_room_bell_alarm.png") !important;
+}
+
+#office_buzzer_alarm_status {
+    content: url("office_buzzer_alarm.png") !important;
+}
+
+#office_denon_alarm_status {
+    content: url("office_speakers_alarm.png") !important;
 }
 
 .closed-garage {
@@ -926,7 +985,7 @@ div {
     align-self: end;
 }
 
-#status-images-container {
+.status-images-container {
     background-color: rgba(0,0,0,.6);
     border-radius: 10px;
     display: flex;
@@ -984,11 +1043,17 @@ body {
             
     </div>
     </nav>
-    <div class="flexbox-row" id="status-images-container">
+    <div class="status-images-container flexbox-row" id="sensor-status-images-container">
         <image id="garage_door_status" class="lower_opacity icon_height dimmable"></image>
         <image id="garage_side_door_status" class="lower_opacity icon_height dimmable"></image>
         <image id="garage_movement_status" class="lower_opacity icon_height dimmable"></image>
         <image id="inside_movement_status" class="lower_opacity icon_height dimmable"></image>
+    </div>
+    <div class="status-images-container flexbox-row" id="alarm-status-images-container">
+        <image id="garage_piezo_alarm_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="laundry_bell_alarm_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="office_buzzer_alarm_status" class="lower_opacity icon_height dimmable"></image>
+        <image id="office_denon_alarm_status" class="lower_opacity icon_height dimmable"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
         <button type="button" id="quick-arm-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Quick Arm / Disarm</button>

@@ -14,7 +14,7 @@ struct MessageStruct {
 MCP2515 mcp2515(10);
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 const int ID_NOT_USED = -1;
-int myCanId = 0x10;
+int myCanId = 0x15;
 int alarmConstantOnDevicePin = 7;
 int alarmVaribleDevicePin = 17; //17 is A3. A0 is 14, etc.
 long loopIndexMax = 30000;
@@ -81,17 +81,19 @@ void loop() {
         setConstantOnAlarmPinValue();
       }
     }
-    Serial.print("CAN MSG RECEIVED");
-
-    Serial.print("0x");
-    Serial.print(incomingCanMsg.can_id, HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[0], HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[1], HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[2], HEX);
-    Serial.print("\n");
+    if (debug) {
+      Serial.print("CAN MSG RECEIVED");
+  
+      Serial.print("0x");
+      Serial.print(incomingCanMsg.can_id, HEX);
+      Serial.print("-0x");
+      Serial.print(incomingCanMsg.data[0], HEX);
+      Serial.print("-0x");
+      Serial.print(incomingCanMsg.data[1], HEX);
+      Serial.print("-0x");
+      Serial.print(incomingCanMsg.data[2], HEX);
+      Serial.print("\n");
+    }
     Serial.flush();
 
   } else {
