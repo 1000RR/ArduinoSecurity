@@ -726,6 +726,10 @@
     height: 170px;
 }
 
+.icon_height_smaller {
+    height: 140px;
+}
+
 .open-garage {
     content: url("garage_open.png") !important;
 }
@@ -1006,6 +1010,11 @@ div {
     border-bottom-right-radius: 10px;
 }
 
+.padding-alarm-status {
+    padding-top: 30px;
+    padding-bottom: 5px;
+}
+
 input {
     minlength: 4;
     maxlength: 4;
@@ -1049,11 +1058,11 @@ body {
         <image id="garage_movement_status" class="lower_opacity icon_height dimmable"></image>
         <image id="inside_movement_status" class="lower_opacity icon_height dimmable"></image>
     </div>
-    <div class="status-images-container flexbox-row" id="alarm-status-images-container">
-        <image id="garage_piezo_alarm_status" class="lower_opacity icon_height dimmable"></image>
-        <image id="laundry_bell_alarm_status" class="lower_opacity icon_height dimmable"></image>
-        <image id="office_buzzer_alarm_status" class="lower_opacity icon_height dimmable"></image>
-        <image id="office_denon_alarm_status" class="lower_opacity icon_height dimmable"></image>
+    <div class="status-images-container flexbox-row padding-alarm-status" id="alarm-status-images-container">
+        <image id="garage_piezo_alarm_status" class="lower_opacity icon_height_smaller dimmable"></image>
+        <image id="laundry_bell_alarm_status" class="lower_opacity icon_height_smaller dimmable"></image>
+        <image id="office_buzzer_alarm_status" class="lower_opacity icon_height_smaller dimmable"></image>
+        <image id="office_denon_alarm_status" class="lower_opacity icon_height_smaller dimmable"></image>
     </div>
     <div id="collapsibles-container" class="flexbox-column">
         <button type="button" id="quick-arm-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Quick Arm / Disarm</button>
