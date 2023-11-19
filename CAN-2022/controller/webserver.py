@@ -2,6 +2,7 @@ import threading
 import time
 import alarm
 import json
+import os
 from queue import Queue
 import ssl
 from flask import Flask, request, jsonify
@@ -26,10 +27,13 @@ thread = None
 thread_lock = threading.Lock()
 new_client_exists = False
 alarmQueueMessages = {}
+thisDir=os.path.dirname(os.path.abspath(__file__))
+print(thisDir)
 
 def main():
     global responseQueues
     global webserver_message_queue
+    global thisDir
 
     print("Main program started.")
 
@@ -44,33 +48,6 @@ def main():
         response.headers['Expires'] = '0'
         return response
 
-    # @app.route('/arm', methods=['GET'])
-    # def enable():
-    #     webserver_message_queue.put("ENABLE-ALARM")
-    #     return jsonify({"status": "ARMED"}), 200
-    #     # data = request.json
-    #     # message = data.get('message')
-    #     # if message:
-    #     #     # Put the message in the queue to be picked up by the daemon thread
-    #     #     message_queue.put(message)
-    #     #     return "Message sent to daemon thread."
-    #     # else:
-    #     #     return "No message provided."
-
-    # @app.route('/disarm', methods=['GET'])
-    # def disable():
-    #     webserver_message_queue.put("DISABLE-ALARM")
-    #     return jsonify({"status": "DISARMED"}), 200
-
-    # @app.route('/status', methods=['GET'])
-    # def status():
-    #     webserver_message_queue.put("ALARM-STATUS")
-    #     try:
-    #         message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-    #     except Exception as e: 
-    #         message = "{}"
-    #     print(json.dumps(json.loads(message), indent=2))
-    #     return json.loads(message), 200
 
     @socketio.on('connect')
     def handle_connect():
@@ -188,12 +165,12 @@ def main():
     def error(e):
         print('Error', e)
        
-    #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    #ssl_context.load_cert_chain(certfile='path/to/your/cert.pem', keyfile='path/to/your/key.pem')
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(certfile=thisDir+'/server-keys/cert.pem', keyfile=thisDir+'/server-keys/key.pem')
 
     # Run the Flask app
-    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
-    #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context)
+    #socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context, allow_unsafe_werkzeug=True)
 
 def update_status_thread():
     last_status_str = 0
@@ -214,7 +191,6 @@ def generateUUID():
 def sendAlarmStatus (last_status_str):
     global new_client_exists
     global responseQueues
-
 
     callUUID = generateUUID()
     responseQueues[callUUID] = Queue()
