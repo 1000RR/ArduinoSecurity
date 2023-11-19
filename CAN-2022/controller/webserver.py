@@ -18,22 +18,23 @@ TOKEN_URL = 'https://example.com/oauth/token'
 
 # Create a queue for communication between main program and daemon thread
 webserver_message_queue = Queue()
-alarm_message_queue = Queue()
+responseQueues = {}
 # Set up the Flask web API
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 thread = None
 thread_lock = threading.Lock()
 new_client_exists = False
+alarmQueueMessages = {}
 
 def main():
-    global alarm_message_queue
+    global responseQueues
     global webserver_message_queue
 
     print("Main program started.")
 
     # Create a thread for the raspi alarm python script and pass the global variable and message queue
-    alarm_thread = threading.Thread(target=alarm.run, args=(webserver_message_queue,alarm_message_queue), daemon=True)
+    alarm_thread = threading.Thread(target=alarm.run, args=(webserver_message_queue, ), daemon=True)
     alarm_thread.start()
 
     @app.after_request
@@ -91,18 +92,20 @@ def main():
             thread.kill()
         print('Disconnected')
 
-
     @socketio.on('getPastEvents')
-    def getpastevents(message):
-        webserver_message_queue.put("GET-PAST-EVENTS")
-        try:
-            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Exception as e: 
-            message = "{}"
-        emit('postPastEvents', {'message': json.loads(message)})
+    def getPastEvents(message):
+        global responseQueues
+
+        callUUID = generateUUID()
+        responseQueues[callUUID] = Queue()
+        messageToSend = {"request":"GET-PAST-EVENTS", "uuid": callUUID, "responseQueue": responseQueues[callUUID]}
+        webserver_message_queue.put(messageToSend)
+        response = responseQueues[callUUID].get(True, 5)["response"]
+        del responseQueues[callUUID]
+        emit('postPastEvents', {'message': json.loads(response)})
 
     @socketio.on('getStatus')
-    def handle_message(message):
+    def getStatus(message):
         def getClientCount():
             return -1
         sendAlarmStatus("something")
@@ -110,53 +113,76 @@ def main():
     @socketio.on('arm')
     def arm(message):
         print('>>>>ARMING')
-        webserver_message_queue.put("ENABLE-ALARM")
+        callUUID = generateUUID()
+        messageToSend = {"request":"ENABLE-ALARM", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('disarm')
     def disarm(message):
         print('>>>DISARMING')
-        webserver_message_queue.put("DISABLE-ALARM")
+        callUUID = generateUUID()
+        messageToSend = {"request":"DISABLE-ALARM", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('alarmSoundOn')
     def arm(message):
-        webserver_message_queue.put("FORCE-ALARM-SOUND-ON")
+        callUUID = generateUUID()
+        messageToSend = {"request":"FORCE-ALARM-SOUND-ON", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('clearOldData')
     def arm(message):
-        webserver_message_queue.put("CLEAR-OLD-DATA")
+        callUUID = generateUUID()
+        messageToSend = {"request":"CLEAR-OLD-DATA", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('checkPhones')
     def arm(message):
-        webserver_message_queue.put("ALERT-CHECK-PHONES")
+        callUUID = generateUUID()
+        messageToSend = {"request":"ALERT-CHECK-PHONES", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('toggleGarageDoorState')
     def disarm(message):
-        webserver_message_queue.put("TOGGLE-GARAGE-DOOR-STATE")
+        callUUID = generateUUID()
+        messageToSend = {"request":"TOGGLE-GARAGE-DOOR-STATE", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('cansendrepeatedly')
     def cansendrepeatedly(message):
-        webserver_message_queue.put("CAN-REPEATEDLY-SEND-" + message['message']) #XSS-prone
+        callUUID = generateUUID()
+        messageToSend = {"request":"CAN-REPEATEDLY-SEND-" + message['message'], "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('cansendsingle')
     def cansendsingle(message):
-        webserver_message_queue.put("CAN-SINGLE-SEND-" + message['message']) #XSS-prone
+        callUUID = generateUUID()
+        messageToSend = {"request":"CAN-SINGLE-SEND-" + message['message'], "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('canstopsending')
     def canstopsending(message):
-        webserver_message_queue.put("CAN-STOP-SENDING")
+        callUUID = generateUUID()
+        messageToSend = {"request":"CAN-STOP-SENDING", "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on('getAlarmProfiles')
     def getProfiles(message):
-        webserver_message_queue.put("GET-ALARM-PROFILES")
-        try:
-            message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-        except Exception as e: 
-            message = "{}"
-        emit('postAlarmProfiles', {'message': json.loads(message)})
+        global responseQueues
+
+        callUUID = generateUUID()
+        responseQueues[callUUID] = Queue()
+        messageToSend = {"request":"GET-ALARM-PROFILES", "uuid": callUUID, "responseQueue": responseQueues[callUUID] }
+        webserver_message_queue.put(messageToSend)
+        response = responseQueues[callUUID].get(True, 5)["response"]
+        del responseQueues[callUUID]
+        emit('postAlarmProfiles', {'message': json.loads(response)})
 
     @socketio.on('setAlarmProfile')
     def setAlarmProfile(message):
-        webserver_message_queue.put("SET-ALARM-PROFILE-" + str(message['message']))
+        callUUID = generateUUID()
+        messageToSend = {"request":"SET-ALARM-PROFILE-" + str(message['message']), "uuid": callUUID}
+        webserver_message_queue.put(messageToSend)
 
     @socketio.on_error()
     def error(e):
@@ -182,46 +208,47 @@ def getClientCount():
     #print('RETURNING CLIENT COUNT ' + str(client_count))
     return client_count
 
-def getClientUuid():
-    global client_last_uuid
-    return client_last_uuid
+def generateUUID():
+    return uuid4().hex
 
 def sendAlarmStatus (last_status_str):
-    #print(">>>THREAD polling")
-    webserver_message_queue.put("ALARM-STATUS")
     global new_client_exists
+    global responseQueues
 
-    try:
-        message = alarm_message_queue.get(True, 5) #wait up to 5 seconds for a response
-    except Exception as e: 
-            message = "{}"
-    if (message != last_status_str or new_client_exists):
+
+    callUUID = generateUUID()
+    responseQueues[callUUID] = Queue()
+    messageToSend = {"request":"ALARM-STATUS", "uuid": callUUID, "responseQueue": responseQueues[callUUID] }
+    webserver_message_queue.put(messageToSend)
+    response = responseQueues[callUUID].get(True, 5)["response"]
+    del responseQueues[callUUID]
+
+    if (response != last_status_str or new_client_exists):
         print("Sending status to connected clients")
-        socketio.emit('postStatus', {'message': json.loads(message)})
+        socketio.emit('postStatus', {'message': json.loads(response)})
         new_client_exists = False
 
-    #print(">>>THREAD END polling")
 
-    return message
+    return response
 
-def authenticate():
-    try:
-        # Create an OAuth2Session and get the access token
-        client = BackendApplicationClient(client_id=CLIENT_ID)
-        oauth_session = OAuth2Session(client=client)
-        token = oauth_session.fetch_token(token_url=TOKEN_URL, client_id=CLIENT_ID,
-                                          client_secret=CLIENT_SECRET)
+# def authenticate():
+#     try:
+#         # Create an OAuth2Session and get the access token
+#         client = BackendApplicationClient(client_id=CLIENT_ID)
+#         oauth_session = OAuth2Session(client=client)
+#         token = oauth_session.fetch_token(token_url=TOKEN_URL, client_id=CLIENT_ID,
+#                                           client_secret=CLIENT_SECRET)
         
-        # Perform authentication using the access token
-        # Here you can implement your custom authentication logic
-        authenticated = True  # Replace with your authentication logic
+#         # Perform authentication using the access token
+#         # Here you can implement your custom authentication logic
+#         authenticated = True  # Replace with your authentication logic
         
-        if authenticated:
-            emit('authentication_status', "Authenticated successfully!")
-        else:
-            emit('authentication_status', "Authentication failed.")
-    except Exception as e:
-        emit('authentication_status', f"Error during authentication: {str(e)}")
+#         if authenticated:
+#             emit('authentication_status', "Authenticated successfully!")
+#         else:
+#             emit('authentication_status', "Authentication failed.")
+#     except Exception as e:
+#         emit('authentication_status', f"Error during authentication: {str(e)}")
 
 if __name__ == '__main__':
     main()

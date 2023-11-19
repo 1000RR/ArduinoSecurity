@@ -52,6 +52,7 @@ shouldSendDebugMessage = False
 alwaysKeepOnSet = {"0x30", "0x31"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors.
 
 
+
 deviceDictionary = {
     "0x80": "SENSOR - garage motion 0x80",
     "0x75": "SENSOR - kitchen motion 0x75",
@@ -797,7 +798,7 @@ def stopAlarm():
     sendMessage([homeBaseId, 0xFF, 0xC0, 0x01])
 
 
-def run(webserver_message_queue, alarm_message_queue):
+def run(webserver_message_queue):
     global debug
     global LISTEN_PORT
     global ser
@@ -841,41 +842,39 @@ def run(webserver_message_queue, alarm_message_queue):
         if not webserver_message_queue.empty():
             message = webserver_message_queue.get()
             #print(f"GOT MESSAGE: {message}")
-            if (message == "ENABLE-ALARM" and getArmedStatus() == False) :
+            if (message['request'] == "ENABLE-ALARM" and getArmedStatus() == False) :
                 toggleArmed(getTimeSec(), "WEB API")
-            elif (message == "DISABLE-ALARM" and getArmedStatus() == True) :
+            elif (message['request'] == "DISABLE-ALARM" and getArmedStatus() == True) :
                 toggleArmed(getTimeSec(), "WEB API")
-            elif (message == "ALARM-STATUS") :
-                alarm_message_queue.put(getStatusJsonString())
-            elif (message == "PAST-EVENTS") :
-                alarm_message_queue.put(getPastEventsJsonString())
-            elif (message.startswith("SET-ALARM-PROFILE-")):
-                profileNumber = int(message.split("SET-ALARM-PROFILE-",1)[1])
+            elif (message['request'] == "ALARM-STATUS") :
+                message['responseQueue'].put({"response": getStatusJsonString(), "uuid": message['uuid'] })
+            elif (message['request'].startswith("SET-ALARM-PROFILE-")):
+                profileNumber = int(message['request'].split("SET-ALARM-PROFILE-",1)[1])
                 setCurrentAlarmProfile(profileNumber)
-            elif (message == "GET-ALARM-PROFILES") :
-                alarm_message_queue.put(getProfilesJsonString())
-            elif (message == "FORCE-ALARM-SOUND-ON") :
+            elif (message['request'] == "GET-ALARM-PROFILES") :
+                message['responseQueue'].put({"response": getProfilesJsonString(), "uuid": message['uuid'] })
+            elif (message['request'] == "FORCE-ALARM-SOUND-ON") :
                 currentlyAlarmedDevices[hex(testAlarmId)] = getTimeSec();
                 sendAlarmMessage(True, True)
                 time.sleep(.15)
                 sendAlarmMessage(False, False)
-            elif (message == "TOGGLE-GARAGE-DOOR-STATE") :
+            elif (message['request'] == "TOGGLE-GARAGE-DOOR-STATE") :
                 sendMessage([homeBaseId, garageDoorOpenerId, 0x0D, 0x00])
-            elif (message == "CLEAR-OLD-DATA") :
+            elif (message['request'] == "CLEAR-OLD-DATA") :
                 clearOldData()
-            elif (message == "ALERT-CHECK-PHONES") :
+            elif (message['request'] == "ALERT-CHECK-PHONES") :
                 currentlyAlarmedDevices[hex(checkPhonesId)] = getTimeSec();
                 sendAlarmMessage(True, True)
                 time.sleep(.1)
                 sendAlarmMessage(False, False)
-            elif (message.startswith("CAN-REPEATEDLY-SEND-")) :
-                sendcan(message.split('CAN-REPEATEDLY-SEND-')[1], True)
-            elif (message.startswith("CAN-SINGLE-SEND-")) :
-                sendcan(message.split('CAN-SINGLE-SEND-')[1], False)
-            elif (message == "CAN-STOP-SENDING") :
+            elif (message['request'].startswith("CAN-REPEATEDLY-SEND-")) :
+                sendcan(message['request'].split('CAN-REPEATEDLY-SEND-')[1], True)
+            elif (message['request'].startswith("CAN-SINGLE-SEND-")) :
+                sendcan(message['request'].split('CAN-SINGLE-SEND-')[1], False)
+            elif (message['request'] == "CAN-STOP-SENDING") :
                 stopsendingcan()
-            elif (message == "GET-PAST-EVENTS") :
-                alarm_message_queue.put(getPastEventsJsonString())
+            elif (message['request'] == "GET-PAST-EVENTS") :
+                message['responseQueue'].put({"response": getPastEventsJsonString(), "uuid": message["uuid"] })
 
 
         if (not line): continue #nothing on CAN -> repeat while loop (since web server message is already taken care of above)
