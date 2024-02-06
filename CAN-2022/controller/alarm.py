@@ -94,6 +94,12 @@ alarmProfiles = [{
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "name": "Visual Alarm 10s | Garage Sensors",
+    "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x80"],
+    "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x80"],
+    "alarmOutputDevices": ["0x51"],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
     "name": "At Home Daytime - All Alarms Except Garage 10s | Perimeter Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],

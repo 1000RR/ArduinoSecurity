@@ -262,7 +262,7 @@
             let armed = getArmedStatus();
 
             if (typeof flag == 'boolean' && ((flag && !armed) || (!flag && armed))) {
-                socket.emit(flag ? 'arm' : 'disarm', {message: undefined});
+                socket.emit(flag === true ? 'arm' : 'disarm', {message: undefined});
             } else if (typeof flag !== 'boolean') {
                 socket.emit(armed ? 'disarm' : 'arm', {message: undefined});
             }
@@ -435,7 +435,12 @@
                 const button = document.createElement('button');
                 button.id = "button-fast-arm-" + profile.name.replace(' ', '-');
                 button.classList.add('mybutton', 'dimmable', 'blue', 'text_align_center', 'full-width', 'button-fast-arm');
-                button.setAttribute('onClick', `armButton(true); setAlarmProfile(${index}); closeQuickArmDrawer();`);
+                button.onclick=async() => {
+                    armButton(true);
+                    await new Promise(r => setTimeout(r, 1500));
+                    setAlarmProfile(index);
+                    closeQuickArmDrawer();
+                }
                 let buttonText = index + "\n" + profile.name;
                 if (profile.name.includes(' - ')) {
                     buttonText = index + "\n" + profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
@@ -587,6 +592,11 @@
     .collapsible {
         height: 200px;
         font-size: 40px !important;
+    }
+
+    .minheight-dropdown {
+        min-height: 100px;
+        min-width: 100px;
     }
 }
 
@@ -945,7 +955,7 @@ div {
 .collapsible-content {
   max-height: 0;
   overflow: auto;
-  transition: max-height 0.2s ease-out;shouldReturn
+  transition: max-height 0.2s ease-out;
   margin-bottom: 10px;
 }
 
@@ -1015,6 +1025,7 @@ div {
     padding-bottom: 5px;
 }
 
+
 input {
     minlength: 4;
     maxlength: 4;
@@ -1024,6 +1035,11 @@ input {
 
 .dull {
     filter: saturate(30%);
+}
+
+.minheight-dropdown {
+    min-height: 30px;
+    min-width: 100px;
 }
 
 body {
@@ -1048,7 +1064,7 @@ body {
                 <span id="button-arm-title"></span>
             </button>
         </div>
-        <div id="profiles-dropdown-container" class="flexbox-row justify-content-center"></div>
+        <div id="profiles-dropdown-container" class="flexbox-row justify-content-center minheight-dropdown"></div>
             
     </div>
     </nav>
