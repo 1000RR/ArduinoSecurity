@@ -14,7 +14,7 @@ print(static_directory)
 # Define the IP address and port for the server
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname) if hostname else "127.0.0.1"
-port = 443
+port = 80
 
 if (host == '127.0.0.1'):
     # Run the ifconfig command and capture its output
@@ -70,12 +70,12 @@ class CustomRequestHandler(SimpleHTTPRequestHandler):
 # Create the HTTP server
 try:
     # Load the SSL certificate and private key
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(certfile='../server-keys/cert.pem', keyfile='../server-keys/key.pem')
+    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # ssl_context.load_cert_chain(certfile='../server-keys/cert.pem', keyfile='../server-keys/key.pem')
 
     # Create the HTTP server with SSL context
     server = HTTPServer((host, port), CustomRequestHandler)
-    server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
+    #server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
     print(f'Static server started at http://{host}:{port}')
     server.serve_forever()
 except KeyboardInterrupt:

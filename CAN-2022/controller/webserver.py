@@ -165,12 +165,12 @@ def main():
     def error(e):
         print('Error', e)
        
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(certfile=thisDir+'/server-keys/cert.pem', keyfile=thisDir+'/server-keys/key.pem')
+    #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    #ssl_context.load_cert_chain(certfile=thisDir+'/server-keys/cert.pem', keyfile=thisDir+'/server-keys/key.pem')
 
     # Run the Flask app
-    #socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
-    socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
+    #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context, allow_unsafe_werkzeug=True)
 
 def update_status_thread():
     last_status_str = 0
