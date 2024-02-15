@@ -22,7 +22,7 @@ webserver_message_queue = Queue()
 responseQueues = {}
 # Set up the Flask web API
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=10, ping_interval=5)
 thread = None
 thread_lock = threading.Lock()
 new_client_exists = False
