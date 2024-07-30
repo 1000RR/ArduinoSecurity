@@ -11,6 +11,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
 
     <script type="text/javascript">
+        let socket;
+        let strOldStatusData = "";
+        let strOldProfilesData = "{}";
+        let intProfileNumber = 0;
+        let lastStatusLoaded = false;
+        let lastProfilesLoaded = false;
+
         window.addEventListener("focus", getStatus);
 
         function findAlarmProfileIndexFromName(name) {
@@ -48,76 +55,87 @@
 
         setTimeout(registerCollapsibleHandler, 500);
 
-        var socket = io.connect('http://bobik.lan:8080');
-        let strOldStatusData = "";
-        let strOldProfilesData = "{}";
-        let intProfileNumber = 0;
+        function registerWebSocket() {
+            socket = io.connect('http://bobik.lan:8080');
 
-        socket.on('connect', function() {
-            console.log('Connected to server');
-            getProfilesData();
-            setDisconnectedOverlayHidden(true);
-            setLoadingOverlayHidden(false);
-        });
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                getProfilesData();
+                setDisconnectedOverlayHidden(true);
+                setLoadingOverlayHidden(false);
+            });
 
-        function handleErrors(error) {
-            setLoadingOverlayHidden(true);
-            setDisconnectedOverlayHidden(false);
-            strOldProfilesData = "{}";
-            strOldStatusData = "{}";
-            intProfileNumber = -1;
-            setTimeout(() => {
-                socket.connect();
-            }, 1000);
+            function handleErrors(error) {
+                setLoadingOverlayHidden(true);
+                setDisconnectedOverlayHidden(false);
+                strOldProfilesData = "{}";
+                strOldStatusData = "{}";
+                intProfileNumber = -1;
+                setTimeout(() => {
+                    socket.connect();
+                }, 1000);
+            }
+
+            socket.on('connect_error', err => handleErrors(err))
+            socket.on('connect_failed', err => handleErrors(err))
+
+            socket.on('postStatus', function(data) {
+                if (strOldStatusData != JSON.stringify(data.message)) {
+                    renderMessage(data.message, 'status-container');
+                    renderIcons(data.message);
+                    updateProfilesDropdownSelection(data.message, strOldStatusData);
+                    updateSensorIconsActiveStatus(data.message);
+                    strOldStatusData = JSON.stringify(data.message);
+                    blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
+                    lastStatusLoaded = data.message;
+                    if (lastStatusLoaded && lastProfilesLoaded) {
+                        updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
+                    }
+                }
+
+                setLoadingOverlayHidden(true); //could be called after a reconnect - need to hide loading overlay
+                getPastEvents();
+            });
+
+            socket.on('postPastEvents', function(data) {            
+                renderMessage(data.message, 'past-events-container');
+            });
+
+            socket.on('postAlarmProfiles', function(data) {
+                //console.log('Message from server:', data.message);
+                if (!(data && data.message && data.message.profiles)) {
+                    return;
+                }
+                if (strOldProfilesData == JSON.stringify(data.message))
+                    return;
+                else {
+                    renderMessage(data.message, 'profiles-container');
+                    renderProfilesDropdown(data.message.profiles)
+                    renderFastArmButtons(data.message.profiles)
+                    strOldProfilesData = JSON.stringify(data.message)
+                    lastProfilesLoaded = data.message.profiles;
+                    if (lastStatusLoaded && lastProfilesLoaded) {
+                        updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
+                    }
+                }
+            });
         }
 
-        let lastStatusLoaded = false;
-        let lastProfilesLoaded = false;
-
-
-        socket.on('connect_error', err => handleErrors(err))
-        socket.on('connect_failed', err => handleErrors(err))
-
-        socket.on('postStatus', function(data) {
-            if (strOldStatusData != JSON.stringify(data.message)) {
-                renderMessage(data.message, 'status-container');
-                renderIcons(data.message);
-                updateProfilesDropdownSelection(data.message, strOldStatusData);
-                updateSensorIconsActiveStatus(data.message);
-                strOldStatusData = JSON.stringify(data.message);
-                blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
-                lastStatusLoaded = data.message;
-                if (lastStatusLoaded && lastProfilesLoaded) {
-                    updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
+        function checkPageVisibility() {
+            if (document.hidden) {
+                // Page is not active, close the WebSocket
+                if (socket) {
+                socket.disconnect();
                 }
+            } else {
+                // Page is active, open or reconnect the WebSocket
+                registerWebSocket();
             }
+        }
 
-            setLoadingOverlayHidden(true); //could be called after a reconnect - need to hide loading overlay
-            getPastEvents();
-        });
+        document.addEventListener('visibilitychange', checkPageVisibility);
 
-        socket.on('postPastEvents', function(data) {            
-            renderMessage(data.message, 'past-events-container');
-        });
-
-        socket.on('postAlarmProfiles', function(data) {
-            //console.log('Message from server:', data.message);
-            if (!(data && data.message && data.message.profiles)) {
-                return;
-            }
-            if (strOldProfilesData == JSON.stringify(data.message))
-                return;
-            else {
-                renderMessage(data.message, 'profiles-container');
-                renderProfilesDropdown(data.message.profiles)
-                renderFastArmButtons(data.message.profiles)
-                strOldProfilesData = JSON.stringify(data.message)
-                lastProfilesLoaded = data.message.profiles;
-                if (lastStatusLoaded && lastProfilesLoaded) {
-                    updateAlarmIconActivityStatus(lastProfilesLoaded, lastStatusLoaded)
-                }
-            }
-        });
+        registerWebSocket();
 
         function renderIcons(statusJson) {
             let isGarageOpen = statusJson.garageOpen;
@@ -1090,7 +1108,7 @@ body {
             <button id="button-garage-toggle" class="mybutton full-width emerald dimmable" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
         </div>
 
-        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners double_click">Special Functions (double click)</button>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
         <div class="flexbow-row collapsible-content full-width bottom-rounded-corners " id="special-functions-container">
             <div class="horizontal-button-holder" id="special-functions-buttons-container">
                 <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>

@@ -50,6 +50,13 @@ allowed_paths = {'/'}
 
 # Create a custom request handler to modify the behavior
 class CustomRequestHandler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', 'bobik.lan, bobik, bobikwifi, bobikwifi.lan, 192.168.0.0/17') #the protocol is SSL-dependent; mask /16 is 192.168.*.*; mask /17 is 192.168.0.0-192.168.127.255
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'X-Requested-With')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        SimpleHTTPRequestHandler.end_headers(self)
+    
     def do_GET(self):
         if not self.is_valid_path():
             self.send_response(404)
