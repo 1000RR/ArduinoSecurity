@@ -9,12 +9,13 @@ import ssl
 #static_directory = os.path.join(os.path.dirname(__file__), './')
 thisDir = os.path.dirname(os.path.realpath(__file__))
 static_directory = thisDir + '/content'
+serverKeysDir = "../server-keys/"
 print(static_directory)
 
 # Define the IP address and port for the server
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname) if hostname else "127.0.0.1"
-port = 80
+port = 443
 
 if (host == '127.0.0.1'):
     # Run the ifconfig command and capture its output
@@ -45,7 +46,7 @@ if (host == '127.0.0.1'):
 
 print(f">>hosting on {host}:{port}")
 
-allowed_extensions = {'.html', '.jpg', '.jpeg', '.png', '.gif', '.css'}
+allowed_extensions = {'.html', '.jpg', '.jpeg', '.png', '.gif', '.css', '.js', '.json'}
 allowed_paths = {'/'}
 
 # Create a custom request handler to modify the behavior
@@ -77,13 +78,13 @@ class CustomRequestHandler(SimpleHTTPRequestHandler):
 # Create the HTTP server
 try:
     # Load the SSL certificate and private key
-    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    # ssl_context.load_cert_chain(certfile='../server-keys/cert.pem', keyfile='../server-keys/key.pem')
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(certfile=serverKeysDir+'/server-cert.pem', keyfile=serverKeysDir+'/server-key.pem')
 
     # Create the HTTP server with SSL context
     server = HTTPServer((host, port), CustomRequestHandler)
-    #server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
-    print(f'Static server started at http://{host}:{port}')
+    server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
+    print(f'Static server started at https://{host}:{port}')
     server.serve_forever()
 except KeyboardInterrupt:
     print('Server stopped')

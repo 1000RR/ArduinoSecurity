@@ -28,6 +28,7 @@ thread_lock = threading.Lock()
 new_client_exists = False
 alarmQueueMessages = {}
 thisDir=os.path.dirname(os.path.abspath(__file__))
+serverKeysDir=thisDir+"/server-keys"
 print(thisDir)
 
 def main():
@@ -40,6 +41,11 @@ def main():
     # Create a thread for the raspi alarm python script and pass the global variable and message queue
     alarm_thread = threading.Thread(target=alarm.run, args=(webserver_message_queue, ), daemon=True)
     alarm_thread.start()
+
+    @app.route('/status', methods=['GET'])
+    def get_status():
+        status = {"status": "running"}
+        return jsonify(status)
 
     @app.after_request
     def add_no_cache_header(response):
@@ -165,12 +171,12 @@ def main():
     def error(e):
         print('Error', e)
        
-    #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    #ssl_context.load_cert_chain(certfile=thisDir+'/server-keys/cert.pem', keyfile=thisDir+'/server-keys/key.pem')
+    sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    sslContext.load_cert_chain(certfile=serverKeysDir+'/server-cert.pem', keyfile=serverKeysDir+'/server-key.pem')
 
     # Run the Flask app
-    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
-    #socketio.run(app, host='0.0.0.0', port=8080, ssl_context=ssl_context, allow_unsafe_werkzeug=True)
+    #socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=8080, ssl_context=sslContext, allow_unsafe_werkzeug=True)
 
 def update_status_thread():
     last_status_str = 0
