@@ -1,11 +1,9 @@
 import serial
-from datetime import datetime, timezone, timedelta
+from datetime import datetime 
 import math
 import numpy as np
 import time
 import atexit
-import tornado.ioloop
-import tornado.web
 import json
 import subprocess
 import os
@@ -52,7 +50,6 @@ shouldSendDebugMessage = False
 alwaysKeepOnSet = {"0x30", "0x31"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors.
 
 
-
 deviceDictionary = {
     "0x80": "SENSOR - garage motion 0x80",
     "0x75": "SENSOR - kitchen motion 0x75",
@@ -68,6 +65,7 @@ deviceDictionary = {
     hex(testAlarmId): "VIRTUAL sensor for triggering a test alarm " + hex(testAlarmId),
     hex(garageDoorOpenerId): "OPENER - garage door opener " + hex(garageDoorOpenerId)
 }
+
 
 mp3AlarmDictionary = {
     "0x80": "garagemovement.mp3",
@@ -332,6 +330,7 @@ def toggleArmed(now, method):
     global everTriggeredWithinAlarmCycle
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
+    global currentlyAlarmedDevices
     
     lastArmedTogglePressed = now
     if (armed == True):
@@ -360,8 +359,6 @@ def toggleArmed(now, method):
 def resetMemberDevices():
     global memberDevices
     global denonId
-    now = getTimeSec()
-    readableTimestamp = getReadableTime()
     memberDevices = {
         # hex(denonId): {
         #     'id': hex(denonId),
@@ -721,16 +718,19 @@ def handleMessage(msg):
     #alarm message coming in from a device that isn't in the currentlyAlarmedDevices list
     if ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices) :
         currentlyAlarmedDevices[hex(msg[0])] = now;
-        if (armed and (not "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] or ("sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"]))): 
-            print(f">>>>>>>>>>>>>>>>>RECEIVED ALARM SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
-            alarmed = True
-            lastAlarmTime = now;
-            alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
-            everTriggeredWithinAlarmCycle[hex(msg[0])] = now;
-            updateCurrentlyTriggeredDevices();
-            addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
-            print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
-            sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
+        if (not "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] or ("sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"])):
+            print(f">>>>>>>>>>>>>>>>>RECEIVED TRIGGER SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
+            if (armed): 
+                alarmed = True
+                lastAlarmTime = now;
+                alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
+                everTriggeredWithinAlarmCycle[hex(msg[0])] = now;
+                updateCurrentlyTriggeredDevices();
+                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
+                sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
+            else:
+                addEvent({"event": "TRIGGERED-NO-ALARM", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
     elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in currentlyAlarmedDevices):
@@ -750,7 +750,7 @@ def updateCurrentlyTriggeredDevices():
     for missingId in currentlyMissingDevices:
         alarmReason += ("" if not alarmReason else " ") + "missing " + missingId
     for alarmedId in currentlyAlarmedDevices:
-        alarmReason += ("" if not alarmReason else " ") +"tripped " + alarmedId
+        alarmReason += ("" if not alarmReason else " ") + "tripped " + alarmedId
     if (debug): print("Updated alarm reason to: " + alarmReason)
 
 
@@ -848,6 +848,7 @@ def run(webserver_message_queue):
     global currentAlarmProfile
     global alwaysKeepOnSet
     global testAlarmId
+    global missingDevices
     resetMemberDevices()
 
     atexit.register(exitSteps)
@@ -1070,5 +1071,5 @@ def sendcan(message, repeatedly):
 
 
 if __name__ == "__main__":
-    run(None, None)  # For testing in standalone mode
+    run(None)  # For testing in standalone mode
 

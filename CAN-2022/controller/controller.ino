@@ -2,7 +2,17 @@
 #include <mcp2515.h>
 #include <ssd1306.h>
 
-struct can_frame incomingCanMsg;
+/* CONSTANTS */
+int ARMED_LED_PIN = 3; //blue led
+int DISARMED_LED_PIN = 2; //red led
+int ARM_BUTTON_PIN = 9;
+int HOME_BASE_CAN_ID = 0x14;
+int OUTPUT_TO_OLED_EVERY_X_LOOPS = 10;
+String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
+/* /CONSTANTS */
+
+/* CAN MESSAGE DATA TYPES AND VARIABLES */
+struct can_frame incomingCanMessage;
 struct can_frame myCanMessage;
 struct MessageStruct {
     int id;
@@ -11,23 +21,22 @@ struct MessageStruct {
     int deviceType;
 };
 MCP2515 mcp2515(10);
-String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
 MCP2515::ERROR canMessageError;
-int index; //used for message number in testing
-String incomingComMessage;
 MessageStruct parsedIncomingComMessage;
-int armedLedPin = 3; //blue led
-int disarmedLedPin = 2; //red led
-int armedButtonPin = 9;
-int homeBaseCanId = 0x14;
-int previousArmedButtonState = HIGH;
+/* /CAN MESSAGE DATA TYPES AND VARIABLES */
+
+
+/* VARIABLES */
+String incomingComMessage;
+int index; //used for message number in testing
+int previousArmButtonState = HIGH;
 int loopIndex = 0;
 bool currentArmedButtonState;
 bool armedStatus = false;
 bool alarmedStatus = false;
 String strActiveAlarmedDevicesIdList = "";
 String strAllAlarmedDevicesIdList = "";
-int outputToOledEveryXloops = 10;
+/* /VARIABLES */
 
 ///MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///            [1] MSG (1 byte)
@@ -56,23 +65,23 @@ void setup() {
 
   setupOled();
   setupArmedLeds();
-  setupArmedButtonPin();
+  setupArmButtonPin();
 
   lcdHello();
 }
 
-void doLocalThingsWithMessage(MessageStruct message) {
+void processIncomingCanMessage(MessageStruct message) {
   if (message.message == 0xD1) { //turn on ARMED led, turn off DISARMED led
     armedStatus = true;
-    setArmedLedPin(armedStatus);
-    setDisarmedLedPin(!armedStatus);
+    setLedPin(armedStatus, ARMED_LED_PIN);
+    setLedPin(!armedStatus, DISARMED_LED_PIN);
   } else if (message.message == 0xD0) { //turn on DISARMED led, turn off ARMED led
     armedStatus = false;
     alarmedStatus = false;
     strActiveAlarmedDevicesIdList = "";
     strAllAlarmedDevicesIdList = "";
-    setArmedLedPin(armedStatus);
-    setDisarmedLedPin(!armedStatus);
+    setLedPin(armedStatus, ARMED_LED_PIN);
+    setLedPin(!armedStatus, DISARMED_LED_PIN);
   } else if (message.addressee == 0xFF && message.message == 0xA0) { //home base sending its arduino the ID of a device that's causing the alarm (single device / message)
       alarmedStatus = true;
       if (strActiveAlarmedDevicesIdList.indexOf("0x" + String(message.deviceType, HEX)) == -1) {
@@ -100,27 +109,19 @@ void setupOled(){
 }
 
 void setupArmedLeds() {
-  pinMode(armedLedPin, OUTPUT);
-  pinMode(disarmedLedPin, OUTPUT);
+  pinMode(ARMED_LED_PIN, OUTPUT);
+  pinMode(DISARMED_LED_PIN, OUTPUT);
 }
 
-void setupArmedButtonPin() {
-  pinMode(armedButtonPin, INPUT_PULLUP);
+void setupArmButtonPin() {
+  pinMode(ARM_BUTTON_PIN, INPUT_PULLUP);
 }
 
-void setArmedLedPin(bool value) {
+void setLedPin(bool value, int pin) { //true for on, false for off
   if (value == true)
-    digitalWrite(armedLedPin, HIGH); //low = off, when led+ connected to digital out pin, led- connected to GND
+    digitalWrite(pin, HIGH); //low = off, when led+ connected to digital out pin, led- connected to GND
   else
-    digitalWrite(armedLedPin, LOW); //high = on, when led+ connected to digital out pin, led- connected to GND
-}
-
-void setDisarmedLedPin(bool value)
-{
-  if (value == true)
-    digitalWrite(disarmedLedPin, HIGH); //low = off, when led+ connected to digital out pin, led- connected to GND
-  else
-    digitalWrite(disarmedLedPin, LOW); //high = on, when led+ connected to digital out pin, led- connected to GND
+    digitalWrite(pin, LOW); //high = on, when led+ connected to digital out pin, led- connected to GND
 }
 
 void loop() {
@@ -128,22 +129,22 @@ void loop() {
   Serial.flush();
   incomingComMessage = Serial.readStringUntil('\n');
   if (incomingComMessage.length() > 0) {
-    parsedIncomingComMessage = parseIncomingComMessage(incomingComMessage);
-    doLocalThingsWithMessage(parsedIncomingComMessage);
+    parsedIncomingComMessage = parseincomingComMessage(incomingComMessage);
+    processIncomingCanMessage(parsedIncomingComMessage);
     if (parsedIncomingComMessage.addressee != 0xFF) //has to be addressed to not the home base's arduino
       sendMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
   }
 
-  currentArmedButtonState = digitalRead(armedButtonPin);
+  currentArmedButtonState = digitalRead(ARM_BUTTON_PIN);
   
-  if (currentArmedButtonState != previousArmedButtonState)
+  if (currentArmedButtonState != previousArmButtonState)
   { // button pressed - send serial armed toggle button press message to raspi
     if (currentArmedButtonState == LOW) {
-      previousArmedButtonState = LOW;
+      previousArmButtonState = LOW;
       Serial.print("0x");
-      Serial.print(homeBaseCanId, HEX);
+      Serial.print(HOME_BASE_CAN_ID, HEX);
       Serial.print("-0x");
-      Serial.print(homeBaseCanId, HEX);
+      Serial.print(HOME_BASE_CAN_ID, HEX);
       Serial.print("-0x");
       Serial.print(0xEE, HEX);
       Serial.print("-0x");
@@ -151,31 +152,31 @@ void loop() {
       Serial.print("\n");
       Serial.flush();
     } else {
-      previousArmedButtonState = HIGH;
+      previousArmButtonState = HIGH;
     }
   }
 
-  canMessageError = mcp2515.readMessage(&incomingCanMsg);
+  canMessageError = mcp2515.readMessage(&incomingCanMessage);
   if (canMessageError == MCP2515::ERROR_OK) {
     //retrieve from CAN frame(s), and send to COM via Serial
     Serial.print("0x");
-    Serial.print(incomingCanMsg.can_id, HEX);
+    Serial.print(incomingCanMessage.can_id, HEX);
     Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[0], HEX);
+    Serial.print(incomingCanMessage.data[0], HEX);
     Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[1], HEX);
+    Serial.print(incomingCanMessage.data[1], HEX);
     Serial.print("-0x");
-    Serial.print(incomingCanMsg.data[2], HEX);
+    Serial.print(incomingCanMessage.data[2], HEX);
     Serial.print("\n");
     Serial.flush();
 
-    //use this structure to access data: incomingCanMsg.data[1]==0xAA
+    //use this structure to access data: incomingCanMessage.data[1]==0xAA
     //maybe delay too??? delay(DELAY_LOOP_TIME);
   }
   
   outputToLcd(loopIndex);
   if (alarmedStatus == true) blinkDisarmedLed(loopIndex);
-  else if (armedStatus == true) setDisarmedLedPin(false);
+  else if (armedStatus == true) setLedPin(false, DISARMED_LED_PIN);
 
   if (loopIndex < 32766) {
     loopIndex++;
@@ -187,20 +188,20 @@ void loop() {
 //void debugPrintData() {
 //    if (debug == false) return;
 //
-//    Serial.print(incomingCanMsg.can_id, HEX); // print ID
+//    Serial.print(incomingCanMessage.can_id, HEX); // print ID
 //    Serial.print(" "); 
-//    Serial.print(incomingCanMsg.can_dlc, HEX); // print DLC
+//    Serial.print(incomingCanMessage.can_dlc, HEX); // print DLC
 //    Serial.print(" ");
 //
-//    for (int i = 0; i < incomingCanMsg.can_dlc; i++)  {  // print the data
-//      Serial.print(incomingCanMsg.data[i], HEX);
+//    for (int i = 0; i < incomingCanMessage.can_dlc; i++)  {  // print the data
+//      Serial.print(incomingCanMessage.data[i], HEX);
 //      Serial.print(" ");
 //    }
 //    Serial.println(" ");
 //}
 
 //COMMON
-MessageStruct parseIncomingComMessage(String message) {
+MessageStruct parseincomingComMessage(String message) {
   MessageStruct messageStruct;
   char * token;
   char delimiter = '-';
@@ -228,10 +229,10 @@ MessageStruct parseIncomingComMessage(String message) {
 // MessageStruct parseIncomingCanMessage() {
 //   MessageStruct messageStruct;
 
-//   messageStruct.id = incomingCanMsg.can_id;
-//   messageStruct.addressee = incomingCanMsg.data[0];
-//   messageStruct.message = incomingCanMsg.data[1];
-//   messageStruct.deviceType = incomingCanMsg.data[2];
+//   messageStruct.id = incomingCanMessage.can_id;
+//   messageStruct.addressee = incomingCanMessage.data[0];
+//   messageStruct.message = incomingCanMessage.data[1];
+//   messageStruct.deviceType = incomingCanMessage.data[2];
 
 //   return messageStruct;
 // }
@@ -266,7 +267,7 @@ void lcdHello() {
 void outputToLcd(int loopIndex)
 {
     ssd1306_setFixedFont(ssd1306xled_font6x8);
-    if (loopIndex % outputToOledEveryXloops != 0)
+    if (loopIndex % OUTPUT_TO_OLED_EVERY_X_LOOPS != 0)
       return;
 
     //first line
@@ -301,5 +302,5 @@ void outputToLcd(int loopIndex)
 }
 
 void blinkDisarmedLed (int loopIndex) {
-  setDisarmedLedPin(!digitalRead(disarmedLedPin));
+  setLedPin(!digitalRead(DISARMED_LED_PIN), DISARMED_LED_PIN);
 }

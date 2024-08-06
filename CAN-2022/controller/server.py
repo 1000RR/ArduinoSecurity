@@ -1,20 +1,12 @@
 import threading
-import time
 import alarm
 import json
 import os
 from queue import Queue
 import ssl
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from flask_socketio import SocketIO, emit
-from oauthlib.oauth2 import BackendApplicationClient
-from requests_oauthlib import OAuth2Session
 from uuid import uuid4
-
-# Replace with your OAuth credentials
-CLIENT_ID = 'your_client_id'
-CLIENT_SECRET = 'your_client_secret'
-TOKEN_URL = 'https://example.com/oauth/token'
 
 
 # Create a queue for communication between main program and daemon thread
@@ -44,7 +36,7 @@ def main():
 
     @app.route('/status', methods=['GET'])
     def get_status():
-        status = {"status": "running"}
+        status = {"status": "ok"}
         return jsonify(status)
 
     @app.after_request
@@ -89,8 +81,6 @@ def main():
 
     @socketio.on('getStatus')
     def getStatus(message):
-        def getClientCount():
-            return -1
         sendAlarmStatus("something")
 
     @socketio.on('arm')
@@ -212,25 +202,6 @@ def sendAlarmStatus (last_status_str):
 
 
     return response
-
-# def authenticate():
-#     try:
-#         # Create an OAuth2Session and get the access token
-#         client = BackendApplicationClient(client_id=CLIENT_ID)
-#         oauth_session = OAuth2Session(client=client)
-#         token = oauth_session.fetch_token(token_url=TOKEN_URL, client_id=CLIENT_ID,
-#                                           client_secret=CLIENT_SECRET)
-        
-#         # Perform authentication using the access token
-#         # Here you can implement your custom authentication logic
-#         authenticated = True  # Replace with your authentication logic
-        
-#         if authenticated:
-#             emit('authentication_status', "Authenticated successfully!")
-#         else:
-#             emit('authentication_status', "Authentication failed.")
-#     except Exception as e:
-#         emit('authentication_status', f"Error during authentication: {str(e)}")
 
 if __name__ == '__main__':
     main()
