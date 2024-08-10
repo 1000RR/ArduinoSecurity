@@ -48,6 +48,7 @@ canDebugMessage = ""
 shouldSendDebugRepeatedly = False
 shouldSendDebugMessage = False
 alwaysKeepOnSet = {"0x30", "0x31"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors.
+avrSoundChannel = "SAT/CBL"
 
 
 deviceDictionary = {
@@ -198,7 +199,7 @@ alarmProfiles = [{
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Test Denon Only 1s (volume 35) | All Sensors",
+    "name": "Test Denon Only 1s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30"],
     "alarmOutputDevices": [hex(denonId)],
@@ -477,7 +478,7 @@ def possiblyAddMember(msg):
 def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3AlarmDictionary):
     cwd = getThisDirAddress()
     playCommandArray = ["/usr/bin/mpg123"]
-    volume = "35" #default
+    volume = "55" #default
 
     ####types of sounds####
     #test sound from testAlarmId
@@ -506,7 +507,7 @@ def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, curre
         currentlyAlarmedDevices.pop(hex(testAlarmId));
     elif (hex(checkPhonesId) in currentlyAlarmedDevices):
         sound = "checkyourphones.mp3"
-        volume = "70"
+        volume = "79"
         currentlyAlarmedDevices.pop(hex(checkPhonesId));
     else:
         soundByteOverride, volumeOverride = getCurrentProfileSoundByteData()
@@ -538,9 +539,9 @@ def playDenonSounds(playCommandArray, cwd):
 
 
 def setDenonPlayState(startPowerStatus, startChannelStatus, volume, cwd):
-    #turn on and switch to CD if previously off OR previously channel isn't CD;
+    #turn on and switch to $avrSoundChannel if previously off OR previously channel isn't $avrSoundChannel;
     #then sleep the appropriate number of seconds to let denon get ready 
-    if (startPowerStatus != 'ON' or startChannelStatus != 'CD'):
+    if (startPowerStatus != 'ON' or startChannelStatus != avrSoundChannel):
         subprocess.run("./denonon.sh", cwd=cwd)
         time.sleep(8 if startPowerStatus != 'ON' else 3)
     
@@ -555,7 +556,7 @@ def setDenonOriginalState(startPowerStatus, startChannelStatus, startVolume, cwd
     #otherwise, set volume to old volume
     else :
         subprocess.run(["./denonvol.sh", startVolume], cwd=cwd)
-        if (startChannelStatus != 'CD'):
+        if (startChannelStatus != avrSoundChannel):
             subprocess.run(["./denonchannel.sh", startChannelStatus], cwd=cwd)
 
 
