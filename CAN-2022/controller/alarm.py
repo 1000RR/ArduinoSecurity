@@ -263,9 +263,6 @@ np.set_printoptions(formatter={'int':hex})
 #NEW DEVICES POWER FUNCTION
 
 def setDevicesPower():
-    global armed
-    global alwaysKeepOnSet
-
     offDevices = []
     onDevices = []
     # if not armed, send OFF to all
@@ -279,11 +276,6 @@ def setDevicesPower():
         sendPowerCommand(onDevices, False, True)
 
 def getDevicesPowerStatusLists():
-    global currentAlarmProfile
-    global alarmProfiles
-    global memberDevices
-    global alwaysKeepOnSet
-
     oldProfilesSet = set(memberDevices)
     newProfilesSet = set(alarmProfiles[currentAlarmProfile]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[currentAlarmProfile] else set(memberDevices)
 
@@ -298,7 +290,6 @@ def getDevicesPowerStatusLists():
 def setCurrentAlarmProfile(profileNumber): #-1 means no profile set. All devices trigger. Alarms are broadcast to all devices.
     global currentAlarmProfile
     global currentlyAlarmedDevices
-    global alarmProfiles
     global alarmed
 
     if (profileNumber >= -1 and profileNumber < len(alarmProfiles)):
@@ -324,9 +315,7 @@ def addEvent(event):
 
 
 def getArmedStatus():
-    global armed
     return armed
-
 
 def toggleArmed(now, method):
     global lastArmedTogglePressed
@@ -365,7 +354,6 @@ def toggleArmed(now, method):
 
 def resetMemberDevices():
     global memberDevices
-    global denonId
     memberDevices = {
         # hex(denonId): {
         #     'id': hex(denonId),
@@ -400,9 +388,9 @@ def encodeLine(message): #[myCanId, addressee, message, myDeviceType]
 def sendMessage(messageArray): 
     global lastSentMessageTimeMsec
     global denonPlayThread
-    global everTriggeredWithinAlarmCycle
-    global mp3AlarmDictionary
-    global currentlyAlarmedDevices
+    # global everTriggeredWithinAlarmCycle
+    # global mp3AlarmDictionary
+    # global currentlyAlarmedDevices
 
     outgoing = encodeLine(messageArray)
     ser.write(bytearray(outgoing, 'ascii'))
@@ -415,8 +403,6 @@ def sendMessage(messageArray):
 
 
 def getCurrentProfileSoundByteData():
-    global alarmProfiles
-    global currentAlarmProfile
     playSoundVolume = -1
     playSound = ""
 
@@ -502,9 +488,6 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
 
 
 def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices):
-    global testAlarmId
-    global checkPhonesId
-
     sound = ""
     playCommandArray.append("./alert.mp3")
 
@@ -613,7 +596,6 @@ def checkMembersOnline():
     now = getTimeSec()
     global lastCheckedMissingDevicesMsec
     global missingDevicesInCurrentArmCycle
-    global exceptMissingDevices
     lastCheckedMissingDevicesMsec = getTimeMsec()
     missingMembers = []
     for memberId in memberDevices :
@@ -626,7 +608,6 @@ def checkMembersOnline():
 
 
 def sendArmedLedSignal():
-    global armed
     if (armed == True):
         messageToSend = [homeBaseId, 0xFF, 0xD1, 0x01]
         print(f">>>> SENDING ARM SIGNAL TO ARDUINO {np.array(messageToSend)}")
@@ -636,25 +617,11 @@ def sendArmedLedSignal():
     sendMessage(messageToSend)
 
 
-def getDiffOfProfileSensorDevices(oldProfileNumber, newProfileNumber):
-    global alarmProfiles
-    global memberDevices
-
-    oldProfilesSet = set(alarmProfiles[oldProfileNumber]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[oldProfileNumber] else set(memberDevices)
-    newProfilesSet = set(alarmProfiles[newProfileNumber]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[newProfileNumber] else set(memberDevices)
-
-    diffOldDevices = list(oldProfilesSet - newProfilesSet)
-    allNewDevices = list(newProfilesSet)
-
-    return diffOldDevices, allNewDevices
-
-
 #by default, sends to all members of current profile, unless overridden with at most 1 of the first 2 params
 def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
-    global memberDevices
-    global homeBaseId
-    global currentAlarmProfile
-    global alarmProfiles
+    # global memberDevices
+    # global currentAlarmProfile
+    # global alarmProfiles
     
     devicesToSendTo = devicesOverrideArray if devicesOverrideArray else memberDevices if shouldBroadcast else alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"] if "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] else memberDevices
     for member in devicesToSendTo:
@@ -666,8 +633,6 @@ def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
 
 
 def exitSteps():
-    global pastEvents
-    global homeBaseId
     print(f"\n\nEXITING AT {getReadableTime()}")
     print("BROADCASTING QUIET-ALL-ALARMS SIGNAL")
     sendMessage([homeBaseId, 0x00, 0xCC, 0x01]) #reset all devices (broadcast)
@@ -691,18 +656,14 @@ def handleMessage(msg):
 
     possiblyAddMember(msg)
     global alarmed
-    global pastEvents
     global homeBaseId
     global lastAlarmTime
     global armed
     global lastArmedTogglePressed
-    global memberDevices
     global alarmReason
-    global currentlyMissingDevices
     global currentlyAlarmedDevices
     global everTriggeredWithinAlarmCycle
     global alarmedDevicesInCurrentArmCycle
-    global missingDevicesInCurrentArmCycle
     global currentAlarmProfile
     global canDebugMessage
     global shouldSendDebugRepeatedly
@@ -738,6 +699,8 @@ def handleMessage(msg):
                 sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
             else:
                 addEvent({"event": "TRIGGERED-NO-ALARM", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
+        else:
+            addEvent({"event": "TRIGGERED-NO-ALARM", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
 
     #a no-alarm message is coming in from a device that is in the alarmed device list
     elif ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0x00 and hex(msg[0]) in currentlyAlarmedDevices):
@@ -774,19 +737,6 @@ def getProfilesJsonString():
 
 
 def getStatusJsonString():
-    global currentlyAlarmedDevices
-    global everTriggeredWithinAlarmCycle
-    global memberDevices
-    global lastArmedTogglePressed
-    global strAlarmedStatus
-    global alarmedDevicesInCurrentArmCycle
-    global missingDevicesInCurrentArmCycle
-    global currentAlarmProfile
-    global alarmProfiles
-    global garageDoorOpenerId
-    global everMissingDevices
-
-
     strAlarmedStatus = "ALARM" if alarmed else "NORMAL"
     outgoingMessage = '{"armStatus": "' + ("ARMED" if armed else "DISARMED") + '",'
     outgoingMessage += '"alarmStatus": "' + strAlarmedStatus + '",'
@@ -807,8 +757,6 @@ def getStatusJsonString():
 
 
 def getPastEventsJsonString():
-    global pastEvents
-
     outgoingMessage = '{"pastEvents": ' + str(pastEvents).replace("'","\"")
     outgoingMessage += '}'
     return outgoingMessage
@@ -830,9 +778,7 @@ def stopAlarm():
 
 
 def run(webserver_message_queue):
-    global debug
     global LISTEN_PORT
-    global ser
     global memberDevices
     global currentlyAlarmedDevices
     global everTriggeredWithinAlarmCycle
@@ -1002,7 +948,6 @@ def getProfileName(profileNumber):
 
 def clearOldData():
     global everTriggeredWithinAlarmCycle
-    global memberDevices
     global alarmedDevicesInCurrentArmCycle
     global missingDevicesInCurrentArmCycle
     global everMissingDevices
