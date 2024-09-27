@@ -213,7 +213,6 @@ alarmProfiles = [{
 }]
 
 
-
 ###################### MESSAGES #######################
 # 0xBB - alarm on signal
 # 0xCC - alarm off signal
@@ -271,11 +270,11 @@ def setDevicesPower():
         sendPowerCommand([], True, False)
         sendPowerCommand(list(alwaysKeepOnSet), False, True)
     else:
-        offDevices, onDevices = getDevicesPowerStatusLists()
+        offDevices, onDevices = getDevicesPowerStateLists()
         sendPowerCommand(offDevices, False, False)
         sendPowerCommand(onDevices, False, True)
 
-def getDevicesPowerStatusLists():
+def getDevicesPowerStateLists():
     oldProfilesSet = set(memberDevices)
     newProfilesSet = set(alarmProfiles[currentAlarmProfile]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[currentAlarmProfile] else set(memberDevices)
 
@@ -686,7 +685,7 @@ def handleMessage(msg):
     #alarm message coming in from a device that isn't in the currentlyAlarmedDevices list
     if ((msg[1]==homeBaseId or msg[1]==broadcastId) and msg[2]==0xAA and hex(msg[0]) not in currentlyAlarmedDevices) :
         currentlyAlarmedDevices[hex(msg[0])] = now;
-        if (not "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] or ("sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"])):
+        if (not "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] or ("sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] and hex(msg[0]) in alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"])): #either all alarms trigger (sensorsThatTriggerAlarm missing from profile) OR current device ID in sensorsThatTriggerAlarm
             print(f">>>>>>>>>>>>>>>>>RECEIVED TRIGGER SIGNAL FROM {hex(msg[0])} AT {getReadableTime()}<<<<<<<<<<<<<<<<<<")
             if (armed): 
                 alarmed = True
@@ -694,7 +693,7 @@ def handleMessage(msg):
                 alarmedDevicesInCurrentArmCycle[hex(msg[0])] = now;
                 everTriggeredWithinAlarmCycle[hex(msg[0])] = now;
                 updateCurrentlyTriggeredDevices();
-                addEvent({"event": "ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
+                addEvent({"event": "TRIGGERED-ALARM", "trigger": alarmReason, "time": getReadableTimeFromTimestamp(lastAlarmTime)})
                 print (f">>>>>currentAlarmProfile {currentAlarmProfile}")
                 sendMessage([homeBaseId, 0xFF, 0xA0, msg[0]]) #send to the home base's arduino a non-forwardable message with the ID of the alarm-generating device to be added to the list
             else:
@@ -707,6 +706,7 @@ def handleMessage(msg):
         print(f"DEVICE {hex(msg[0])} NO LONGER IN currentlyAlarmedDevices - MESSAGE TO REMOVE FROM OLED")
         #home base's arduino should not show this device's ID as one that is currently alarmed
         currentlyAlarmedDevices.pop(hex(msg[0]))
+        addEvent({"event": "TRIGGER-STOPPED", "trigger": hex(msg[0]), "time": getReadableTimeFromTimestamp(now)})
         sendMessage([homeBaseId, 0xFF, 0xB0, msg[0]])
         updateCurrentlyTriggeredDevices();
 
@@ -952,12 +952,14 @@ def clearOldData():
     global missingDevicesInCurrentArmCycle
     global everMissingDevices
     global currentlyMissingDevices
+    global pastEvents
 
     everTriggeredWithinAlarmCycle = {}
     alarmedDevicesInCurrentArmCycle = {}
     missingDevicesInCurrentArmCycle = {}
     everMissingDevices = {}
     currentlyMissingDevices = []
+    pastEvents = []
     resetMemberDevices()
 
 
