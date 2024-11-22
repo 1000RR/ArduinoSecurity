@@ -1,12 +1,22 @@
 #include <SPI.h>
 #include <mcp2515.h>
 
+int loopDeviceIndex = 0;
+
+bool enableBuzzer = true;
+bool buzzerSounding = false;
+int buzzerPin = 3;                //d3=3 has pwm
+long previousMillis = 0; // Tracks the last tone update
+long toneInterval = 50;  // Interval between frequency changes (ms)
+int frequency = 500;              // Current frequency
+bool increasing = true;           // Direction of frequency sweep
+
 struct can_frame myCanMessage;
 MCP2515 mcp2515(10);
 MCP2515::ERROR canMessageError;
 
 struct Device {
-  int sensorPin;
+  int sensorPin; //sensor pin is connected to ground via resistor for a LOW signal (alarm at rest) or chain broken for a HIGH signal (alarm triggered)
   int relayPin; //-1 for no relay
   int sensorVal;
   int myCanId;
@@ -14,24 +24,32 @@ struct Device {
   int deviceType;
 };
 
-const int numDevices = 2; /* num connected devices */
+const int numDevices = 3; /* num connected devices */
 
-Device devices[numDevices] = {
+Device devices[numDevices] = { /*don't enable too many/any devices that draw current, like PIRs - the initial current draw will be too great*/
   {
     sensorPin: 5,
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: 0 /*variable to store the sensor status (value)*/,
     myCanId: 0x66,
     effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
-    deviceType: 2
+    deviceType: 5
   },
   {
     sensorPin: 7, 
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: 0 /*variable to store the sensor status (value)*/,
     myCanId: 0x67,
-    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
-    deviceType: 1
+    effectivelyEnabled: false, /*false = off; true = on; mirror value: relayState*/
+    deviceType: 5
+  },
+  {
+    sensorPin: 9, 
+    relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
+    sensorVal: 0 /*variable to store the sensor status (value)*/,
+    myCanId: 0x68,
+    effectivelyEnabled: false, /*false = off; true = on; mirror value: relayState*/
+    deviceType: 5
   }
 };
 
@@ -70,7 +88,9 @@ void setup()
   mcp2515.setBitrate(CAN_125KBPS);
   mcp2515.setNormalMode();
 
-  //initialize the 
+  pinMode(buzzerPin, OUTPUT); // Set buzzer pin as output
+
+  //initialize the device pins (inputs and relay, if applicable)
   for (int i = 0; i<numDevices; i++) {
     pinMode(devices[i].sensorPin, INPUT_PULLUP); // initialize sensor as an input
     if (devices[i].relayPin != -1) {
@@ -123,9 +143,9 @@ void makeMessage(int deviceNumber, int message)
   myCanMessage.data[0] = homebaseCanId;
   myCanMessage.data[2] = devices[deviceNumber].deviceType;
   
-  if (devices[deviceNumber].effectivelyEnabled == true && devices[deviceNumber].sensorVal == 1) {
+  if (devices[deviceNumber].effectivelyEnabled == true && devices[deviceNumber].sensorVal == HIGH) {
     myCanMessage.data[1] = 0xAA; // alarm
-  } else if (devices[deviceNumber].effectivelyEnabled == true && devices[deviceNumber].sensorVal == 0) {
+  } else if (devices[deviceNumber].effectivelyEnabled == true && devices[deviceNumber].sensorVal == LOW) {
     myCanMessage.data[1] = 0x00; // ok
   } else if (devices[deviceNumber].effectivelyEnabled == false) {
     myCanMessage.data[1] = 0xFF;
@@ -137,12 +157,12 @@ void sendMessage(int deviceNumber, int message)
   makeMessage(deviceNumber, message);
   mcp2515.sendMessage(&myCanMessage);
 
-  Serial.print("Message sent to 0x");
+  Serial.print(myCanMessage.data[1], HEX);
+
+  Serial.print(" sent to 0x");
   Serial.print(myCanMessage.data[0], HEX);
   Serial.print(" from 0x");
-  Serial.print(devices[deviceNumber].myCanId, HEX);
-  Serial.print(" message: ");
-  Serial.println(myCanMessage.data[1], HEX);
+  Serial.println(devices[deviceNumber].myCanId, HEX);
 }
 
 bool readIncomingCanMessage()
@@ -168,15 +188,15 @@ int matchMessageToThisDevice()
   {
     if (incomingCanMsg.data[0] == BROADCAST_ADDR) //received message has recipient listed as BROADCAST
     {
-      return -1000;
+      return -1000; //broadcast
     }
     for (int i = 0; i < numDevices; i++) {
       if (incomingCanMsg.data[0] == devices[i].myCanId) { //received message has recipient specified as one of the devices in "devices"
-        return i;
+        return i; //device array index in devices
       }
     }
   }
-  return -1;
+  return -1; //unmatched~no such device
 }
 
 void processIncomingCanMessage()
@@ -206,8 +226,6 @@ void processIncomingCanMessage()
 
 void loop() /* go through all devices: read incoming CAN message, send message for each device when appropriate */
 {
-  int loopDeviceIndex = 0;
-
   if (readIncomingCanMessage())
   {
     Serial.println(">>>>>>>READMESSAGE TRUE");
@@ -216,15 +234,46 @@ void loop() /* go through all devices: read incoming CAN message, send message f
     processIncomingCanMessage();
   }
 
+
+  buzzerSounding = false;
   for (int i = 0; i < numDevices; i++) {
     devices[i].sensorVal = digitalRead(devices[i].sensorPin); /*LOW by default, no motion detected*/
+    buzzerSounding = buzzerSounding || (devices[i].sensorVal && devices[i].effectivelyEnabled == true);
+  }
+
+  long now = millis();
+
+  if (enableBuzzer && buzzerSounding && now - previousMillis >= toneInterval) {
+    previousMillis = now; // Update the time
+
+    // Play the tone at the current frequency
+    tone(buzzerPin, frequency);
+
+    // Update the frequency
+    if (increasing) {
+      frequency += 10;
+      if (frequency >= 2000) {
+        increasing = false; // Start decreasing the frequency
+      }
+    } else {
+      frequency -= 10;
+      if (frequency <= 500) {
+        increasing = true; // Start increasing the frequency
+      }
+    }
+  } else if (enableBuzzer && !buzzerSounding) {
+    noTone(buzzerPin);
   }
   
-  long now = millis();
-  if ((now > lastSentMillis + sendEveryMillis) || now < lastSentMillis)
+  if ((now > lastSentMillis + sendEveryMillis) || now < lastSentMillis && now > sendEveryMillis)
   { // only send a message if it's been "sendEveryMillis" OR the timer has cycled around LONG
     sendMessage(loopDeviceIndex,0);
     lastSentMillis = now;
+    if (loopDeviceIndex == numDevices-1) {
+      loopDeviceIndex = 0;
+    } else {
+      loopDeviceIndex++;
+    }
   }
 }
 
