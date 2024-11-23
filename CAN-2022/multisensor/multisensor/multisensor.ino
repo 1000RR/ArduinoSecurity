@@ -40,16 +40,16 @@ Device devices[numDevices] = { /*don't enable too many/any devices that draw cur
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: 0 /*variable to store the sensor status (value)*/,
     myCanId: 0x67,
-    effectivelyEnabled: false, /*false = off; true = on; mirror value: relayState*/
+    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
     deviceType: 5
   },
   {
     sensorPin: 9, 
-    relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
+    relayPin: 6, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: 0 /*variable to store the sensor status (value)*/,
     myCanId: 0x68,
-    effectivelyEnabled: false, /*false = off; true = on; mirror value: relayState*/
-    deviceType: 5
+    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
+    deviceType: 2
   }
 };
 
@@ -108,6 +108,8 @@ void setup()
   myCanMessage.can_dlc = 3;
   myCanMessage.data[0] = homebaseCanId;
   myCanMessage.data[1] = 0x00;
+  
+  delay(100); //wait for relay to actually click into place
 }
 
 void setDeviceEnableState(int deviceNumber, bool newState)
@@ -118,11 +120,10 @@ void setDeviceEnableState(int deviceNumber, bool newState)
     if (devices[deviceNumber].relayPin != -1) {
       Serial.println(">>>>>>>>>>>ENABLING RELAY>>>>>>>>>>>");
       digitalWrite(devices[deviceNumber].relayPin, LOW); // low = on
+      delay(100); //delay sending anything while the sensor gets power and begins reading an OK value while powering up
     } else {
       Serial.println(">>>>>>>>>>>ENABLING LOGICAL DEVICE>>>>>>>>>>>");
     }
-    
-    // delay(100); //delay sending anything while the sensor gets power and begins reading an OK value while powering up
   }
   else if (newState == false && devices[deviceNumber].effectivelyEnabled == true)
   {
