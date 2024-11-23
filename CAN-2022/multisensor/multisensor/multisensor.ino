@@ -24,34 +24,43 @@ struct Device {
   int deviceType;
 };
 
-const int numDevices = 3; /* num connected devices */
+String DeviceType[] = {
+  "",
+  "controller",
+  "motion sensor",
+  "sound alarm",
+  "visual alarm",
+  "door open sensor"
+};
 
-Device devices[numDevices] = { /*don't enable too many/any devices that draw current, like PIRs - the initial current draw will be too great*/
+Device devices[] = { /*don't enable too many/any devices that draw current, like PIRs - the initial current draw will be too great*/
   {
     sensorPin: 5,
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
-    sensorVal: 0 /*variable to store the sensor status (value)*/,
-    myCanId: 0x66,
-    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
+    sensorVal: LOW /*variable to store the sensor status (value)*/,
+    myCanId: 0x20,
+    effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
     deviceType: 5
   },
   {
     sensorPin: 7, 
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
-    sensorVal: 0 /*variable to store the sensor status (value)*/,
-    myCanId: 0x67,
-    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
+    sensorVal: LOW /*variable to store the sensor status (value)*/,
+    myCanId: 0x22,
+    effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
     deviceType: 5
   },
   {
     sensorPin: 9, 
     relayPin: 6, /* -1 = no relay; writing LOW to this turns relay ON */
-    sensorVal: 0 /*variable to store the sensor status (value)*/,
-    myCanId: 0x68,
-    effectivelyEnabled: true, /*false = off; true = on; mirror value: relayState*/
+    sensorVal: LOW /*variable to store the sensor status (value)*/,
+    myCanId: 0x24,
+    effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
     deviceType: 2
   }
 };
+
+const int numDevices = sizeof(devices) / sizeof(devices[0]); /* num connected devices */
 
 const int BROADCAST_ADDR = 0x00;
 const int homebaseCanId = 0x14;
@@ -163,7 +172,9 @@ void sendMessage(int deviceNumber, int message)
   Serial.print(" sent to 0x");
   Serial.print(myCanMessage.data[0], HEX);
   Serial.print(" from 0x");
-  Serial.println(devices[deviceNumber].myCanId, HEX);
+  Serial.print(devices[deviceNumber].myCanId, HEX);
+  Serial.print(" : ");
+  Serial.println(DeviceType[devices[deviceNumber].deviceType]);
 }
 
 bool readIncomingCanMessage()
@@ -239,7 +250,7 @@ void loop() /* go through all devices: read incoming CAN message, send message f
   buzzerSounding = false;
   for (int i = 0; i < numDevices; i++) {
     devices[i].sensorVal = digitalRead(devices[i].sensorPin); /*LOW by default, no motion detected*/
-    buzzerSounding = buzzerSounding || (devices[i].sensorVal && devices[i].effectivelyEnabled == true);
+    buzzerSounding = buzzerSounding || (devices[i].sensorVal == HIGH && devices[i].effectivelyEnabled == true);
   }
 
   long now = millis();
