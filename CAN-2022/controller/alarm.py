@@ -72,10 +72,12 @@ deviceDictionary = {
 
 mp3AlarmDictionary = {
     "0x80": "garagemovement.mp3",
-    "0x75": "indoormovement.mp3",
+    "0x75": "kitchenmovement.mp3",
     hex(garageDoorSensorId): "garagedoor.mp3",
     "0x31": "garagesidedoor.mp3",
-    hex(checkPhonesId): "checkyourphones.mp3"
+    hex(checkPhonesId): "checkyourphones.mp3",
+    "0x50": "frontdoor.mp3",
+    "0x40": "kitchenbackdoor.mp3"
 }
 
 
@@ -106,6 +108,12 @@ alarmProfiles = [
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x50", "0x40"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "name": "Test - Denon Alarm 10s | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
+    "alarmOutputDevices": [hex(denonId)],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "name": "Night - All Alarms 10s | Garage Perimeter Sensors",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
@@ -497,7 +505,7 @@ def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3Alar
 
 def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, currentlyAlarmedDevices):
     sound = ""
-    playCommandArray.append("./alert.mp3")
+    #playCommandArray.append("./alert.mp3")
 
     if (hex(testAlarmId) in currentlyAlarmedDevices):
         sound = "thisisatest.mp3"
@@ -507,11 +515,11 @@ def determineStuffToPlay(playCommandArray, volume, everAlarmedDuringAlarm, curre
         volume = "79"
         currentlyAlarmedDevices.pop(hex(checkPhonesId));
     else:
+        playCommandArray.append("./alert.mp3")
         soundByteOverride, volumeOverride = getCurrentProfileSoundByteData()
         if (soundByteOverride and volumeOverride):
             volume = volumeOverride
             sound = soundByteOverride
-            playCommandArray.pop() # remove fist sound - alert
     
     #if special case sound found above, use it
     if (sound):
