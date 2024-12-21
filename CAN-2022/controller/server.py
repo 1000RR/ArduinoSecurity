@@ -19,8 +19,8 @@ thread = None
 thread_lock = threading.Lock()
 new_client_exists = False
 alarmQueueMessages = {}
-thisDir=os.path.dirname(os.path.abspath(__file__))
-serverKeysDir=thisDir+"/server-keys"
+thisDir = os.path.dirname(os.path.abspath(__file__))
+serverKeysDir = thisDir + "/server-keys"
 print(thisDir)
 
 def main():
@@ -41,7 +41,7 @@ def main():
 
     @app.after_request
     def add_no_cache_header(response):
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         return response

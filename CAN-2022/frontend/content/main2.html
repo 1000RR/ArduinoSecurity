@@ -4,7 +4,7 @@
     <link rel="icon" type="image" href="icon192.png" />
     <link rel="apple-touch-icon" href="favicon.png">
     <meta name="color-scheme" content="dark light">
-
+    <link rel="stylesheet" href="main2.css">
     <meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,16 +40,11 @@
 
         function collapsibleClickHandler () {
             this.classList.toggle("active");
-            let content = this.nextElementSibling;
-            let children = Array.from(content.children);
-            let total = 0;
-            children.forEach((child)=>{
-                total += child.scrollHeight;
-            })
+            var content = this.nextElementSibling;
             if (content.style.maxHeight){
               content.style.maxHeight = null;
             } else {
-              content.style.maxHeight = (total + 10) + "px";
+              content.style.maxHeight = content.scrollHeight + "px";
             }
         };
 
@@ -155,9 +150,6 @@
             setInvertTransitionsClassOnItem('garage_side_door_status', statusJson.currentTriggeredDevices.includes('0x31'), 'invertTransitions')
             setInvertTransitionsClassOnItem('inside_movement_status', statusJson.currentTriggeredDevices.includes('0x75'), 'invertTransitions')
             setInvertTransitionsClassOnItem('garage_movement_status', statusJson.currentTriggeredDevices.includes('0x80'), 'invertTransitions')
-            setInvertTransitionsClassOnItem('kitchen_back_door_status', statusJson.currentTriggeredDevices.includes('0x40'), 'invertTransitions')
-            setInvertTransitionsClassOnItem('front_door_status', statusJson.currentTriggeredDevices.includes('0x50'), 'invertTransitions')
-
         }
 
         function updateAlarmIconActivityStatus(profilesJSON, statusData) {
@@ -247,10 +239,10 @@
 
             if (!isArmed){
                 armButton.classList.remove("armed");
-                armButtonTitle.innerText="DISARMED";
+                armButtonTitle.innerText="DISARMED | Tap to arm";
             } else {
                 armButton.classList.add("armed");
-                armButtonTitle.innerText="ARMED";
+                armButtonTitle.innerText="ARMED | Tap to disarm";
             }
 
 
@@ -359,9 +351,7 @@
                 "inside_movement_status" : "0x75",
                 "garage_movement_status" : "0x80",
                 "garage_side_door_status" : "0x31",
-                "garage_door_status" : "0x30",
-                "kitchen_back_door_status": "0x40",
-                "front_door_status": "0x50"
+                "garage_door_status" : "0x30"
             }
 
             if (!sensorsListenedTo) {
@@ -383,8 +373,6 @@
         }
         
         function updateProfilesDropdownSelection(newStatusData) {
-            return; //TODO: uncomment when dropdown element in HTML is re-enabled
-
             let oldProfileNumber = intProfileNumber; //global
             let newProfileNumber = Number(newStatusData.profileNumber);
             let element = document.getElementById('profiles-dropdown');
@@ -417,8 +405,6 @@
         }
 
         function renderProfilesDropdown(arrProfiles) {
-            return; //TODO: uncomment when dropdown element in HTML is re-enabled
-
             var container = document.getElementById("profiles-dropdown-container");
             let dropdown;
             
@@ -564,601 +550,9 @@
         }
     </script>
 </head>
-<style>
-.json-render {
-    font-family: monospace;
-    padding: 10px;
-    background-color: #f5f5f5;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
 
-:root {
-  color-scheme: light dark; /* both supported */
-}
-
-@media (prefers-color-scheme: dark) {
-    .dimmable, option {
-        filter: brightness(60%);
-    }
-
-    select {
-        color: #BBB !important;
-        font-weight: bold;
-    }
-
-    button {
-        font-weight: bold;
-        color: #BBB !important;
-    }
-
-    .item-even {
-        background-color: rgba(197, 197, 158, 0.9);
-    }
-
-    .item-odd {
-        background-color: rgba(197, 197, 197, 0.9);
-    }
-
-    .collapsible {
-        color: #CCC !important;
-        background-color: #444 !important;
-    }
-}
-
-@media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
-       only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3) {
-
-    .icon {
-        height: 60px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        margin-top: 5px !important;
-        margin-bottom: 2px !important;
-    }
-
-    .icon_smaller {
-        height: 40px !important;
-        padding: 0 0 10px 0 !important;
-    }
-
-    .mybutton {
-        font-size: 20px !important;
-        min-height: 120px !important;
-    }
-
-    .dogicon {
-        height: 100px !important;
-    }
-
-    #horizontal-arm-button-holder {
-        padding-bottom: 10px !important;
-    }
-
-    #profiles-dropdown-container {
-        width: calc(100%);
-        height: auto;
-        padding-top: 0 !important;
-    }
-
-    .minheight-dropdown {
-        min-height: 100px;
-        min-width: 100px;
-    }
-
-    .status_icon_container_layout {
-        max-width: 170px;
-        width: 170px;
-        display: flex;
-        justify-content: center; /* Horizontal alignment */
-        align-items: center;    /* Vertical alignment */
-        font-family: "futura";
-        line-height: 110%;
-        font-size: 22px !important;
-        color: white;
-        overflow-wrap: normal;
-        white-space: normal;
-        width: inherit;
-        text-align: center;
-        min-height: 80px;
-        height: 80px;
-    }
-}
-
-@supports not (-webkit-touch-callout: none) {
-    /* DESKTOP */
-}
-
-.hidden {
-    display: none !important;
-}
-
-#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black overlay */
-    z-index: 999; /* Ensure it's above other content */
-}
-
-.text_align_center {
-    text-align: center;
-}
-
-/* Styles for the warning box */
-.warning-box {
-    position: absolute;
-    font-weight: bold;
-    top: 50%;
-    left: 50%;
-    width: 80%;
-    height: 80%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, .3);
-    padding: 20px;
-    border-radius: 5px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-}
-
-.json-key {
-    color: blue;
-}
-
-.json-string {
-    color: green;
-}
-
-.json-number {
-    color: red;
-}
-
-.json-boolean, .json-null {
-    color: purple;
-}
-
-.item-even {
-    background-color: rgba(255, 255, 204, .8);
-    color: black;
-}
-
-.item-odd {
-    background-color: rgba(255, 255, 255, .8);
-    color: black;
-}
-
-.blue {
-    color: white !important;
-    background-color: blue !important;
-}
-
-.yellow {
-    color: black !important;
-    background-color: yellow !important;
-}
-
-.red {
-    color: white !important;
-    background-color: red !important;
-}
-
-.orange {
-    color: white !important;
-    background-color: orange !important;
-}
-
-.emerald {
-    color: white !important;
-    background-color: #019875 !important;
-}
-
-.highlight_green {
-    filter: sepia(100%) hue-rotate(40deg) saturate(10);
-}
-
-.highlight_red {
-    filter: sepia(100%) hue-rotate(290deg) saturate(150);
-}
-
-.lowlight_gray {
-    filter: opacity(20%) !important;
-}
-
-.lightblue {
-    background-color: rgba(100, 87, 255, 0.3) !important;
-}
-
-.lightred {
-    background-color: rgba(255, 87, 87, 0.3) !important;
-}
-
-.green {
-    color: white !important;
-    background-color: RGBA(61, 138, 61, 1) !important ;
-}
-
-.gray {
-    color: black !important;
-    background-color: lightgray !important;
-}
-
-#title-image {
-    height: 90%;
-    margin: 6px;
-}
-
-.angry-dog {
-    content: url("dog.jpg") !important;
-}
-
-.icon {
-    height: 120px;
-    margin: 0 10px 0 10px;
-}
-
-.icon_smaller {
-    height: 100px;
-    padding: 10px 5px 10px 5px;
-}
-
-.open-garage {
-    content: url("garage_open.png") !important;
-}
-
-.status_icon_container_layout {
-    max-width: 120px;
-    width: 120px;
-    display: flex;
-    justify-content: center; /* Horizontal alignment */
-    align-items: center;    /* Vertical alignment */
-    font-family: "futura";
-    line-height: 110%;
-    font-size: 30px;
-    color: white;
-    overflow-wrap: normal;
-    white-space: normal;
-    width: inherit;
-    text-align: center;
-}
-
-#garage_side_door_status::after {
-    content: "GARAGE SIDE DOOR";
-}
-
-#front_door_status::after {
-    content: "FRONT DOOR";
-}
-
-#kitchen_back_door_status::after {
-    content: "KITCHEN BACK DOOR";
-}
-
-#inside_movement_status::after {
-    content: "KITCHEN MOVEMENT";
-}
-
-#garage_movement_status::after {
-    content: "GARAGE MOVEMENT";
-}
-
-#garage_piezo_alarm_status::after {
-    content: "GARAGE LOUD PIEZO"
-}
-
-#laundry_bell_alarm_status::after {
-    content: "LAUNDRY BELL"
-}
-
-#office_buzzer_alarm_status::after {
-    content: "OFFICE BUZZER"
-}
-
-#office_denon_alarm_status::after {
-    content: "OFFICE SPEAKERS"
-}
-
-.closed-garage {
-    content: url("garage_closed.png") !important;
-}
-
-hr {
-    height: 0px;
-    border: none;
-}
-
-select {
-    width: 100%;
-    height: 30px;
-    font-size: 27px;
-    color: #444;
-}
-
-option {
-    overlfow: hidden;
-}
-
-.horizontal-button-holder {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
-    flex-wrap: wrap;
-}
-
-.horizontal-dropdown-holder {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-#alarm-status-holder {
-    width: 100%;
-    height: auto;
-    border: 0px solid red;
-    border-radius: 10px;
-    -moz-border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.flexbox-row {
-    align-items: center;
-    justify-content: space-between;
-    display: flex;
-    flex-direction: row;
-}
-
-.flexbox-column {
-    align-items: center;
-    justify-content: start;
-    display: flex;
-    flex-direction: column;
-}
-
-.justify-content-center {
-    justify-content: center !important
-}
-
-.smallbutton {
-    border-radius: 15px;
-    height: 100px;
-    width: 300px;
-    transition-duration: .4s;
-    font-size: 35px;
-    word-wrap: break-word;
-}
-
-.mybutton {
-    border-radius: 15px;
-    height: fit-content;
-    min-height: 190px;
-    min-width: 250px;
-    width: 75%;
-    transition-duration: .4s;
-    font-size: 30px;
-    white-space: normal; /* Allow text to wrap */
-    word-wrap: break-word; /* Break long words if necessary */
-}
-
-.mybutton:hover {
-    color: black;
-    font-weight: bold;
-    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-}
-
-.mybutton:active {
-    color: black;
-    font-weight: bold;
-    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
-    filter: saturate(200%) !important;
-}
-
-.full-width {
-    width: 100% !important;
-}
-
-.blinkingTransitions {
-    animation-name: blink;
-    animation-duration: .2s;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    animation-timing-function: linear;
-}
-
-.invertTransitions {
-    animation-name: invert;
-    animation-duration: .2s;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-}
-
-nav {
-    justify-content: space-between;
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-    /*background-color: rgba(0,0,0,0.5);*/
-    padding-bottom: 10px;
-}
-
-.padding-bottom-10px {
-    padding-bottom: 10px;
-}
-
-
-
-@keyframes blink {
-    from {background-color: red;}
-    to {background-color: blue;}
-    from {color: white}
-    to {color: white}
-}
-
-@keyframes invert {
-    from {filter: invert(0)}
-    to {filter: invert(1)}
-}
-
-.column {
-    display: flex;
-    align-items: center;
-}
-
-.title {
-    font-weight: bold;
-    margin-right: 10px;
-}
-
-.collapsible {
-  background-color: #CCC;
-  color: #444;
-  cursor: pointer;
-  padding: 25px;
-  width: 100%;
-  border-color: black;
-  border-width: 2px;
-  border-style: solid;
-  text-align: left;
-  outline: none;
-  font-size: 20px;
-  font-weight: bold;
-  margin: 1px;
-}
-
-.active, .collapsible:hover {
-  background-color: #444;
-  color: #CCC;
-}
-
-#collapsibles-container {
-    width: 100%;
-}
-
-.data-container {
-    width: 100%;
-}
-
-.collapsible-content {
-  max-height: 0;
-  overflow: auto;
-  transition: max-height 0.2s ease-out;
-  margin-bottom: 10px;
-  width: 100%;
-}
-
-#profiles-dropdown-container {
-    width: 100%;
-    padding-top:20px;
-}
-
-#profiles-dropdown {
-    min-height: 100px;
-    height: fit-content;
-    white-space: normal; /* Allow text to wrap */
-    word-wrap: break-word; /* Break long words if necessary */
-}
-
-.dogicon {
-    max-height: 180px;
-}
-
-.flexwrap {
-    flex-wrap: wrap;
-}
-
-.flexgap30px {
-    gap: 30px;
-}
-
-.flexgap10px {
-    gap: 10px;
-}
-
-.left-justify {
-    justify-content: flex-start;
-}
-
-.center-justify {
-    justify-content: center;
-}
-
-.lower_opacity {
-    opacity: 0.8;
-}
-
-.right-justify {
-    justify-content: flex-end;
-}
-
-
-.left-half {
-    width: 50% !important;
-    align-self: start;
-}
-
-.right-half {
-    width: 50% !important;
-    align-self: end;
-}
-
-.status-images-container {
-    background-color: rgba(0,0,0,.6);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-    gap: 20px;
-}
-
-.top-rounded-corners {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-}
-
-.bottom-rounded-corners {
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
-
-input {
-    minlength: 4;
-    maxlength: 4;
-    width: 160px;
-    font-size: 40px;
-}
-
-.dull {
-    filter: saturate(30%);
-}
-
-.minheight-dropdown {
-    min-height: 30px;
-    min-width: 100px;
-}
-
-div {
-    white-space: pre;
-}
-
-body {
-    margin: 10px;
-}
-</style>
 <body>
-   <script>
+    <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/serviceworker.js')
             .then(function(registration) {
@@ -1178,102 +572,62 @@ body {
         </div>
     </div>
     <nav>
-        <div id="alarm-status-holder">
-            <div id="horizontal-arm-button-holder" class="horizontal-button-holder">
-                <!--<button id="button-arm" class="mybutton flexbox-row full-width dimmable" onclick="armButton()">-->
-                <button id="button-arm" class="mybutton flexbox-row full-width dimmable">
-                    <img id="title-image" src="dogue.jpg" class="dogicon" />
-                    <span id="button-arm-title"></span>
-                </button>
-            </div>
+    <div id="alarm-status-holder">
+        <div id="horizontal-arm-button-holder" class="horizontal-button-holder">
+            <button id="button-arm" class="mybutton flexbox-row full-width dimmable" onclick="armButton()">
+                <img id="title-image" src="dogue.jpg" class="dogicon" />
+                <span id="button-arm-title"></span>
+            </button>
         </div>
+        <div id="profiles-dropdown-container" class="flexbox-row justify-content-center minheight-dropdown"></div>
+            
+    </div>
     </nav>
-    <!--
-        <div id="profiles-dropdown-container" class="flexbox-row justify-content-center minheight-dropdown padding-bottom-10px"></div>
-    -->
-    
     <div class="status-images-container flexbox-row" id="sensor-status-images-container">
-        <image id="garage_door_status" class="status_icon_container_layout lower_opacity icon dimmable"></image>
-        <text id="garage_side_door_status" class="status_icon_container_layout lower_opacity icon dimmable"></text>
-        <text id="front_door_status" class="status_icon_container_layout lower_opacity icon dimmable"></text>
-        <text id="kitchen_back_door_status" class="status_icon_container_layout lower_opacity icon dimmable"></text>
-        <text id="garage_movement_status" class="status_icon_container_layout lower_opacity icon dimmable"></text>
-        <text id="inside_movement_status" class="status_icon_container_layout lower_opacity icon dimmable"></text>
+        <image id="garage_door_status" class="lower_opacity icon dimmable"></image>
+        <image id="garage_side_door_status" class="lower_opacity icon dimmable"></image>
+        <image id="garage_movement_status" class="lower_opacity icon dimmable"></image>
+        <image id="inside_movement_status" class="lower_opacity icon dimmable"></image>
     </div>
-    <div class="status-images-container flexbox-row " id="alarm-status-images-container">
-        <text id="garage_piezo_alarm_status" class="status_icon_container_layout lower_opacity icon_smaller dimmable"></text>
-        <text id="laundry_bell_alarm_status" class="status_icon_container_layout lower_opacity icon_smaller dimmable"></text>
-        <text id="office_buzzer_alarm_status" class="status_icon_container_layout lower_opacity icon_smaller dimmable"></text>
-        <text id="office_denon_alarm_status" class="status_icon_container_layout lower_opacity icon_smaller dimmable"></text>
+    <div class="status-images-container flexbox-row padding-alarm-status" id="alarm-status-images-container">
+        <image id="garage_piezo_alarm_status" class="lower_opacity icon_smaller dimmable"></image>
+        <image id="laundry_bell_alarm_status" class="lower_opacity icon_smaller dimmable"></image>
+        <image id="office_buzzer_alarm_status" class="lower_opacity icon_smaller dimmable"></image>
+        <image id="office_denon_alarm_status" class="lower_opacity icon_smaller dimmable"></image>
     </div>
-    
     <div id="collapsibles-container" class="flexbox-column">
-        <button type="button" id="alarm-control-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Alarm Control</button>
-            <div class="status-images-container collapsible-content flexbox-row" id="alarm-control-buttons-container">
-                <button id="alarm_control_button_1" class="status_icon_container_layout mybutton dimmable red" onclick="armButton(false);">DISARM</button>
-                <button id="alarm_control_button_2" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(0);
-                        })()">NIGHT</button>
-                <button id="alarm_control_button_3" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(1);
-                        })()">AWAY</button>
-                <button id="alarm_control_button_4" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(3);
-                        })()">OFFICE - PERIMETER</button>
-                <button id="alarm_control_button_5" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(2);
-                        })()">VISUAL TEST - PERIMETER</button>
-                <button id="alarm_control_button_6" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(7);
-                        })()">VISUAL TEST - ALL</button>
-            </div>
-        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Garage Door Control</button>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Garage Door</button>
         <div class="horizontal-button-holder collapsible-content bottom-rounded-corners " id="garage-button-container">
             <button id="button-garage-toggle" class="mybutton full-width emerald dimmable" onclick="toggleGarageDoor()">ACTIVATE GARAGE OPENER</button>
         </div>
-            <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
-            <div class="flexbox-column collapsible-content full-width bottom-rounded-corners center-justify" id="special-functions-container">
-                <div class="flexbox-row flexgap30px full-width" id="special-function-buttons-field-container">    
-                    <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>
-                    <button id="button-clear-old-data" class="mybutton blue dimmable" onclick="clearOldData()">CLEAR DATA</button>
-                    <button id="button-alert-check-phone" class="mybutton orange dimmable" onclick="checkPhones()">GET ATTENTION</button>
-                </div>
-                <div class="flexbox-row flexwrap flexgap30px full-width" id="can-field-container">
-                    <input type="text" id="sender-field" class="dimmable" placeholder="sender" name="sender" value="0x75" required />
-                    <input type="text" id="receiver-field" class="dimmable" placeholder="receiver" name="receiver" value="0x14" required />
-                    <input type="text" id="message-field" class="dimmable" placeholder="message" name="message" value="0xAA" required />
-                    <input type="text" id="type-field" class="dimmable" placeholder="type" name="type" value="0x00" required />
-                    <button id="can-send-single" class="smallbutton dimmable" onclick="sendSingleCan()">send once</button>
-                    <button id="can-send-repeatedly" class="smallbutton dimmable" onclick="sendRepeatedlyCan()">send repeatedly</button>
-                    <button id="can-stop-send" class="smallbutton dimmable" onclick="stopSendingCan()">stop sending</button>
-                </div> 
+        <button type="button" id="quick-arm-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Quick Arm / Disarm</button>
+        <div id="horizontal-arm2-button-holder" class="horizontal-button-holder collapsible-content">
+            <button id="button-disarm" class="mybutton dimmable red full-width" onclick="armButton(false); closeQuickArmDrawer();"><h3>DISARM</h3></button>
+        </div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
+        <div class="flexbow-row collapsible-content full-width bottom-rounded-corners " id="special-functions-container">
+                <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>
+                <button id="button-clear-old-data" class="mybutton blue dimmable" onclick="clearOldData()">CLEAR DATA</button>
+                <button id="button-alert-check-phone" class="mybutton orange dimmable" onclick="checkPhones()">GET ATTENTION</button>
+            <div class="flexbox-row flexwrap flexgap30px" id="can-field-container">
+                <input type="text" id="sender-field" class="dimmable" placeholder="sender" name="sender" value="0x75" required />
+                <input type="text" id="receiver-field" class="dimmable" placeholder="receiver" name="receiver" value="0x14" required />
+                <input type="text" id="message-field" class="dimmable" placeholder="message" name="message" value="0xAA" required />
+                <input type="text" id="type-field" class="dimmable" placeholder="type" name="type" value="0x00" required />
+                <button id="can-send-single" class="smallbutton dimmable" onclick="sendSingleCan()">send once</button>
+                <button id="can-send-repeatedly" class="smallbutton dimmable" onclick="sendRepeatedlyCan()">send repeatedly</button>
+                <button id="can-stop-send" class="smallbutton dimmable" onclick="stopSendingCan()">stop sending</button>
             </div>
-       
-            <button type="button" id="quick-arm-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Arm/Disarm - All Profiles</button>
-            <div id="horizontal-arm2-button-holder" class="horizontal-button-holder collapsible-content">
-                <button id="button-disarm" class="mybutton dimmable red full-width" onclick="armButton(false); closeQuickArmDrawer();"><h3>DISARM</h3></button>
-            </div>
-            
-            
+        </div>
 
-            <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Status</button>
-            <div class="collapsible-content data-container bottom-rounded-corners " id="status-container"></div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Status</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="status-container"></div>
 
-            <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners" onclick="getPastEvents()">Past Events</button>
-            <div class="collapsible-content data-container bottom-rounded-corners " id="past-events-container"></div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners" onclick="getPastEvents()">Past Events</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="past-events-container"></div>
 
-            <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
-            <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
+        <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
+        <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
     </div>
     
 </body>

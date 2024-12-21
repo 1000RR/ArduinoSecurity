@@ -38,25 +38,25 @@ Device devices[] = { /*don't enable too many/any devices that draw current, like
     sensorPin: 5,
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: LOW /*variable to store the sensor status (value)*/,
-    myCanId: 0x20,
+    myCanId: 0x31, //garage side door
     effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
     deviceType: 5
   },
   {
-    sensorPin: 7, 
+    sensorPin: 6, 
     relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: LOW /*variable to store the sensor status (value)*/,
-    myCanId: 0x22,
+    myCanId: 0x50, //front of house                                                     
     effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
     deviceType: 5
   },
   {
-    sensorPin: 9, 
-    relayPin: 6, /* -1 = no relay; writing LOW to this turns relay ON */
+    sensorPin: 4, 
+    relayPin: -1, /* -1 = no relay; writing LOW to this turns relay ON */
     sensorVal: LOW /*variable to store the sensor status (value)*/,
-    myCanId: 0x24,
+    myCanId: 0x40, //back door kitchen
     effectivelyEnabled: true, /*false = off; true = on; has direct effect on relay state if relay present*/
-    deviceType: 2
+    deviceType: 5
   }
 };
 
@@ -118,7 +118,7 @@ void setup()
   myCanMessage.data[0] = homebaseCanId;
   myCanMessage.data[1] = 0x00;
   
-  delay(100); //wait for relay to actually click into place
+  delay(100); //wait for relay to init (actually click into place) to avoid false alarms
 }
 
 void setDeviceEnableState(int deviceNumber, bool newState)

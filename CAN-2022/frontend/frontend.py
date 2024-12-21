@@ -1,9 +1,20 @@
 import os
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import socket
 import subprocess
 import ssl
+import logging
 
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("/home/uzun/Development/ArduinoSecurity/frontend/server-log.log"),  # Log to a file
+        logging.StreamHandler()            # Log to the console
+    ]
+)
 
 # Set the directory containing your static files (HTML and images)
 #static_directory = os.path.join(os.path.dirname(__file__), './')
@@ -56,6 +67,9 @@ class CustomRequestHandler(SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'X-Requested-With')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
         SimpleHTTPRequestHandler.end_headers(self)
     
     def do_GET(self):
@@ -82,7 +96,7 @@ try:
     ssl_context.load_cert_chain(certfile=serverKeysDir+'/server-cert.pem', keyfile=serverKeysDir+'/server-key.pem')
 
     # Create the HTTP server with SSL context
-    server = HTTPServer((host, port), CustomRequestHandler)
+    server = ThreadingHTTPServer((host, port), CustomRequestHandler)
     server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
     print(f'Static server started at https://{host}:{port}')
     server.serve_forever()
