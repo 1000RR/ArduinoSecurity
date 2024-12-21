@@ -44,12 +44,12 @@
             let children = Array.from(content.children);
             let total = 0;
             children.forEach((child)=>{
-                total += child.scrollHeight;
+                total += child.scrollHeight + 100;
             })
             if (content.style.maxHeight){
               content.style.maxHeight = null;
             } else {
-              content.style.maxHeight = (total + 10) + "px";
+              content.style.maxHeight = total + "px";
             }
         };
 
@@ -1243,12 +1243,12 @@ body {
         </div>
             <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Special Functions</button>
             <div class="flexbox-column collapsible-content full-width bottom-rounded-corners center-justify" id="special-functions-container">
-                <div class="flexbox-row flexgap30px full-width" id="special-function-buttons-field-container">    
+                <div class="flexbox-row full-width flexwrap flexgap30px center-justify" id="special-function-buttons-field-container">    
                     <button id="button-alarm-sound-on" class="mybutton red dimmable" onclick="alarmSoundOn()">TEST ALARMS</button>
                     <button id="button-clear-old-data" class="mybutton blue dimmable" onclick="clearOldData()">CLEAR DATA</button>
                     <button id="button-alert-check-phone" class="mybutton orange dimmable" onclick="checkPhones()">GET ATTENTION</button>
                 </div>
-                <div class="flexbox-row flexwrap flexgap30px full-width" id="can-field-container">
+                <div class="flexbox-row flexwrap flexgap30px full-width center-justify" id="can-field-container">
                     <input type="text" id="sender-field" class="dimmable" placeholder="sender" name="sender" value="0x75" required />
                     <input type="text" id="receiver-field" class="dimmable" placeholder="receiver" name="receiver" value="0x14" required />
                     <input type="text" id="message-field" class="dimmable" placeholder="message" name="message" value="0xAA" required />
