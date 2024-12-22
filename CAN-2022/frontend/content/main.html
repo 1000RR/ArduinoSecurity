@@ -20,6 +20,7 @@
         let intProfileNumber = 0;
         let lastStatusLoaded = false;
         let lastProfilesLoaded = false;
+        const AlarmControlProfileButtonsToRender = [0,1,3,2,7];
 
         window.addEventListener("focus", getStatus);
 
@@ -91,7 +92,9 @@
                 if (strOldStatusData != JSON.stringify(data.message)) {
                     renderMessage(data.message, 'status-container');
                     renderIcons(data.message);
-                    updateProfilesDropdownSelection(data.message, strOldStatusData);
+                    updateProfilesDropdownSelection(data.message);
+                    updateAlarmProfileButtons(data.message);
+                    updateFullAlarmProfileButtonsList(data.message);
                     updateSensorIconsActiveStatus(data.message);
                     strOldStatusData = JSON.stringify(data.message);
                     blinkAlarmStatus(data.message.alarmStatus === "ALARM", data.message.armStatus === "ARMED");
@@ -119,6 +122,7 @@
                 else {
                     renderMessage(data.message, 'profiles-container');
                     renderProfilesDropdown(data.message.profiles)
+                    renderAlarmControlButtons(data.message.profiles)
                     renderFastArmButtons(data.message.profiles)
                     strOldProfilesData = JSON.stringify(data.message)
                     lastProfilesLoaded = data.message.profiles;
@@ -157,7 +161,6 @@
             setInvertTransitionsClassOnItem('garage_movement_status', statusJson.currentTriggeredDevices.includes('0x80'), 'invertTransitions')
             setInvertTransitionsClassOnItem('kitchen_back_door_status', statusJson.currentTriggeredDevices.includes('0x40'), 'invertTransitions')
             setInvertTransitionsClassOnItem('front_door_status', statusJson.currentTriggeredDevices.includes('0x50'), 'invertTransitions')
-
         }
 
         function updateAlarmIconActivityStatus(profilesJSON, statusData) {
@@ -401,8 +404,48 @@
 
                 intProfileNumber = newProfileNumber;
             }
+        }
 
-            (Array.from(document.getElementsByClassName('button-fast-arm'))).forEach((button, index) => {
+        function updateAlarmProfileButtons(newStatusData) {
+            let oldProfileNumber = intProfileNumber; //global
+            let newProfileNumber = Number(newStatusData.profileNumber);
+            let armed = getArmedStatus();
+            let alarmControlButtonsArray = Array.from(document.getElementsByClassName('alarm_control_button'));
+
+            if (!alarmControlButtonsArray || alarmControlButtonsArray.length === 0) {
+                console.error('ALARM CONTROL BUTTONS NOT YET RENDERED, QUEUEING STATE UPDATE. Retrying in 250ms')
+                setTimeout(() => {updateAlarmProfileButtons(newStatusData)}, 250);
+                return;
+            }
+
+            (Array.from(alarmControlButtonsArray)).forEach((button) => {
+                let index = Number(button.dataset['profile']);
+                if (!armed || index !== newProfileNumber) button.classList.remove('yellow');
+                else if (armed && index == newProfileNumber) button.classList.add('yellow');
+            })
+
+            if (!armed) {
+                document.getElementById('alarm_control_disable_button').classList.add('yellow');
+                document.getElementById('alarm_control_disable_button').classList.remove('red');
+            } else {
+                document.getElementById('alarm_control_disable_button').classList.remove('yellow');
+                document.getElementById('alarm_control_disable_button').classList.add('red');
+            }
+        }
+
+        function updateFullAlarmProfileButtonsList(newStatusData) {
+            let oldProfileNumber = intProfileNumber; //global
+            let newProfileNumber = Number(newStatusData.profileNumber);
+            let armed = getArmedStatus();
+            let fastArmButtonArray = Array.from(document.getElementsByClassName('button-fast-arm'));
+
+            if (!fastArmButtonArray || fastArmButtonArray.length === 0) {
+                console.error('FULL LIST OF ALARM PROFILE BUTTONS NOT YET RENDERED, QUEUEING STATE UPDATE. Retrying in 250ms')
+                setTimeout(() => {updateFullAlarmProfileButtonsList(newStatusData)}, 250);
+                return;
+            }
+
+            (Array.from(fastArmButtonArray)).forEach((button, index) => {
                 if (!armed || index !== newProfileNumber) button.classList.remove('yellow');
                 else if (armed && index == newProfileNumber) button.classList.add('yellow');
             })
@@ -476,10 +519,45 @@
                     setAlarmProfile(index);
                     closeQuickArmDrawer();
                 }
-                let buttonText = index + "\n" + profile.name;
+                let buttonText = profile.index + "\n" + profile.name;
                 if (profile.name.includes(' - ')) {
-                    buttonText = index + "\n" + profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
+                    buttonText = profile.index + "\n" + profile.name.split(' - ')[0] + "\n" + profile.name.split(' - ')[1];
                 }
+                button.innerText = buttonText;
+                container.appendChild(button);
+            });
+        }
+
+        async function armControlButtonCallback(event) {
+            let buttonAlarmProfileNumber = Number(event.target.dataset['profile']);
+            armButton(true);
+            await new Promise(r => setTimeout(r, 1500));
+            setAlarmProfile(buttonAlarmProfileNumber);
+        }
+
+        function renderAlarmControlButtons(arrProfiles) {
+            var container = document.getElementById("alarm-control-buttons-container");
+            
+            if (!container) {
+                console.debug('CANNOT RENDER ALARM CONTROL BUTTONS - container not found')
+                return;
+            }
+
+            while (container.childElementCount >= 2) { //remove all buttons except disarm
+                container.removeChild(container.lastChild);
+            }
+
+            AlarmControlProfileButtonsToRender.forEach((profileIndex) => {
+                const button = document.createElement('button');
+
+                /*
+                <button class="alarm_control_button status_icon_container_layout mybutton dimmable blue" data-profile="0" onclick="armControlButtonCallback(this)">NIGHT</button>
+                */
+
+                button.classList.add("alarm_control_button", "status_icon_container_layout", "mybutton", "dimmable", "blue");
+                button.onclick=armControlButtonCallback
+                let buttonText = arrProfiles[profileIndex].name.toUpperCase();
+                button.dataset["profile"]=profileIndex;
                 button.innerText = buttonText;
                 container.appendChild(button);
             });
@@ -739,8 +817,11 @@
 }
 
 .yellow {
-    color: black !important;
+    color: darkcyan !important;
     background-color: yellow !important;
+    border-color: darkcyan !important;
+    border-style: solid !important;
+    border-width: 5px !important;
 }
 
 .red {
@@ -1210,32 +1291,8 @@ body {
     <div id="collapsibles-container" class="flexbox-column">
         <button type="button" id="alarm-control-drawer-button" class="collapsible top-rounded-corners bottom-rounded-corners">Alarm Control</button>
             <div class="status-images-container collapsible-content flexbox-row" id="alarm-control-buttons-container">
-                <button id="alarm_control_button_1" class="status_icon_container_layout mybutton dimmable red" onclick="armButton(false);">DISARM</button>
-                <button id="alarm_control_button_2" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(0);
-                        })()">NIGHT</button>
-                <button id="alarm_control_button_3" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(1);
-                        })()">AWAY</button>
-                <button id="alarm_control_button_4" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(3);
-                        })()">OFFICE - PERIMETER</button>
-                <button id="alarm_control_button_5" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(2);
-                        })()">VISUAL TEST - PERIMETER</button>
-                <button id="alarm_control_button_6" class="status_icon_container_layout mybutton dimmable blue" onclick="(async() => {
-                            armButton(true);
-                            await new Promise(r => setTimeout(r, 1500));
-                            setAlarmProfile(7);
-                        })()">VISUAL TEST - ALL</button>
+                <button id="alarm_control_disable_button" class="status_icon_container_layout mybutton dimmable red" onclick="armButton(false);">DISARM</button>
+                
             </div>
         <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Garage Door Control</button>
         <div class="horizontal-button-holder collapsible-content bottom-rounded-corners " id="garage-button-container">
@@ -1275,6 +1332,5 @@ body {
             <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
             <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
     </div>
-    
 </body>
 </html>

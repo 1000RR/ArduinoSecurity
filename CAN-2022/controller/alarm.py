@@ -83,13 +83,15 @@ mp3AlarmDictionary = {
 
 alarmProfiles = [
 {
-    "name": "Night - All Alarms 10s | All Perimeter Doors",
+    "index": 0,
+    "name": "Night",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId), "0x15", "0x10"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Away - All Alarms 30s | All Sensors",
+    "index": 1,
+    "name": "Away",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
@@ -97,106 +99,124 @@ alarmProfiles = [
     "playSoundVolume": 45,
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Test - Visual Alarm 10s | All Perimeter Sensors",
+    "index": 2,
+    "name": "Visual Test - Perimeter",
     "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x50", "0x40"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Home/Day - Office Buzzer 5s | All Perimeter Sensors",
+    "index": 3,
+    "name": "Office - Perimeter",
     "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x50", "0x40"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x50", "0x40"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Test - Denon Alarm 10s | All Sensors",
-    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
-    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
-    "alarmOutputDevices": [hex(denonId)],
-    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-}, {
+    "index": 4,
     "name": "Night - All Alarms 10s | Garage Perimeter Sensors",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId), "0x15", "0x10"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 5,
     "name": "Night - All Alarms 10s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId), "0x15", "0x10"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 6,
     "name": "All Alarms 5s | All Sensors", #all missing and all triggers BROADCAST ALARM
     "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Visual Alarm 10s | All Sensors",
+    "index": 7,
+    "name": "Visual Test - All",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-},  {
+}, {
+    "index": 8,
     "name": "Visual Alarm 10s | Garage Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x80"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x80"],
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 9,
+    "name": "Test - Denon Alarm 10s | All Sensors",
+    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
+    "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
+    "alarmOutputDevices": [hex(denonId)],
+    "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
+}, {
+    "index": 10,
     "name": "Night - Office Alarms 10s | Garage side door & movement",
     "sensorsThatTriggerAlarm": [ "0x31", "0x80"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x80"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 11,
     "name": "Night - Office Alarms 10s | Garage side door & movement; Kitchen movement",
     "sensorsThatTriggerAlarm": [ "0x31", "0x80", "0x75"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x80", "0x75"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 12,
     "name": "Night - Office Buzzer 7s | Garage side door & movement",
     "sensorsThatTriggerAlarm": [ "0x31", "0x80"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x80"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 7 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
-},{
+}, {
+    "index": 13,
     "name": "Home/Day - All Alarms Except Garage 10s | Garage Perimeter Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId), "0x10"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 14,
     "name": "Home/Day - Office Alarms 10s | Garage Perimeter Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 15,
     "name": "Home/Day - Office Alarms 10s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 16,
     "name": "Night - Office Alarms 10s | All Garage Sensors",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30", "0x80"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x80"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 17,
     "name": "Night - Office Alarms 10s | Garage Perimeter Sensors",
     "sensorsThatTriggerAlarm": [ "0x31", "0x30"],
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 18,
     "name": "Night - Office Alarms 10s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
-    "name": "Away SCARY LOUD DENON - All Alarms (loud denon) 30s | All Sensors",
+    "index": 19,
+    "name": "Away - Scary Loud Denon",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId), "0x10", "0x15"],
@@ -204,24 +224,28 @@ alarmProfiles = [
     "playSoundVolume": 65,
     "alarmTimeLengthSec": 30 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 20,
     "name": "All Alarms As Long As Alarmed | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", "0x15", "0x10", hex(denonId)],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 21,
     "name": "Office and Denon As Long As Alarmed | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99", hex(denonId)],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 22,
     "name": "Office Buzzer As Long As Alarmed | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 0 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
+    "index": 23,
     "name": "Test Denon Only 1s | All Sensors",
     "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],

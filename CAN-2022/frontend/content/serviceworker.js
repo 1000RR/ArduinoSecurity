@@ -24,3 +24,7 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+self.addEventListener('activate', event => {
+  caches.delete(CACHE_NAME);
+});
