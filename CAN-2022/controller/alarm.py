@@ -132,8 +132,7 @@ alarmProfiles = [
     "alarmTimeLengthSec": 5 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "index": 7,
-    "name": "Visual Test - All",
-    "sensorsThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
+    "name": "Visual Test - All Sensors",
     "missingDevicesThatTriggerAlarm": ["0x80", "0x75", "0x31", "0x30", "0x40", "0x50"],
     "alarmOutputDevices": ["0x51"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
@@ -188,10 +187,9 @@ alarmProfiles = [
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "index": 15,
-    "name": "Home/Day - Office Alarms 10s | All Sensors",
-    "sensorsThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80", "0x40", "0x50"],
+    "name": "Office - All Sensors",
     "missingDevicesThatTriggerAlarm": ["0x31", "0x30", "0x75", "0x80", "0x40", "0x50"],
-    "alarmOutputDevices": ["0x99", hex(denonId)],
+    "alarmOutputDevices": ["0x99"],
     "alarmTimeLengthSec": 10 #audible and visual alarm will be this long; set to negative if want this to persist until manually canceled; set to 0 to be as long as the alarm signal is coming in from sensor(s)
 }, {
     "index": 16,
