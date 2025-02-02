@@ -253,8 +253,8 @@ alarmProfiles = [
 
 
 ###################### MESSAGES #######################
-# 0xBB - alarm on signal
-# 0xCC - alarm off signal
+# 0xBB - sent to alarm-typed devices: on signal
+# 0xCC - sent to alarm-typed devices: off signal
 # 0xD1 - sent to home base arduino - arm 
 # 0xD0 - sent to home base arduino - disarm
 # 0x0F - power off sensor

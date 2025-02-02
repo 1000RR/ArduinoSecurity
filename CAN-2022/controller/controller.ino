@@ -2,10 +2,17 @@
 #include <mcp2515.h>
 #include <ssd1306.h>
 
+/* IMPORTANT INFORMATION ABOUT PINOUT & WIRING */
+/*
+/  INT pin from MCP2515 to Arduino nano pin #3!! (pin #2 (int0) is used by the i2c screen)
+/  To make this happen the handler function for the interrupt has to read int1 (pin 3) with attachInterrupt(1, ...)
+/  see https://github.com/autowp/arduino-mcp2515?tab=readme-ov-file#library-installation
+*/
+
 /* CONSTANTS */
-int ARMED_LED_PIN = 3; //blue led
-int DISARMED_LED_PIN = 2; //red led
-int ARM_BUTTON_PIN = 9;
+int ARMED_LED_PIN = 4; //blue led
+int DISARMED_LED_PIN = 5; //red led
+int ARM_TOGGLE_BUTTON_PIN = 9;
 int HOME_BASE_CAN_ID = 0x14;
 int OUTPUT_TO_OLED_EVERY_X_LOOPS = 10;
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
@@ -27,6 +34,7 @@ MessageStruct parsedIncomingComMessage;
 
 
 /* VARIABLES */
+volatile bool interrupt = false;
 String incomingComMessage;
 int index; //used for message number in testing
 int previousArmButtonState = HIGH;
@@ -55,10 +63,15 @@ String strAllAlarmedDevicesIdList = "";
 //    ERROR_NOMSG     = 5
 //}
 
+void irqHandler() {
+    interrupt = true;
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(10);
   
+  attachInterrupt(1, irqHandler, FALLING); //attach irq1 (pin3 on nano) to irqHandler function
   mcp2515.reset();
   mcp2515.setBitrate(CAN_125KBPS);
   mcp2515.setNormalMode();
@@ -114,7 +127,7 @@ void setupArmedLeds() {
 }
 
 void setupArmButtonPin() {
-  pinMode(ARM_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(ARM_TOGGLE_BUTTON_PIN, INPUT_PULLUP);
 }
 
 void setLedPin(bool value, int pin) { //true for on, false for off
@@ -124,6 +137,8 @@ void setLedPin(bool value, int pin) { //true for on, false for off
     digitalWrite(pin, LOW); //high = on, when led+ connected to digital out pin, led- connected to GND
 }
 
+
+
 void loop() {
   //retrieve incoming frames from COM, and send via CAN
   Serial.flush();
@@ -132,10 +147,10 @@ void loop() {
     parsedIncomingComMessage = parseincomingComMessage(incomingComMessage);
     processIncomingCanMessage(parsedIncomingComMessage);
     if (parsedIncomingComMessage.addressee != 0xFF) //has to be addressed to not the home base's arduino
-      sendMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
+      sendCanMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
   }
 
-  currentArmedButtonState = digitalRead(ARM_BUTTON_PIN);
+  currentArmedButtonState = digitalRead(ARM_TOGGLE_BUTTON_PIN);
   
   if (currentArmedButtonState != previousArmButtonState)
   { // button pressed - send serial armed toggle button press message to raspi
@@ -156,22 +171,21 @@ void loop() {
     }
   }
 
-  canMessageError = mcp2515.readMessage(&incomingCanMessage);
-  if (canMessageError == MCP2515::ERROR_OK) {
-    //retrieve from CAN frame(s), and send to COM via Serial
-    Serial.print("0x");
-    Serial.print(incomingCanMessage.can_id, HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMessage.data[0], HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMessage.data[1], HEX);
-    Serial.print("-0x");
-    Serial.print(incomingCanMessage.data[2], HEX);
-    Serial.print("\n");
-    Serial.flush();
+  if (interrupt) {
+    interrupt = false;
 
-    //use this structure to access data: incomingCanMessage.data[1]==0xAA
-    //maybe delay too??? delay(DELAY_LOOP_TIME);
+    uint8_t irq = mcp2515.getInterrupts();
+
+    if (irq & MCP2515::CANINTF_RX0IF) {
+      if (mcp2515.readMessage(MCP2515::RXB0, &incomingCanMessage) == MCP2515::ERROR_OK){
+        relayCanMessageToCom();
+      }
+    }
+    if (irq & MCP2515::CANINTF_RX1IF) {
+      if (mcp2515.readMessage(MCP2515::RXB1, &incomingCanMessage) == MCP2515::ERROR_OK){
+        relayCanMessageToCom();
+      }
+    }
   }
   
   outputToLcd(loopIndex);
@@ -183,6 +197,20 @@ void loop() {
   } else {
     loopIndex = 0;
   }
+}
+
+void relayCanMessageToCom() {
+    //retrieve from CAN frame (struct incomingCanMessage), and send to COM via Serial
+    Serial.print("0x");
+    Serial.print(incomingCanMessage.can_id, HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMessage.data[0], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMessage.data[1], HEX);
+    Serial.print("-0x");
+    Serial.print(incomingCanMessage.data[2], HEX);
+    Serial.print("\n");
+    Serial.flush();
 }
 
 //void debugPrintData() {
@@ -237,7 +265,7 @@ MessageStruct parseincomingComMessage(String message) {
 //   return messageStruct;
 // }
 
-void _makeMessage(int myCanId, int addressee, int message, int myDeviceType) {
+void _makeCanMessage(int myCanId, int addressee, int message, int myDeviceType) {
   myCanMessage.can_id  = myCanId;
   myCanMessage.can_dlc = 3;
   myCanMessage.data[0] = addressee;
@@ -245,8 +273,8 @@ void _makeMessage(int myCanId, int addressee, int message, int myDeviceType) {
   myCanMessage.data[2] = myDeviceType;
 }
 
-void sendMessage(int myCanId, int addressee, int message, int myDeviceType) {
-  _makeMessage(myCanId, addressee, message, myDeviceType);
+void sendCanMessage(int myCanId, int addressee, int message, int myDeviceType) {
+  _makeCanMessage(myCanId, addressee, message, myDeviceType);
   mcp2515.sendMessage(&myCanMessage);
 //  if (debug) {
 //    Serial.print("Messages sent ");
