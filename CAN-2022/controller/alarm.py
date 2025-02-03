@@ -262,6 +262,7 @@ alarmProfiles = [
 # 0xA0 - sending over to home base arduino (address 0xFF) the address of the alarmed device
 # 0xB0 - sending over to home base arduino (address 0xFF) the address of the no longer alarmed device
 # 0xC0 - sending over to home base arduino (address 0xFF) stop alarm signal
+# 0xEE - arm toggle button on unit pressed
 
 ###################### ADDRESSES ######################
 #0x00 - broadcast
@@ -717,7 +718,7 @@ def handleMessage(msg):
             canDebugMessage = []
 
     #for some messages - handle special cases intended for this unit from arduino, and return; if not, drop down to handle general case logic block
-    if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): #0xEE - arm toggle pressed
+    if (msg[0]==homeBaseId and msg[1]==homeBaseId and msg[2]==0xEE and lastArmedTogglePressed < now): 
         toggleArmed(now, "ARDUINO")
         return
 

@@ -515,7 +515,7 @@
                 button.classList.add('mybutton', 'dimmable', 'blue', 'text_align_center', 'full-width', 'button-fast-arm');
                 button.onclick=async() => {
                     armButton(true);
-                    await new Promise(r => setTimeout(r, 1500));
+                    await new Promise(r => setTimeout(r, 3000));
                     setAlarmProfile(index);
                     closeQuickArmDrawer();
                 }
@@ -1327,7 +1327,8 @@ body {
             <div class="collapsible-content data-container bottom-rounded-corners " id="status-container"></div>
 
             <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners" onclick="getPastEvents()">Past Events</button>
-            <div class="collapsible-content data-container bottom-rounded-corners " id="past-events-container"></div>
+            <div class="collapsible-content data-container bottom-rounded-corners" id="past-events-container">
+            </div>
 
             <button type="button" class="collapsible top-rounded-corners bottom-rounded-corners">Profiles</button>
             <div class="collapsible-content data-container bottom-rounded-corners " id="profiles-container"></div>
