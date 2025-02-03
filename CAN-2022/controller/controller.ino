@@ -3,9 +3,9 @@
 #include <ssd1306.h>
 
 /* CONSTANTS */
-int ARMED_LED_PIN = 3; //blue led
-int DISARMED_LED_PIN = 2; //red led
-int ARM_BUTTON_PIN = 9;
+int ARMED_LED_PIN = 4; //blue led
+int DISARMED_LED_PIN = 5; //red led
+int ARM_TOGGLE_BUTTON_PIN = 9;
 int HOME_BASE_CAN_ID = 0x14;
 int OUTPUT_TO_OLED_EVERY_X_LOOPS = 10;
 String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"};
@@ -114,7 +114,7 @@ void setupArmedLeds() {
 }
 
 void setupArmButtonPin() {
-  pinMode(ARM_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(ARM_TOGGLE_BUTTON_PIN, INPUT_PULLUP);
 }
 
 void setLedPin(bool value, int pin) { //true for on, false for off
@@ -135,7 +135,7 @@ void loop() {
       sendMessage(parsedIncomingComMessage.id, parsedIncomingComMessage.addressee, parsedIncomingComMessage.message, parsedIncomingComMessage.deviceType);
   }
 
-  currentArmedButtonState = digitalRead(ARM_BUTTON_PIN);
+  currentArmedButtonState = digitalRead(ARM_TOGGLE_BUTTON_PIN);
   
   if (currentArmedButtonState != previousArmButtonState)
   { // button pressed - send serial armed toggle button press message to raspi
