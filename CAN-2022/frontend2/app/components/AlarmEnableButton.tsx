@@ -87,8 +87,6 @@ const AlarmEnableButton: React.FC<{
 
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isEnabled ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            
-            
             {imgSrc? <Image alt="" width="100" height="75" src={imgSrc}></Image> : <></>}
                 {buttonText}
                 {children}

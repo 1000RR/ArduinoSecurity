@@ -24,7 +24,9 @@
       "@components/*": ["./app/components/*"],
       "@context/*": ["./app/context/*"],
       "@src/*": ["./app/src/*"],
-      "@workers/*": ["./app/workers/*"]
+      "@workers/*": ["./app/workers/*"],
+      "@features/*": ["./app/features/*"],
+      "@assets/*": ["./public/assets/*"],
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -3,9 +3,11 @@
 import TopPanel from "@components/TopPanel";
 import IndicatorPanel from "@components/IndicatorPanel";
 import ButtonWithDrawer from "@/app/components/ButtonWithDrawer";
+import UnavailableOverlay from "@/app/components/UnavailableOverlay";
 import { useEffect, useState } from "react";
 import * as Comlink from "comlink";
 import { ComWorkerAPI } from "@/app/workers/ComWorker";
+import Image from "next/image";
 
 export interface SocketIOMessage {
 	data: {
@@ -63,13 +65,14 @@ export type StatusResponse = {
 }
 
 const MainAppView: React.FC = () => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 		const [state, setState] = useState<Record<string, number>>({ res: 0});
 		
 	useEffect(() => {
 		const worker = new Worker(new URL("@workers/ComWorker.ts", import.meta.url));
 		const ComAPI = Comlink.wrap(worker);
 
-		let getPastEventsTimeout: null | NodeJS.Timeout = null;
+		let getPastEventsTimeout: undefined | NodeJS.Timeout = undefined;
 
 		const statusHandler = (message: object): void => {
 			console.log(`GOT STATUS ${JSON.stringify(message)}`);
@@ -80,7 +83,7 @@ const MainAppView: React.FC = () => {
 					'getPastEvents', 
 					{ message: undefined }
 				);
-				getPastEventsTimeout && clearTimeout(getPastEventsTimeout);
+				if (getPastEventsTimeout) clearTimeout(getPastEventsTimeout);
 			}, 3000);
 		};
 		const pastEventsHandler = (data: object): void => {
@@ -90,6 +93,7 @@ const MainAppView: React.FC = () => {
 			console.log(`GOT ALARM PROFILES ${JSON.stringify(message)}`);
 		};
 
+			// eslint-disable-next-line no-unused-vars
 			const handlerMappings: Record<string, (data: object) => void> = {
 				'postStatus': statusHandler, 
 				'postPastEvents': pastEventsHandler, 
@@ -113,21 +117,31 @@ const MainAppView: React.FC = () => {
 					worker.terminate();
 			};
 		}, []);
+
+		const serviceAvailable = true;
+		const overlayContents = <>
+				Service Unavailable
+				<Image className="fadeoutImageRound" src={"assets/dogsleep.jpg"} width="150" alt=""></Image>
+			</>;
 	
 	return (<>
-
-		<TopPanel></TopPanel>
-		<IndicatorPanel></IndicatorPanel>
-		<ButtonWithDrawer flexDirection="row" buttonText="Garage Door">
-			<div>CNT {state.res}</div><div>RES {state.res} </div>
-		</ButtonWithDrawer>
-		<ButtonWithDrawer flexDirection="column" buttonText="Quick Arm / Disarm">
-		<div>CNT {state.res}</div><div>RES {state.res} </div>
-		</ButtonWithDrawer>
-		<ButtonWithDrawer flexDirection="column" buttonText="Special Functions"></ButtonWithDrawer>
-		<ButtonWithDrawer flexDirection="column" buttonText="Status"></ButtonWithDrawer>
-		<ButtonWithDrawer flexDirection="column" buttonText="Past Events"></ButtonWithDrawer>
-		<ButtonWithDrawer flexDirection="column" buttonText="Profiles"></ButtonWithDrawer>
+		{ !serviceAvailable && <UnavailableOverlay>{overlayContents}</UnavailableOverlay>}
+		{ serviceAvailable && 
+			<>
+				<TopPanel></TopPanel>
+				<IndicatorPanel></IndicatorPanel>
+				<ButtonWithDrawer flexDirection="row" buttonText="Garage Door">
+					<div>CNT {state.res}</div><div>RES {state.res} </div>
+				</ButtonWithDrawer>
+				<ButtonWithDrawer flexDirection="column" buttonText="Quick Arm / Disarm">
+				<div>CNT {state.res}</div><div>RES {state.res} </div>
+				</ButtonWithDrawer>
+				<ButtonWithDrawer flexDirection="column" buttonText="Special Functions"></ButtonWithDrawer>
+				<ButtonWithDrawer flexDirection="column" buttonText="Status"></ButtonWithDrawer>
+				<ButtonWithDrawer flexDirection="column" buttonText="Past Events"></ButtonWithDrawer>
+				<ButtonWithDrawer flexDirection="column" buttonText="Profiles"></ButtonWithDrawer>
+			</>
+		}
 	 </>
 	);
 };
