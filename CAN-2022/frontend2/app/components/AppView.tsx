@@ -9,92 +9,18 @@ import Image from "next/image";
 
 import { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { AppState, setStatus, setIsConnected, setPastEvents, setAlarmProfiles, setIsError } from "./AppStateSlice";
-
-import * as Comlink from "comlink";
-import { ComWorkerAPI } from "@/app/workers/ComWorker";
-
-export interface SocketIOMessage {
-	data: {
-		message: object;
-	},
-	eventName: string;
-}
-
-export interface SocketIOHandlerMessage {
-	message: object;
-	eventName: string;
-}
+import { AppState } from "./AppStateSlice";
+import { initializeWebSocket } from "@components/WebSocketService";
 
 const AppView: React.FC = () => {
     const appState: AppState = useSelector((state: object) => state.appState); //appState is the name of the slice
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const worker = new Worker(new URL("@workers/ComWorker.ts", import.meta.url));
-        const ComAPI = Comlink.wrap(worker);
-        
-        let getPastEventsTimeout: undefined | NodeJS.Timeout = undefined;
-
-        const statusHandler = (message: object): void => {
-            console.log(`GOT STATUS ${JSON.stringify(message)}`);
-
-            dispatch(setStatus(message));
-            
-            if (getPastEventsTimeout) {clearTimeout(getPastEventsTimeout)};
-            getPastEventsTimeout = setTimeout(()=>{
-                (ComAPI as Comlink.Remote<ComWorkerAPI>).emitEvent(
-                    'getPastEvents', 
-                    { message: undefined }
-                );
-                if (getPastEventsTimeout) clearTimeout(getPastEventsTimeout);
-            }, 3000);
-        };
-        const pastEventsHandler = (message: object): void => {
-            console.log(`GOT PAST EVENTS ${JSON.stringify(message)}`);
-            dispatch(setPastEvents(message));
-        };
-        const alarmProfilesHandler = (message: object): void => {
-            console.log(`GOT ALARM PROFILES ${JSON.stringify(message)}`);
-            dispatch(setAlarmProfiles(message));
-        };
-
-        // eslint-disable-next-line no-unused-vars
-        const handlerMappings: Record<string, (data: object) => void> = {
-            'postStatus': statusHandler, 
-            'postPastEvents': pastEventsHandler, 
-            'postAlarmProfiles': alarmProfilesHandler
-        };
-    
-        // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
-        const socketIOErrorHandler = (error: Error): void => {
-            dispatch(setIsError(true));
-            dispatch(setIsConnected(false));
-        };
-
-        const socketIOMessageHandler = (message: SocketIOMessage): void => {
-            console.log(`||||| SOCKETIO: received ${message.eventName} |||||`);
-
-            dispatch(setIsError(false));
-
-            if (message.eventName in handlerMappings) {
-                handlerMappings[message.eventName](message.data.message);
-            }
-        };
-
-        const socketIOConnectHandler = (): void => {
-            dispatch(setIsConnected(true));
-        };
-
-        (ComAPI as Comlink.Remote<ComWorkerAPI>).setupWebSockets(
-            Object.keys(handlerMappings),
-            Comlink.proxy(socketIOMessageHandler),
-            Comlink.proxy(socketIOErrorHandler),
-            Comlink.proxy(socketIOConnectHandler)
-        );
+        const terminateWebSocket = initializeWebSocket(dispatch);
 
         return () => {
-                worker.terminate();
+            terminateWebSocket();
         };
     }, [dispatch]);
     

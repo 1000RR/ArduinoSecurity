@@ -3,6 +3,7 @@
 "use client";
 import React, {useRef} from "react";
 import styled, {css} from "styled-components";
+import { emitGarageDoorToggleEvent } from "@components/WebSocketService";
 
 
 export const ButtonSizeStyle = css`
@@ -45,18 +46,18 @@ export const ButtonPressStyle = css`
     background-color: rgba(85,150,118,1);
     color: #3c3c3c;
     &:active {
-        background-color: rgba(100,165,133,1);"};
+        background-color: rgba(57,100,78,1);
         border-color: white;
         color: #c5c5c5;
     }
     
     @media (prefers-color-scheme: dark) {
-        background-color: #36604a;
+        background-color: rgba(57,100,78,1);
         color: #c5c5c5;
 
         &:active {
             color: #3c3c3c;
-            background-color: #315643;;
+            background-color: rgba(85,150,118,1);
             border-color: black;
         }
     }
@@ -78,7 +79,7 @@ const GarageDoorButton: React.FC<{
     const inputRef = useRef(null);
     const handler:React.MouseEventHandler = function() {
         if (inputRef !== null && inputRef.current) { inputRef.current.blur() }
-
+        emitGarageDoorToggleEvent();
     };
 
     return (

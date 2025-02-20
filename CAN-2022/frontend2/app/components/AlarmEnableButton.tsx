@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 "use client";
 import Image from "next/image";
 import React from "react";
 import { useSelector } from "react-redux";
 import styled, {css} from "styled-components";
+import { emitDisarmEvent, emitArmEvent } from "./WebSocketService";
 
 export const ButtonSizeStyle = css`
     width: 100%;
@@ -76,7 +78,6 @@ const AlarmEnableButton: React.FC<{
     children?: React.ReactNode,
     onClick?: React.MouseEventHandler
 }> = ({ className, children}) => {
-    
 
     const imgSrcArmed = "/assets/attackdog.jpg";
     const imgSrcDisarmed = "/assets/dogue.jpg";
@@ -86,7 +87,7 @@ const AlarmEnableButton: React.FC<{
     });
 
     const handler:React.MouseEventHandler = function() {
-        //setIsEnabled(!isEnabled);
+        isArmed ? emitDisarmEvent() : emitArmEvent();
     };
 
     const buttonText = isArmed ? "ARMED" : "DISARMED";
