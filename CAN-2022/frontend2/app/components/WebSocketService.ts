@@ -1,7 +1,7 @@
 // filepath: /Users/uzun/Development/Arduino Projects/ArduinoSecurity/CAN-2022/frontend2/app/components/webSocketService.ts
 import * as Comlink from "comlink";
 import { ComWorkerAPI } from "@/app/workers/ComWorker";
-import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError } from "./AppStateSlice";
+import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } from "./AppStateSlice";
 
 let comAPI: Comlink.Remote<ComWorkerAPI> | null = null;
 
@@ -12,23 +12,21 @@ export const initializeWebSocket = (dispatch: (action: any) => void) => {
   let getPastEventsTimeout: undefined | NodeJS.Timeout = undefined;
 
   const statusHandler = (message: object): void => {
-	console.log(`GOT STATUS ${JSON.stringify(message)}`);
 	dispatch(setStatus(message));
 	
 	if (getPastEventsTimeout) { clearTimeout(getPastEventsTimeout); }
 	getPastEventsTimeout = setTimeout(() => {
-	  comAPI?.emitEvent('getPastEvents', { message: undefined });
+		dispatch(setIsLoaded(true));
+		comAPI?.emitEvent('getPastEvents', { message: undefined });
 	  if (getPastEventsTimeout) clearTimeout(getPastEventsTimeout);
 	}, 3000);
   };
 
   const pastEventsHandler = (message: object): void => {
-	console.log(`GOT PAST EVENTS ${JSON.stringify(message)}`);
 	dispatch(setPastEvents(message));
   };
 
   const alarmProfilesHandler = (message: object): void => {
-	console.log(`GOT ALARM PROFILES ${JSON.stringify(message)}`);
 	dispatch(setAlarmProfiles(message));
   };
 
@@ -41,11 +39,10 @@ export const initializeWebSocket = (dispatch: (action: any) => void) => {
   const socketIOErrorHandler = (error: Error): void => {
 	dispatch(setIsError(true));
 	dispatch(setIsConnected(false));
+	dispatch(setIsLoaded(false));
   };
 
   const socketIOMessageHandler = (message: { data: { message: object }, eventName: string }): void => {
-	console.log(`||||| SOCKETIO: received ${message.eventName} |||||`);
-
 	dispatch(setIsError(false));
 
 	if (message.eventName in handlerMappings) {
@@ -95,3 +92,44 @@ export const emitDisarmEvent = () => {
 		comAPI.emitEvent('disarm', {message: undefined});
 	}
 };
+
+export const emitGetAttentionEvent = () => {
+	if (comAPI) {
+		comAPI.emitEvent('checkPhones', {message: undefined});
+	}
+};
+
+export const emitTestAlarmEvent = () => {
+	if (comAPI) {
+		comAPI.emitEvent('alarmSoundOn', {message: undefined});
+	}
+};
+
+export const emitClearDataEvent = () => {
+	if (comAPI) {
+		comAPI.emitEvent('clearOldData', {message: undefined});
+	}
+};
+
+export const emitSendSpecialOnce = (message: string) => {
+	if (comAPI) {
+		comAPI.emitEvent('cansendsingle', {message: message});
+	}
+};
+
+export const emitSendSpecialRepeatedly = (message: string) => {
+	if (comAPI) {
+		comAPI.emitEvent('cansendrepeatedly', {message: message});
+	}
+};
+
+export const emitStopSendingSpecial = () => {
+	if (comAPI) {
+		comAPI.emitEvent('canstopsending', {message: undefined});
+	}
+};
+
+
+
+
+

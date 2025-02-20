@@ -35,10 +35,6 @@ body {
 	font-family: Arial, Helvetica, sans-serif;
 }
 
-.scale_mobile {
-	scale: .7;
-}
-
 .fadeoutImageRound {
 	-webkit-mask-image: radial-gradient(circle, black 50%, transparent 65%);
 	mask-image: radial-gradient(circle, black 50%, transparent 65%);
@@ -88,17 +84,23 @@ body {
     filter: sepia(100%) hue-rotate(290deg) saturate(150);
 }
 
-.highlight_button_inactive {
-    filter: sepia(100%) hue-rotate(40deg) saturate(255);
+.alarm_button_disabled {
+	background-color: rgba(72, 2, 194, 0.655) !important;
+	border-color: rgba(255, 170, 0, 0.475) !important;
 }
 
-.highlight_button_active {
-    filter: sepia(100%) hue-rotate(-60deg) saturate(60);
+.alarm_button_enabled {
+	background-color: rgb(255, 170, 0);
+	border-width: 3px !important;
+	border-color:rgba(72, 2, 194, 0.514) !important;
 }
 
-.alarm_button_margin {
+.alarm_button {
 	margin: 0px 10px 00px 10px;
-	width: calc(100% - 60px) !important;
+	width: calc(300px) !important;
+	padding: 0px 20px !important;
+	height: 150px !important;
+	font-size: 26px !important;
 }
 
 .invertTransitions {
@@ -128,6 +130,29 @@ body {
     to {color: white}
 }
 
+.input-field {
+	background-color:#797979;
+	color: white;
+}
+
+.input-hint {
+	color:rgb(154, 154, 154)
+}
+
+.smallbutton {
+    border-radius: 15px;
+    height: 50px;
+    width: 100px;
+    transition-duration: .4s;
+    font-size: 16px;
+    word-wrap: break-word;
+}
+
+.gray {
+	background-color: #797979;
+	color: white;
+}
+
 @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
 		only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3) {
 	.status_icon_container_layout {
@@ -154,5 +179,16 @@ body {
 
 	}
 
+	.alarm_button {
+		margin: 0px 10px 00px 10px;
+		width: calc(300px) !important;
+		padding: 0px 20px !important;
+		height: 150px !important;
+		font-size: 23px !important;
+	}
+
+	.scale_mobile {
+		scale: .7!important;
+	}
 }
 

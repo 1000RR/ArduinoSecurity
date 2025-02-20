@@ -6,7 +6,7 @@ import AlarmEnableButton from "@components/AlarmEnableButton"
 export const PanelSizeStyle = css`
     width: 100%;
     min-width: 100%;
-    height: 165px;
+    height: 120px;
 
     @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
 		only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3) {

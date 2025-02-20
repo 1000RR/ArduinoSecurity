@@ -58,11 +58,12 @@ const Panel: React.FC<{
     children?: React.ReactNode,
     flexDirection?: 'row' | 'column',
     gap?: number,
+    rowGap?: number,
     alignItems?: CSSAlignItems
-}> = ({ className, children, flexDirection, gap, alignItems }) => {
+}> = ({ className, children, flexDirection, gap, rowGap, alignItems }) => {
     
     return (
-        <CompositeStyledPanel className={className} style={{flexDirection:flexDirection, gap:gap, alignItems: alignItems}}>
+        <CompositeStyledPanel className={className} style={{flexDirection:flexDirection, gap:gap, rowGap: rowGap, alignItems: alignItems}}>
            {children}
         </CompositeStyledPanel>
     );

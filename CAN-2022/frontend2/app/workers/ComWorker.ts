@@ -18,7 +18,7 @@ const api: ComWorkerAPI = {
 		socket = io('https://bobik.lan:8080');
 
 		socket.on('connect', function() {
-			console.log('Connected to server');
+			console.warn('Connected to server');
 			connectHandlerFunction();
 			socket?.emit('getAlarmProfiles', { message: undefined });
 		});
@@ -28,7 +28,7 @@ const api: ComWorkerAPI = {
 		socket.on('connect_failed', (err: Error) => handleErrors(err));
 
 		function handleErrors(err: Error) {
-			console.log('Websocket Error: ' + err);
+			console.error('Websocket Error: ' + err);
 			errorHandlerFunction(err);
 			setTimeout(() => {
 				socket?.connect();

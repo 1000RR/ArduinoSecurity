@@ -6,6 +6,7 @@ import ButtonWithDrawer from "@components/ButtonWithDrawer";
 import GarageDoorButton from "@/app/components/GarageDoorButton";
 import UnavailableOverlay from "@components/UnavailableOverlay";
 import ArmButtonList from "@components/ArmButtonList";
+import SpecialFunctions from "@components/SpecialFunctions";
 import Image from "next/image";
 
 import { useEffect } from "react";
@@ -26,7 +27,7 @@ const AppView: React.FC = () => {
         };
     }, [dispatch]);
     
-    const serviceAvailable = appState.isConnected && !appState.isError;
+    const serviceAvailable = appState.isConnected && !appState.isError && appState.isLoaded;
     const alarmTriggered = appState.status.alarmStatus === 'ALARM';
     const unavailableContent = <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
             Service Unavailable
@@ -46,7 +47,7 @@ const AppView: React.FC = () => {
                     <IndicatorPanel></IndicatorPanel>
                     <ButtonWithDrawer flexDirection="column" buttonText="Alarm Control"><ArmButtonList alarmProfilesToDisplay={[0,1,3,15,2,7]}></ArmButtonList></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" buttonText="Garage Door"><GarageDoorButton></GarageDoorButton></ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"><SpecialFunctions></SpecialFunctions></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Status"><pre>{JSON.stringify(appState.status, null, 2)}</pre></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Past Events"><pre>{JSON.stringify(appState.pastEvents, null, 2)}</pre></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Profiles"><pre>{JSON.stringify(appState.alarmProfiles, null, 2)}</pre></ButtonWithDrawer>

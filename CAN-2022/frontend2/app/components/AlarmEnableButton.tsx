@@ -9,7 +9,7 @@ import { AppStateSlice } from "./AppStateSlice";
 
 const ButtonSizeStyle = css`
     width: 100%;
-    height: 145px;
+    height: 100px;
     font-size: 2em;
 
     @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
@@ -109,7 +109,7 @@ const AlarmEnableButton: React.FC<{
 
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
+            <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="90" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}
             

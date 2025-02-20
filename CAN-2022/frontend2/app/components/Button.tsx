@@ -29,7 +29,6 @@ const ButtonLayoutStyle = css`
     flex-direction: column;
 `;
 const ButtonPressStyle = css`
-    background-color: #050505;
     
     &:active {
         background-color: #0F0F0F;
@@ -37,7 +36,6 @@ const ButtonPressStyle = css`
 
     @media (prefers-color-scheme: dark) {   
         color: white;
-        background-color: #020202;
     }
     
 

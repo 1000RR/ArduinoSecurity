@@ -87,7 +87,7 @@ const SensorsPanel: React.FC<{
 
 
     return (
-        <Panel>
+        <Panel className={className}>
             <div style={{zIndex: -1, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
             {deviceList.map((sensorElement, index) => (
                 <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (sensorElement.enabled && !sensorElement.missing ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "") + " dimmable"} >
@@ -142,7 +142,7 @@ const AlarmsPanel: React.FC<{
         }
     });
     
-    return (<Panel>
+    return (<Panel className={className}>
         <div style={{zIndex: -1, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
         {deviceList.map((alarmElement, index) => (
             <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "") + " dimmable"} >
@@ -158,7 +158,7 @@ const IndicatorPanel: React.FC<{
     return (
         <CompositePanelStyle className={className}>
              <SensorsPanel></SensorsPanel>
-             <AlarmsPanel ></AlarmsPanel>
+             <AlarmsPanel></AlarmsPanel>
         </CompositePanelStyle>
     );
 };

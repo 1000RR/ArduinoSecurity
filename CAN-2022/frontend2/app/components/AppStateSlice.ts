@@ -49,6 +49,7 @@ export interface AppState {
     alarmProfiles: AlarmProfilesResponse;
     isConnected: boolean;
     isError: boolean;
+    isLoaded: boolean;
 }
 
 export type AppStateSlice = {
@@ -79,7 +80,8 @@ const initialState: AppState = {
     profiles: []
   },
   isConnected: false,
-  isError: false
+  isError: false,
+  isLoaded: false
 };
 
 export const AppStateSlice = createSlice({
@@ -100,11 +102,14 @@ export const AppStateSlice = createSlice({
     },
     setIsError: (state, action) => {
       state.isError = action.payload
-  }
+    },
+    setIsLoaded: (state, action) => {
+      state.isLoaded = action.payload
+    }
   },
 })
 
 // Action creators are generated for each case reducer function
-export const { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError } = AppStateSlice.actions
+export const { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } = AppStateSlice.actions
 
 export default AppStateSlice.reducer
