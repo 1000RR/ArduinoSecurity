@@ -43,15 +43,25 @@ export type StatusResponse = {
     memberDevicesReadable: string[];
 }
 
+export interface AppState {
+    status: string | StatusResponse;
+    pastEvents: string | PastEventsResponse;
+    alarmProfiles: string | AlarmProfilesResponse;
+    isConnected: boolean;
+    isError: boolean;
+}
+
+const initialState: AppState = {
+  status: "not yet loaded",
+  pastEvents: "not yet loaded",
+  alarmProfiles: "not yet loaded",
+  isConnected: false,
+  isError: false
+};
+
 export const AppStateSlice = createSlice({
   name: 'appState',
-  initialState: {
-    status: "not yet loaded",
-    pastEvents: "not yet loaded",
-    alarmProfiles: "not yet loaded",
-    isConnected: false,
-    isError: false
-  },
+  initialState: initialState,
   reducers: {
     setStatus: (state, action) => {
       state.status = action.payload

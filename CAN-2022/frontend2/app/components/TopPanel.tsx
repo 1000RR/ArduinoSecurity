@@ -35,7 +35,6 @@ const CompositeStyledPanel = styled.div`
 const TopPanel: React.FC<{
     className?: string
 }> = ({ className }) => {
-    
     return (
         <CompositeStyledPanel className={className}>
             <AlarmEnableButton className="button"></AlarmEnableButton>

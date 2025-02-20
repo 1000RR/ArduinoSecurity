@@ -85,6 +85,7 @@ const Drawer = styled.div`
     gap: 10px;
     justify-content: space-around; 
     align-items: center;
+    overflow: auto;
 `;
 
 const ButtonWithDrawer: React.FC<{
@@ -93,9 +94,8 @@ const ButtonWithDrawer: React.FC<{
     children?: React.ReactNode,
     buttonText?: string,
     justifyContent? : ('space-around' | 'space-between' | 'center' | 'flex-start' | 'flex-end'),
-    imgSrc?: string,
     onClick?: React.MouseEventHandler,
-}> = ({ flexDirection, className, children, buttonText, justifyContent, imgSrc}) => {
+}> = ({ flexDirection, className, children, buttonText, justifyContent}) => {
     
     const [isCollapsed, setIsCollapsed] = useState(true);
     const inputRef = useRef(null);
@@ -103,7 +103,6 @@ const ButtonWithDrawer: React.FC<{
         setIsCollapsed(!isCollapsed);
         if (inputRef !== null && inputRef.current) { inputRef.current.blur() }
     };
-
 
     return (
     <>
