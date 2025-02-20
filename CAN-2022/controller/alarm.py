@@ -52,21 +52,21 @@ avrSoundChannel = "SAT/CBL"
 
 
 deviceDictionary = {
-    "0x80": "SENSOR - garage motion 0x80",
-    "0x75": "SENSOR - kitchen motion 0x75",
-    hex(garageDoorSensorId): "SENSOR - garage car door " + hex(garageDoorSensorId),
-    "0x31": "SENSOR - garage side door 0x31",
-    "0x40": "SENSOR - kitchen back door 0x40",
-    "0x50": "SENSOR - front door 0x50",
-    hex(homeBaseId): "HOME BASE",
-    "0xFF": "HOME BASE communicating to its arduino",
-    "0x10": "ALARM - fire alarm bell in laundry room 0x10",
-    "0x15": "ALARM - piezo 120db alarm in garage 0x15",
-    "0x99": "ALARM - office led and buzzer 0x99",
-    hex(denonId): "ALARM (VIRTUAL) - denon via curl " + hex(denonId),
-    hex(checkPhonesId): "VIRTUAL sensor for getting attention " + hex(checkPhonesId),
-    hex(testAlarmId): "VIRTUAL sensor for triggering a test alarm " + hex(testAlarmId),
-    hex(garageDoorOpenerId): "OPENER - garage door opener " + hex(garageDoorOpenerId)
+    "0x80": "SENSOR | GARAGE MOVEMENT | 0x80",
+    "0x75": "SENSOR | KITCHEN MOVEMENT | 0x75",
+    hex(garageDoorSensorId): "SENSOR | GARAGE CAR DOOR | " + hex(garageDoorSensorId),
+    "0x31": "SENSOR | GARAGE SIDE DOOR | 0x31",
+    "0x40": "SENSOR | KITCHEN BACK DOOR | 0x40",
+    "0x50": "SENSOR | FRONT DOOR | 0x50",
+    hex(homeBaseId): "HOMEBASE | HOME BASE | 0x14",
+    "0xFF": "HOMEBASE | HOME BASE communicating to its arduino | 0xFF",
+    "0x10": "ALARM | LAUNDRY FIRE ALARM BELL | 0x10",
+    "0x15": "ALARM | GARAGE PIEZO LOUD ALARM | 0x15",
+    "0x99": "ALARM | OFFICE ALARM | 0x99",
+    hex(denonId): "ALARM | ALARM (VIRTUAL) - denon via curl | " + hex(denonId),
+    hex(checkPhonesId): "SENSOR | VIRTUAL sensor for getting attention | " + hex(checkPhonesId),
+    hex(testAlarmId): "SENSOR | VIRTUAL sensor for triggering a test alarm | " + hex(testAlarmId),
+    hex(garageDoorOpenerId): "OPENER | GARAGE DOOR OPENER | " + hex(garageDoorOpenerId)
 }
 
 
