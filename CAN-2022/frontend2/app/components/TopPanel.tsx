@@ -21,7 +21,7 @@ export const PanelLayoutStyle = css`
 `;
 
 const PanelColorStyle = css`
-    background-color: rgba(60,60,60, 1);
+    background-color: rgba(60,60,60, .7);
 `;
 
 

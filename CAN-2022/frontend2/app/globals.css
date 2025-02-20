@@ -7,21 +7,140 @@
   --foreground: #ffffff;
 }
 
+.background {
+	--background: #84718c;
+	--foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: rgb(36, 24, 53);
-    --foreground: #797979;
-  }
+	:root {
+		--background: rgb(36, 24, 53);
+		--foreground: #797979;
+	}
+
+	.background {
+		--background: rgb(36, 24, 53);
+		--foreground: #797979;
+	}
+
+	.dimmable, option {
+		filter: brightness(60%);
+	}
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-
+	color: var(--foreground);
+	background: var(--background);
+	font-family: Arial, Helvetica, sans-serif;
 }
 
 .fadeoutImageRound {
-  -webkit-mask-image: radial-gradient(circle, black 50%, transparent 65%);
-  mask-image: radial-gradient(circle, black 50%, transparent 65%);
+	-webkit-mask-image: radial-gradient(circle, black 50%, transparent 65%);
+	mask-image: radial-gradient(circle, black 50%, transparent 65%);
 }
+
+.lower_opacity {
+	opacity: 0.8;
+}
+
+.icon {
+	height: 120px;
+	min-height: 120px;
+	margin: 0 10px 0 10px;
+}
+
+.icon_smaller {
+	height: 100px;
+	min-height: 100px;
+	padding: 10px 5px 10px 5px;
+}
+
+.lowlight_gray {
+    filter: opacity(20%);
+}
+
+.status_icon_container_layout {
+  max-width: 120px;
+  width: 120px;
+  display: flex;
+  justify-content: center; /* Horizontal alignment */
+  align-items: center;    /* Vertical alignment */
+  font-family: "futura";
+  line-height: 110%;
+  font-size: 30px;
+  color: white;
+  overflow-wrap: normal;
+  white-space: normal;
+  width: inherit;
+  text-align: center;
+}
+
+.highlight_green {
+    filter: sepia(100%) hue-rotate(40deg) saturate(10);
+}
+
+.highlight_red {
+    filter: sepia(100%) hue-rotate(290deg) saturate(150);
+}
+
+.invertTransitions {
+    animation-name: invert;
+    animation-duration: .2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@keyframes invert {
+    from {filter: invert(0)}
+    to {filter: invert(1)}
+}
+
+.blinkingTransitions {
+    animation-name: blink;
+    animation-duration: .2s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: linear;
+}
+
+@keyframes blink {
+    from {background-color: red;}
+    to {background-color: blue;}
+    from {color: white}
+    to {color: white}
+}
+
+@media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
+		only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3) {
+	.status_icon_container_layout {
+		max-width: 170px;
+		width: 170px;
+		display: flex;
+		justify-content: center; /* Horizontal alignment */
+		align-items: center;    /* Vertical alignment */
+		font-family: "futura";
+		line-height: 110%;
+		font-size: 22px !important;
+		color: white;
+		overflow-wrap: normal;
+		white-space: normal;
+		width: inherit;
+		text-align: center;
+		min-height: 80px;
+		height: 80px;
+	}
+
+	.icon {
+		height: 60px !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		margin-top: 5px !important;
+		margin-bottom: 2px !important;
+	}
+
+	.icon_smaller {
+		height: 40px !important;
+		padding: 0 0 10px 0 !important;
+	}
+}
+

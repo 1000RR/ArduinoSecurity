@@ -9,11 +9,11 @@ import Image from "next/image";
 
 import { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { AppState } from "./AppStateSlice";
+import { AppState, AppStateSlice } from "./AppStateSlice";
 import { initializeWebSocket } from "@components/WebSocketService";
 
 const AppView: React.FC = () => {
-    const appState: AppState = useSelector((state: object) => state.appState); //appState is the name of the slice
+    const appState: AppState = useSelector((state: AppStateSlice) => state.appState); //appState is the name of the slice
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -25,6 +25,7 @@ const AppView: React.FC = () => {
     }, [dispatch]);
     
     const serviceAvailable = appState.isConnected && !appState.isError;
+    const alarmTriggered = appState.status.alarmStatus === 'ALARM';
     const unavailableContent = <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
             Service Unavailable
             <Image className="fadeoutImageRound" src={"/assets/dogsleep.jpg"} width="150" height="150" alt=""></Image>
@@ -37,7 +38,7 @@ const AppView: React.FC = () => {
     return (
         <>
             { serviceAvailable ? 
-                <div>
+                <div className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
                     <TopPanel></TopPanel>
                     <IndicatorPanel></IndicatorPanel>
                     <ButtonWithDrawer flexDirection="row" buttonText="Garage Door">

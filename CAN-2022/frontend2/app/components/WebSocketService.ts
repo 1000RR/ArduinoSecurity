@@ -13,9 +13,8 @@ export const initializeWebSocket = (dispatch: (action: any) => void) => {
 
   const statusHandler = (message: object): void => {
 	console.log(`GOT STATUS ${JSON.stringify(message)}`);
-
 	dispatch(setStatus(message));
-
+	
 	if (getPastEventsTimeout) { clearTimeout(getPastEventsTimeout); }
 	getPastEventsTimeout = setTimeout(() => {
 	  comAPI?.emitEvent('getPastEvents', { message: undefined });

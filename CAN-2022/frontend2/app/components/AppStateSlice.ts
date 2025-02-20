@@ -44,17 +44,40 @@ export type StatusResponse = {
 }
 
 export interface AppState {
-    status: string | StatusResponse;
-    pastEvents: string | PastEventsResponse;
-    alarmProfiles: string | AlarmProfilesResponse;
+    status: StatusResponse;
+    pastEvents: PastEventsResponse;
+    alarmProfiles: AlarmProfilesResponse;
     isConnected: boolean;
     isError: boolean;
 }
 
+export type AppStateSlice = {
+  appState: AppState
+}
+
 const initialState: AppState = {
-  status: "not yet loaded",
-  pastEvents: "not yet loaded",
-  alarmProfiles: "not yet loaded",
+  status: {
+    armStatus: "",
+    alarmStatus: "",
+    garageOpen: false,
+    profile: "",
+    profileNumber: "",
+    currentTriggeredDevices: [],
+    currentMissingDevices: [],
+    everTriggeredWithinAlarmCycle: [],
+    everTriggeredWithinArmCycle: [],
+    everMissingWithinArmCycle: [],
+    everMissingDevices: [],
+    memberCount: 0,
+    memberDevices: [],
+    memberDevicesReadable: []
+  },
+  pastEvents: {
+    pastEvents: []
+  },
+  alarmProfiles: {
+    profiles: []
+  },
   isConnected: false,
   isError: false
 };

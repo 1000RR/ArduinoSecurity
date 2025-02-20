@@ -5,17 +5,19 @@ import styled, {css} from "styled-components";
 
 export const PanelSizeStyle = css`
     width: 100%;
-    height: 165px;
+    height: content;
+    min-height: 160px;
 `;
 
 export const PanelLayoutStyle = css`
     display: flex;
     justify-content: center;
     align-items: start;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: space-evenly;
+    gap: 20px;
     flex-direction: row;
     padding: 20px;
+    flex-wrap: wrap;
 `;
 
 export const PanelBorderStyle = css`

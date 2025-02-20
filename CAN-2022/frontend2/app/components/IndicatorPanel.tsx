@@ -2,11 +2,20 @@
 import React, { useRef } from "react";
 import styled, {css} from "styled-components";
 import Panel from "@components/Panel"
-import { userAgent } from "next/server";
+import { useSelector } from "react-redux";
+import { AlarmProfilesResponse, AppState, AppStateSlice, StatusResponse } from "./AppStateSlice";
+
+type DeviceDescriptor = {
+    id: string,
+    name: string,
+    enabled: boolean,
+    missing: boolean,
+    triggered: boolean
+};
 
 export const PanelSizeStyle = css`
     width: 100%;
-    height: 330px;
+    height: content;
 `;
 
 export const PanelLayoutStyle = css`
@@ -15,7 +24,8 @@ export const PanelLayoutStyle = css`
     align-items: start;
     justify-content: space-between;
     gap: 10px;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     padding: 10px 10px 10px 10px;
     border-radius: 5px;
 `;
@@ -33,20 +43,110 @@ const CompositePanelStyle = styled.div`
 
 const SensorsPanel: React.FC<{
     className?: string
-}> = ({ className}) => {
-    
-    
-    
-    return (<Panel></Panel>);
+}> = ({ className }) => {
+
+    const deviceList:Array<DeviceDescriptor> = [];
+
+    const stateDeviceList = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.memberDevicesReadable.slice(0).sort((a: string, b:string) => a.localeCompare(b));
+    });
+    const garageOpen = useSelector(function (state: AppStateSlice) { 
+        return (state.appState.status as StatusResponse).garageOpen;
+    });
+    const profileNumber = useSelector(function (state: AppStateSlice) { 
+        return Number((state.appState.status as StatusResponse).profileNumber);
+    });
+    const myAlarmProfile = useSelector(function (state: AppStateSlice) { 
+        return (state.appState.alarmProfiles as AlarmProfilesResponse).profiles[profileNumber];
+    });
+    const sensorsThatTriggerAlarm = myAlarmProfile?.sensorsThatTriggerAlarm;
+    const missingDevices = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.currentMissingDevices;
+    });
+    const triggeredDevices = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.currentTriggeredDevices;
+    });
+    const alarmArmed = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.armStatus === 'ARMED';
+    });
+
+    stateDeviceList?.forEach((device: string) => {
+        if (device.indexOf('SENSOR |') == 0) {
+            let name = device.substring(9, device.indexOf('| 0x')-1);
+            let id = device.substring(device.indexOf('| 0x')+2);
+
+            deviceList.push({
+                name: name,
+                id: id,
+                enabled: alarmArmed && (!sensorsThatTriggerAlarm || sensorsThatTriggerAlarm.includes(id)),
+                missing: missingDevices && missingDevices.includes(id),
+                triggered: triggeredDevices && triggeredDevices.includes(id),
+            });
+        }
+    });
+
+    return (
+        <Panel>
+            {deviceList.map((sensorElement, index) => (
+                <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (sensorElement.enabled ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "")} >
+                    {sensorElement.name.toLowerCase().indexOf("garage car door") > -1 
+                        ? <img className="icon" src={garageOpen ? "/assets/garage_open.png" : "/assets/garage_closed.png"} height="100%" width="100%"></img> 
+                        : sensorElement.name}
+                </div>
+            ))}
+        </Panel>
+    );
 };
 
 const AlarmsPanel: React.FC<{
     className?: string
 }> = ({ className}) => {
 
+    const deviceList:Array<DeviceDescriptor> = [];
+
+    const stateDeviceList = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.memberDevicesReadable.slice(0).sort((a: string, b:string) => a.localeCompare(b));
+    });
+
+    const profileNumber = useSelector(function (state: AppStateSlice) { 
+        return Number((state.appState.status as StatusResponse).profileNumber);
+    });
+    const myAlarmProfile = useSelector(function (state: AppStateSlice) { 
+        return (state.appState.alarmProfiles as AlarmProfilesResponse).profiles[profileNumber];
+    });
+    const enabledAlarmDevices = myAlarmProfile?.alarmOutputDevices;
+    const missingDevices = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.currentMissingDevices;
+    });
+    const triggeredDevices = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.currentTriggeredDevices;
+    });
+    const alarmArmed = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.armStatus === 'ARMED';
+    });
+
+    stateDeviceList?.forEach((device: string) => {
+        if (device.indexOf('ALARM |') == 0) {
+            let name = device.substring(8, device.indexOf('| 0x')-1);
+            let id = device.substring(device.indexOf('| 0x')+2);
+
+            deviceList.push({
+                name: name,
+                id: id,
+                enabled: alarmArmed && (!enabledAlarmDevices || enabledAlarmDevices.includes(id)),
+                missing: missingDevices && missingDevices.includes(id),
+                triggered: triggeredDevices && triggeredDevices.includes(id),
+            });
+        }
+    });
     
-    
-    return (<Panel></Panel>);
+    return (<Panel>
+        {deviceList.map((alarmElement, index) => (
+                <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "")} >
+                    {alarmElement.name}
+                </div>
+            ))}
+    </Panel>);
 };
 
 const IndicatorPanel: React.FC<{

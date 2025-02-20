@@ -77,8 +77,8 @@ const GarageDoorButton: React.FC<{
 }> = ({ className }) => {
     
     const inputRef = useRef(null);
-    const handler:React.MouseEventHandler = function() {
-        if (inputRef !== null && inputRef.current) { inputRef.current.blur() }
+    const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
+        event.currentTarget.blur();
         emitGarageDoorToggleEvent();
     };
 

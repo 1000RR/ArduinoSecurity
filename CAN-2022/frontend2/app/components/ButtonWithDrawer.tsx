@@ -99,9 +99,9 @@ const ButtonWithDrawer: React.FC<{
     
     const [isCollapsed, setIsCollapsed] = useState(true);
     const inputRef = useRef(null);
-    const handler:React.MouseEventHandler = function() {
+    const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
+        event.currentTarget.blur();
         setIsCollapsed(!isCollapsed);
-        if (inputRef !== null && inputRef.current) { inputRef.current.blur() }
     };
 
     return (

@@ -5,6 +5,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import styled, {css} from "styled-components";
 import { emitDisarmEvent, emitArmEvent } from "./WebSocketService";
+import { AppStateSlice } from "./AppStateSlice";
 
 export const ButtonSizeStyle = css`
     width: 100%;
@@ -82,20 +83,28 @@ const AlarmEnableButton: React.FC<{
     const imgSrcArmed = "/assets/attackdog.jpg";
     const imgSrcDisarmed = "/assets/dogue.jpg";
 
-    const isArmed = useSelector(function (state: object) { 
+    const isArmed = useSelector(function (state: AppStateSlice) { 
         return state.appState.status?.armStatus === "ARMED"
     });
 
-    const handler:React.MouseEventHandler = function(event) {
+    const profileName = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status?.profile
+    });
+
+    const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         isArmed ? emitDisarmEvent() : emitArmEvent();
-        (event.target as HTMLButtonElement).blur();
+        event.currentTarget.blur();
     };
 
-    const buttonText = isArmed ? "ARMED" : "DISARMED";
+    const buttonText = isArmed ? `ARMED : ${profileName.toUpperCase()}` : "DISARMED";
+    const alarmTriggered = useSelector(function (state: AppStateSlice) { 
+        return state.appState.status.alarmStatus === 'ALARM';
+    });
+
 
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            <Image className="fadeoutImageRound" alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
+            <Image className={`fadeoutImageRound ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}
             

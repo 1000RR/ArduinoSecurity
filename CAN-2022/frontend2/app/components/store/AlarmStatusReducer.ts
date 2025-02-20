@@ -22,3 +22,4 @@ const alarmStateSlice = createSlice({
 
 export const { setState } = alarmStateSlice.actions;
 export default alarmStateSlice.reducer;
+
