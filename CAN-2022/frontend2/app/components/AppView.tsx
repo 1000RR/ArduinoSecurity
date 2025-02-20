@@ -24,13 +24,14 @@ const AppView: React.FC = () => {
         };
     }, [dispatch]);
     
-    const serviceAvailable = appState.isConnected && !appState.error;
+    const serviceAvailable = appState.isConnected && !appState.isError;
     const unavailableContent = <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
             Service Unavailable
             <Image className="fadeoutImageRound" src={"/assets/dogsleep.jpg"} width="150" height="150" alt=""></Image>
         </div>;
     const loadingContent = <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
         Loading...
+        <Image className="fadeoutImageRound" src={"/assets/dogread.jpg"} width="150" height="150" alt=""></Image>
     </div>;
 
     return (
@@ -49,7 +50,7 @@ const AppView: React.FC = () => {
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Profiles"><pre>{JSON.stringify(appState.alarmProfiles, null, 2)}</pre></ButtonWithDrawer>
                 </div> :
                 <div>
-                    <UnavailableOverlay>{appState.isError ? unavailableContent : loadingContent}</UnavailableOverlay>
+                    <UnavailableOverlay>{appState.isError && !appState.isConnected ? unavailableContent : loadingContent}</UnavailableOverlay>
                 </div>
             }
         </>

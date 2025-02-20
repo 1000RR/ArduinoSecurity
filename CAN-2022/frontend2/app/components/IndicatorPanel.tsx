@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
+import React, { useRef } from "react";
 import styled, {css} from "styled-components";
 import Panel from "@components/Panel"
+import { userAgent } from "next/server";
 
 export const PanelSizeStyle = css`
     width: 100%;
@@ -30,15 +31,31 @@ const CompositePanelStyle = styled.div`
     ${PanelColorStyle}
 `;
 
+const SensorsPanel: React.FC<{
+    className?: string
+}> = ({ className}) => {
+    
+    
+    
+    return (<Panel></Panel>);
+};
+
+const AlarmsPanel: React.FC<{
+    className?: string
+}> = ({ className}) => {
+
+    
+    
+    return (<Panel></Panel>);
+};
 
 const IndicatorPanel: React.FC<{
     className?: string
 }> = ({ className}) => {
-    
     return (
         <CompositePanelStyle className={className}>
-             <Panel></Panel>
-             <Panel></Panel>
+             <SensorsPanel></SensorsPanel>
+             <AlarmsPanel ></AlarmsPanel>
         </CompositePanelStyle>
     );
 };

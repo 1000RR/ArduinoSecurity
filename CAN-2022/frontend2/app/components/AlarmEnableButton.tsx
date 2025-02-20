@@ -86,8 +86,9 @@ const AlarmEnableButton: React.FC<{
         return state.appState.status?.armStatus === "ARMED"
     });
 
-    const handler:React.MouseEventHandler = function() {
+    const handler:React.MouseEventHandler = function(event) {
         isArmed ? emitDisarmEvent() : emitArmEvent();
+        (event.target as HTMLButtonElement).blur();
     };
 
     const buttonText = isArmed ? "ARMED" : "DISARMED";
