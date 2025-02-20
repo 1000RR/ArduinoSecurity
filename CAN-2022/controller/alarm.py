@@ -62,7 +62,7 @@ deviceDictionary = {
     "0xFF": "HOMEBASE | HOME BASE communicating to its arduino | 0xFF",
     "0x10": "ALARM | LAUNDRY FIRE ALARM BELL | 0x10",
     "0x15": "ALARM | GARAGE PIEZO LOUD ALARM | 0x15",
-    "0x99": "ALARM | OFFICE ALARM | 0x99",
+    "0x99": "ALARM | OFFICE BUZZER ALARM | 0x99",
     hex(denonId): "ALARM | OFFICE SPEAKERS | " + hex(denonId),
     hex(checkPhonesId): "SENSOR | VIRTUAL sensor for getting attention | " + hex(checkPhonesId),
     hex(testAlarmId): "SENSOR | VIRTUAL sensor for triggering a test alarm | " + hex(testAlarmId),

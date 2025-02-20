@@ -85,7 +85,7 @@ const GarageDoorButton: React.FC<{
     return (
     <>
         <CompositeStyledButton ref={inputRef} onClick={handler}>
-            <div>Garage Door</div>
+            <div>Activate Garage Door Opener</div>
         </CompositeStyledButton>
         
     </>

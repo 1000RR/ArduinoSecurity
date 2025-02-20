@@ -90,7 +90,7 @@ const SensorsPanel: React.FC<{
         <Panel>
             <div style={{zIndex: 100, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
             {deviceList.map((sensorElement, index) => (
-                <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (sensorElement.enabled ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "")} >
+                <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (sensorElement.enabled && !sensorElement.missing ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "") + " dimmable"} >
                     {sensorElement.name.toLowerCase().indexOf("garage car door") > -1 
                         ? <img className="icon" src={garageOpen ? "/assets/garage_open.png" : "/assets/garage_closed.png"} height="100%" width="100%"></img> 
                         : sensorElement.name}
@@ -145,7 +145,7 @@ const AlarmsPanel: React.FC<{
     return (<Panel>
         <div style={{zIndex: 100, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
         {deviceList.map((alarmElement, index) => (
-                <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "")} >
+                <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "") + " dimmable"} >
                     {alarmElement.name}
                 </div>
             ))}

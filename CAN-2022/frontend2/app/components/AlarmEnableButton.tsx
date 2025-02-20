@@ -7,9 +7,10 @@ import styled, {css} from "styled-components";
 import { emitDisarmEvent, emitArmEvent } from "./WebSocketService";
 import { AppStateSlice } from "./AppStateSlice";
 
-export const ButtonSizeStyle = css`
+const ButtonSizeStyle = css`
     width: 100%;
     height: 145px;
+    font-size: 2em;
 
     @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
        only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3)
@@ -18,13 +19,13 @@ export const ButtonSizeStyle = css`
        font-size: 1.5em;
     }
 `;
-export const ButtonBorderStyle = css`
+const ButtonBorderStyle = css`
     border: 1px;
     border-style: solid;
     border-radius: 5px;
     border-color: darkgrey;
 `;
-export const ButtonLayoutStyle = css`
+const ButtonLayoutStyle = css`
     display: flex;
     justify-content: center;
     align-items: center;
@@ -33,20 +34,23 @@ export const ButtonLayoutStyle = css`
     flex-direction: row;
     padding: 10px;
 `;
-export const ButtonPressStyle = css`
+const ButtonPressStyle = css`
     &.buttonEnabled {
         background-color: #00a0d0;
         &:hover {
             background-color: lightblue;
             border-color: white;
+            color: white;
         }
         &:active {
             background-color: #0099ff;
-            filter: saturate(1.2);  
+            filter: saturate(1.2);
+            color: white;
         }
 
         @media (prefers-color-scheme: dark) {
-            filter: brightness(0.7);       
+            filter: brightness(0.7);   
+            color: white;
         }
     }
 
@@ -62,7 +66,7 @@ export const ButtonPressStyle = css`
         }
         @media (prefers-color-scheme: dark) {
             filter: brightness(0.7);
-            color: lightgray;
+            color: white;
         }
     }
 `;

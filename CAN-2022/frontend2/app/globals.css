@@ -44,10 +44,18 @@ body {
 }
 
 .icon {
-	height: 120px;
-	min-height: 120px;
-	max-width: 120px;
+	height: 150px;
+	max-width: 150px;
+	min-height: 150px;
 	padding: 0;
+	word-spacing: 30px;
+}
+
+.thin_round_border {
+	border: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    border-color: darkgrey;
 }
 
 .lowlight_gray {
@@ -55,14 +63,14 @@ body {
 }
 
 .status_icon_container_layout {
-  max-width: 120px;
-  width: 120px;
+  max-width: 160px;
+  width: 160px;
   display: flex;
   justify-content: center; /* Horizontal alignment */
   align-items: center;    /* Vertical alignment */
   font-family: "futura";
-  line-height: 110%;
-  font-size: 30px;
+  line-height: 1.25;
+  font-size: 25px;
   color: white;
   overflow-wrap: normal;
   white-space: normal;
@@ -122,10 +130,12 @@ body {
 		text-align: center;
 		min-height: 80px;
 		height: 80px;
+		line-height: 1.3;
 	}
 
 	.icon {
-		max-width: 100px !important;
+		max-width: 140px !important;
+		min-height: 140px;
 		padding: 0 !important;
 		margin: 0 !important;
 
