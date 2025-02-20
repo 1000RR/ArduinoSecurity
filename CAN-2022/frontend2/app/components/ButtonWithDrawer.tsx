@@ -1,6 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-unused-vars */
 "use client";
 import React, {useRef, useState} from "react";
 import styled, {css} from "styled-components";
+
+const drawerDisplay = 'flex';
 
 export const ButtonSizeStyle = css`
     width: calc(100% - 20px);
@@ -73,14 +77,11 @@ const CompositeStyledButton = styled.button`
 
 const Drawer = styled.div`
     width: calc(100% - 20px);
-    height: 100px;
+    min-height: 100px;
     background-color: rgba(55, 55, 55, .4);
     margin: 0px 10px 5px 10px;
     border-radius: 5px;
-    &.collapsed {
-        height: 0px;
-    }
-    display: flex;
+    display: ${drawerDisplay};
     gap: 10px;
     justify-content: space-around; 
     align-items: center;
@@ -91,9 +92,10 @@ const ButtonWithDrawer: React.FC<{
     className?: string,
     children?: React.ReactNode,
     buttonText?: string,
+    justifyContent? : ('space-around' | 'space-between' | 'center' | 'flex-start' | 'flex-end'),
     imgSrc?: string,
     onClick?: React.MouseEventHandler,
-}> = ({ flexDirection, className, children, buttonText, imgSrc}) => {
+}> = ({ flexDirection, className, children, buttonText, justifyContent, imgSrc}) => {
     
     const [isCollapsed, setIsCollapsed] = useState(true);
     const inputRef = useRef(null);
@@ -102,14 +104,13 @@ const ButtonWithDrawer: React.FC<{
         if (inputRef !== null && inputRef.current) { inputRef.current.blur() }
     };
 
-    console.log(imgSrc); //TODO: remove - quieting the linter
 
     return (
     <>
         <CompositeStyledButton ref={inputRef} className={`${className} ${isCollapsed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
             {buttonText}
         </CompositeStyledButton>
-        <Drawer style={{flexDirection: flexDirection}} className={isCollapsed ? 'collapsed' : ''}>
+        <Drawer style={{flexDirection: flexDirection, display: isCollapsed ? 'none' : 'flex', justifyContent: justifyContent}} className={isCollapsed ? 'collapsed' : ''}>
             {!isCollapsed && children}
         </Drawer>
     </>

@@ -1,20 +1,25 @@
 import * as Comlink from 'comlink';
 import { io, Socket } from 'socket.io-client';
-import {SocketIOMessage} from '@components/MainAppView';
+import { SocketIOMessage } from '@components/AppView';
 
 export type ComWorkerAPI = {
-	setupWebSockets(eventNames: Array<string>, handlerFunction: (data: SocketIOMessage) => void): void;
+	setupWebSockets(
+		eventNames: Array<string>,
+		handlerFunction: (data: SocketIOMessage) => void,
+		errorHandlerFunction: (data: Error) => void,
+		connectHandlerFunction: () => void ): void;
 	emitEvent(eventName: string, data: object): void;
 };
 
 let socket: Socket | null = null;
 
 const api: ComWorkerAPI = {
-	setupWebSockets(eventNames, handlerFunction): void {
+	setupWebSockets(eventNames, handlerFunction, errorHandlerFunction, connectHandlerFunction): void {
 		socket = io('https://bobik.lan:8080');
 
 		socket.on('connect', function() {
 			console.log('Connected to server');
+			connectHandlerFunction();
 			socket?.emit('getAlarmProfiles', { message: undefined });
 		});
 
@@ -24,7 +29,7 @@ const api: ComWorkerAPI = {
 
 		function handleErrors(err: Error) {
 			console.log('Websocket Error: ' + err);
-			//call error handler
+			errorHandlerFunction(err);
 			setTimeout(() => {
 				socket?.connect();
 			}, 1000);

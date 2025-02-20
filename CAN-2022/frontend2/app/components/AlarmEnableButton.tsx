@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import React, {useState} from "react";
+import { useSelector } from "react-redux";
 import styled, {css} from "styled-components";
 
 export const ButtonSizeStyle = css`
@@ -73,21 +74,26 @@ const CompositeStyledButton = styled.button`
 const AlarmEnableButton: React.FC<{
     className?: string,
     children?: React.ReactNode,
-    imgSrc?: string,
     onClick?: React.MouseEventHandler
-}> = ({ className, children, imgSrc}) => {
+}> = ({ className, children}) => {
     
-    const [isEnabled, setIsEnabled] = useState(false);
+
+    const imgSrcArmed = "/assets/attackdog.jpg";
+    const imgSrcDisarmed = "/assets/dogue.jpg";
+
+    const isArmed = useSelector(function (state: object) { 
+        return state.appState.status?.armStatus === "ARMED"
+    });
 
     const handler:React.MouseEventHandler = function() {
-        setIsEnabled(!isEnabled);
+        //setIsEnabled(!isEnabled);
     };
 
-    const buttonText = "TEMP TEXT";
+    const buttonText = isArmed ? "ARMED" : "DISARMED";
 
     return (<div style={{ width: "100%", }}>
-        <CompositeStyledButton className={`${className} ${isEnabled ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            {imgSrc? <Image alt="" width="100" height="75" src={imgSrc}></Image> : <></>}
+        <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
+            <Image className="fadeoutImageRound" alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}
             

@@ -38,7 +38,7 @@ const TopPanel: React.FC<{
     
     return (
         <CompositeStyledPanel className={className}>
-            <AlarmEnableButton className="button" imgSrc="/assets/dogue.jpg"></AlarmEnableButton>
+            <AlarmEnableButton className="button"></AlarmEnableButton>
         </CompositeStyledPanel>
     );
 };

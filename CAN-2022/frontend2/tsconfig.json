@@ -23,7 +23,7 @@
       "@lib/*": ["./app/lib/*"],
       "@components/*": ["./app/components/*"],
       "@context/*": ["./app/context/*"],
-      "@src/*": ["./app/src/*"],
+      "@store/*": ["./app/components/store/*"],
       "@workers/*": ["./app/workers/*"],
       "@features/*": ["./app/features/*"],
       "@assets/*": ["./public/assets/*"],
