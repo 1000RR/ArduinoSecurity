@@ -6,7 +6,7 @@ import styled, {css} from "styled-components";
 export const PanelSizeStyle = css`
     width: 100%;
     height: content;
-    min-height: 160px;
+    min-height: 100px;
 `;
 
 export const PanelLayoutStyle = css`
@@ -18,6 +18,7 @@ export const PanelLayoutStyle = css`
     flex-direction: row;
     padding: 20px;
     flex-wrap: wrap;
+    position: relative;
 `;
 
 export const PanelBorderStyle = css`

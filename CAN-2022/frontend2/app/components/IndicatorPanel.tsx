@@ -85,8 +85,10 @@ const SensorsPanel: React.FC<{
         }
     });
 
+
     return (
         <Panel>
+            <div style={{zIndex: 100, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
             {deviceList.map((sensorElement, index) => (
                 <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (sensorElement.enabled ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "")} >
                     {sensorElement.name.toLowerCase().indexOf("garage car door") > -1 
@@ -141,6 +143,7 @@ const AlarmsPanel: React.FC<{
     });
     
     return (<Panel>
+        <div style={{zIndex: 100, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
         {deviceList.map((alarmElement, index) => (
                 <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " status_icon_container_layout lower_opacity icon dimmable lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "")} >
                     {alarmElement.name}

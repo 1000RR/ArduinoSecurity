@@ -63,7 +63,7 @@ deviceDictionary = {
     "0x10": "ALARM | LAUNDRY FIRE ALARM BELL | 0x10",
     "0x15": "ALARM | GARAGE PIEZO LOUD ALARM | 0x15",
     "0x99": "ALARM | OFFICE ALARM | 0x99",
-    hex(denonId): "ALARM | ALARM (VIRTUAL) - denon via curl | " + hex(denonId),
+    hex(denonId): "ALARM | OFFICE SPEAKERS | " + hex(denonId),
     hex(checkPhonesId): "SENSOR | VIRTUAL sensor for getting attention | " + hex(checkPhonesId),
     hex(testAlarmId): "SENSOR | VIRTUAL sensor for triggering a test alarm | " + hex(testAlarmId),
     hex(garageDoorOpenerId): "OPENER | GARAGE DOOR OPENER | " + hex(garageDoorOpenerId)
@@ -394,15 +394,15 @@ def toggleArmed(now, method):
 def resetMemberDevices():
     global memberDevices
     memberDevices = {
-        # hex(denonId): {
-        #     'id': hex(denonId),
-        #     'firstSeen': now,
-        #     'firstSeenReadable': readableTimestamp,
-        #     'deviceType': '0x10',
-        #     'lastSeen': now,
-        #     'lastSeenReadable': readableTimestamp,
-        #     'friendlyName': getFriendlyDeviceName(denonId)
-        # }
+        hex(denonId): {
+            'id': hex(denonId),
+            'firstSeen': getTimeSec(),
+            'firstSeenReadable': getTimeSec(),
+            'deviceType': '0x10',
+            'lastSeen': getTimeSec(),
+            'lastSeenReadable': getTimeSec(),
+            'friendlyName': getFriendlyDeviceName(denonId)
+        }
     }
 
 

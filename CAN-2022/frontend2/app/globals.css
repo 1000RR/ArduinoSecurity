@@ -46,13 +46,8 @@ body {
 .icon {
 	height: 120px;
 	min-height: 120px;
-	margin: 0 10px 0 10px;
-}
-
-.icon_smaller {
-	height: 100px;
-	min-height: 100px;
-	padding: 10px 5px 10px 5px;
+	max-width: 120px;
+	padding: 0;
 }
 
 .lowlight_gray {
@@ -119,7 +114,6 @@ body {
 		justify-content: center; /* Horizontal alignment */
 		align-items: center;    /* Vertical alignment */
 		font-family: "futura";
-		line-height: 110%;
 		font-size: 22px !important;
 		color: white;
 		overflow-wrap: normal;
@@ -131,16 +125,11 @@ body {
 	}
 
 	.icon {
-		height: 60px !important;
+		max-width: 100px !important;
 		padding: 0 !important;
 		margin: 0 !important;
-		margin-top: 5px !important;
-		margin-bottom: 2px !important;
+
 	}
 
-	.icon_smaller {
-		height: 40px !important;
-		padding: 0 0 10px 0 !important;
-	}
 }
 
