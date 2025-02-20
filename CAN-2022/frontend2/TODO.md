@@ -1,5 +1,4 @@
 TODO
-- fast arm drawer
 - special functions drawer
 - if missing device, display with question mark over it
 - fixed to viewport SCROLL UP and SCROLL DOWN buttons that go to top and bottom of a given scrolled section.

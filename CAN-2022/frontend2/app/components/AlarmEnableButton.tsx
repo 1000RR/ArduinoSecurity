@@ -16,6 +16,7 @@ const ButtonSizeStyle = css`
        only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3)
     {
        width: calc(100vw - 20px);
+       height: 100px;
        font-size: 1.5em;
     }
 `;
@@ -108,7 +109,7 @@ const AlarmEnableButton: React.FC<{
 
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            <Image className={`fadeoutImageRound ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
+            <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="120" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}
             

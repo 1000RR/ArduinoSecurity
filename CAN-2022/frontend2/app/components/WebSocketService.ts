@@ -81,6 +81,15 @@ export const emitArmEvent = () => {
 	}
 };
 
+export const emitArmAndChangeProfileEvent = (profileId: number) => {
+	if (comAPI) {
+		comAPI.emitEvent('setAlarmProfile', {message: profileId})
+		setTimeout(()=>{
+			comAPI?.emitEvent('arm', {message: undefined});
+		}, 2000)
+	}
+};
+
 export const emitDisarmEvent = () => {
 	if (comAPI) {
 		comAPI.emitEvent('disarm', {message: undefined});

@@ -5,12 +5,14 @@ import IndicatorPanel from "@components/IndicatorPanel";
 import ButtonWithDrawer from "@components/ButtonWithDrawer";
 import GarageDoorButton from "@/app/components/GarageDoorButton";
 import UnavailableOverlay from "@components/UnavailableOverlay";
+import ArmButtonList from "@components/ArmButtonList";
 import Image from "next/image";
 
 import { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { AppState, AppStateSlice } from "./AppStateSlice";
 import { initializeWebSocket } from "@components/WebSocketService";
+import TopPanelSpacer from "./TopPanelSpacer";
 
 const AppView: React.FC = () => {
     const appState: AppState = useSelector((state: AppStateSlice) => state.appState); //appState is the name of the slice
@@ -40,15 +42,15 @@ const AppView: React.FC = () => {
             { serviceAvailable ? 
                 <div className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
                     <TopPanel></TopPanel>
+                    <TopPanelSpacer></TopPanelSpacer>
                     <IndicatorPanel></IndicatorPanel>
-                    <ButtonWithDrawer flexDirection="row" buttonText="Garage Door">
-                        <GarageDoorButton></GarageDoorButton>
-                    </ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="column" buttonText="Quick Arm / Disarm"></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" buttonText="Alarm Control"><ArmButtonList alarmProfilesToDisplay={[0,1,3,15,2,7]}></ArmButtonList></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="row" buttonText="Garage Door"><GarageDoorButton></GarageDoorButton></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Status"><pre>{JSON.stringify(appState.status, null, 2)}</pre></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Past Events"><pre>{JSON.stringify(appState.pastEvents, null, 2)}</pre></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Profiles"><pre>{JSON.stringify(appState.alarmProfiles, null, 2)}</pre></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" buttonText="All Alarm Profiles"><ArmButtonList></ArmButtonList></ButtonWithDrawer>
                 </div> :
                 <div>
                     <UnavailableOverlay>{appState.isError && !appState.isConnected ? unavailableContent : loadingContent}</UnavailableOverlay>

@@ -83,6 +83,7 @@ const Drawer = styled.div`
     border-radius: 5px;
     display: ${drawerDisplay};
     gap: 10px;
+    padding: 10px;
     justify-content: space-around; 
     align-items: center;
     overflow: auto;
