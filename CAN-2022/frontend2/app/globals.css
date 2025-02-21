@@ -85,14 +85,52 @@ body {
 }
 
 .alarm_button_disabled {
-	background-color: rgba(72, 2, 194, 0.655) !important;
-	border-color: rgba(255, 170, 0, 0.475) !important;
+	background-color: rgba(72, 2, 194, 1) !important;
+	border-color: rgba(255, 170, 0, 1) !important;
+	color: rgba(255, 170, 0, 1) !important;
+
+	&:hover {
+		filter: brightness(120%);
+	}
+
+	&:active {
+		filter: brightness(140%);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		&:hover {
+			filter: brightness(75%);
+		}
+	
+		&:active {
+			filter: brightness(90%);
+		}
+	}
 }
 
 .alarm_button_enabled {
-	background-color: rgb(255, 170, 0);
+	background-color: rgba(255, 170, 0, 1) !important;
 	border-width: 3px !important;
-	border-color:rgba(72, 2, 194, 0.514) !important;
+	border-color:rgba(72, 2, 194, 1) !important;
+	color: rgba(72, 2, 194, 1) !important;
+
+	&:hover {
+		filter: brightness(110%);
+	}
+
+	&:active {
+		filter: brightness(140%);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		&:hover {
+			filter: brightness(70%);
+		}
+	
+		&:active {
+			filter: brightness(80%);
+		}
+	}
 }
 
 .alarm_button {

@@ -1,11 +1,10 @@
 import * as Comlink from 'comlink';
 import { io, Socket } from 'socket.io-client';
-import { SocketIOMessage } from '@components/AppView';
 
 export type ComWorkerAPI = {
 	setupWebSockets(
 		eventNames: Array<string>,
-		handlerFunction: (data: SocketIOMessage) => void,
+		handlerFunction: (data: any) => void,
 		errorHandlerFunction: (data: Error) => void,
 		connectHandlerFunction: () => void ): void;
 	emitEvent(eventName: string, data: object): void;

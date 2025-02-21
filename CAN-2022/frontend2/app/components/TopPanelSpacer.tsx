@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import styled, {css} from "styled-components";
-import AlarmEnableButton from "@components/AlarmEnableButton"
 
 export const PanelSizeStyle = css`
     width: 100%;
@@ -26,13 +25,10 @@ export const PanelLayoutStyle = css`
     z-index: 10;
 `;
 
-
-
 const CompositeStyledPanel = styled.div`
     ${PanelSizeStyle}
     ${PanelLayoutStyle}
 `;
-
 
 const TopPanelSpacer: React.FC<{
     className?: string

@@ -42,26 +42,24 @@ const getAttentionHandler : MouseEventHandler<HTMLButtonElement> = function(even
     emitGetAttentionEvent();
 };
 const sendSingleCan : MouseEventHandler<HTMLButtonElement> = function(event) {
-    let message = 
-        document?.getElementById('sender-field')?.value + ':' +
-        document?.getElementById('receiver-field')?.value + ':' +
-        document?.getElementById('message-field')?.value + ':' +
-        document?.getElementById('type-field')?.value;
+    const message = 
+        (document?.getElementById('sender-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('receiver-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('message-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('type-field') as HTMLInputElement)?.value;
     emitSendSpecialOnce(message);
 };
 const sendRepeatedlyCan : MouseEventHandler<HTMLButtonElement> = function(event) {
-    let message = 
-        document?.getElementById('sender-field')?.value + ':' +
-        document?.getElementById('receiver-field')?.value + ':' +
-        document?.getElementById('message-field')?.value + ':' +
-        document?.getElementById('type-field')?.value;
+    const message = 
+        (document?.getElementById('sender-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('receiver-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('message-field') as HTMLInputElement)?.value + ':' +
+        (document?.getElementById('type-field') as HTMLInputElement)?.value;
     emitSendSpecialRepeatedly(message);
 };
 const stopSendingCan : MouseEventHandler<HTMLButtonElement> = function(event) {
     emitStopSendingSpecial();
 };
-
-    
 
 const SpecialFunctions: React.FC<{
     className?: string

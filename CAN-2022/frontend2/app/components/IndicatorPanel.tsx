@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React from "react";
 import styled, {css} from "styled-components";
 import Panel from "@components/Panel"
 import { useSelector } from "react-redux";
@@ -44,7 +44,6 @@ const CompositePanelStyle = styled.div`
 const SensorsPanel: React.FC<{
     className?: string
 }> = ({ className }) => {
-
     const deviceList:Array<DeviceDescriptor> = [];
 
     const stateDeviceList = useSelector(function (state: AppStateSlice) { 
@@ -72,8 +71,8 @@ const SensorsPanel: React.FC<{
 
     stateDeviceList?.forEach((device: string) => {
         if (device.indexOf('SENSOR |') == 0) {
-            let name = device.substring(9, device.indexOf('| 0x')-1);
-            let id = device.substring(device.indexOf('| 0x')+2);
+            const name = device.substring(9, device.indexOf('| 0x')-1);
+            const id = device.substring(device.indexOf('| 0x')+2);
 
             deviceList.push({
                 name: name,
@@ -84,7 +83,6 @@ const SensorsPanel: React.FC<{
             });
         }
     });
-
 
     return (
         <Panel className={className}>
@@ -103,7 +101,6 @@ const SensorsPanel: React.FC<{
 const AlarmsPanel: React.FC<{
     className?: string
 }> = ({ className}) => {
-
     const deviceList:Array<DeviceDescriptor> = [];
 
     const stateDeviceList = useSelector(function (state: AppStateSlice) { 
@@ -129,8 +126,8 @@ const AlarmsPanel: React.FC<{
 
     stateDeviceList?.forEach((device: string) => {
         if (device.indexOf('ALARM |') == 0) {
-            let name = device.substring(8, device.indexOf('| 0x')-1);
-            let id = device.substring(device.indexOf('| 0x')+2);
+            const name = device.substring(8, device.indexOf('| 0x')-1);
+            const id = device.substring(device.indexOf('| 0x')+2);
 
             deviceList.push({
                 name: name,
@@ -164,5 +161,3 @@ const IndicatorPanel: React.FC<{
 };
 
 export default IndicatorPanel;
- 
- 

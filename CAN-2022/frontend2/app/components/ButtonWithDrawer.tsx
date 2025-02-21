@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
 "use client";
-import React, {useRef, useState} from "react";
+import React, {useState} from "react";
 import styled, {css} from "styled-components";
 
 const drawerDisplay = 'flex';
@@ -20,8 +20,9 @@ export const ButtonSizeStyle = css`
 
 export const ButtonTextStyle = css`
     text-align: left;
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 23px;
+    font-weight: normal;
+    font-family: "futura";
 `;
 
 export const ButtonBorderStyle = css`
@@ -30,10 +31,6 @@ export const ButtonBorderStyle = css`
     border-radius: 5px;
     border-color: darkgrey;
     margin: 10px 10px 0px 10px;
-
-    @media (prefers-color-scheme: dark) {
-        border-color: #777777
-    }
 `;
 
 export const ButtonLayoutStyle = css`
@@ -54,15 +51,27 @@ export const ButtonPressStyle = css`
         border-color: white;
         color: #c5c5c5;
     }
-    
+
     @media (prefers-color-scheme: dark) {
         background-color: #3c3c3c;
-        color: #c5c5c5;
+        color: #999999;
 
         &:hover {
-            color: #3c3c3c;
-            background-color: #c5c5c5;
+            color: #c5c5c5;
+            background-color: #454545;
+            border-color: #aaaaaa;
+        }
+
+        &:active {
+            color: #d5c5c5;
+            background-color: #6f6f6f;
             border-color: black;
+        }
+
+        .button-enabled {
+            color: white !important;
+            background-color: red !important;
+            border-color: white !important; 
         }
     }
 `;
@@ -99,7 +108,6 @@ const ButtonWithDrawer: React.FC<{
 }> = ({ flexDirection, className, children, buttonText, justifyContent}) => {
     
     const [isCollapsed, setIsCollapsed] = useState(true);
-    const inputRef = useRef(null);
     const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         setIsCollapsed(!isCollapsed);
         event.currentTarget.blur();
@@ -107,7 +115,7 @@ const ButtonWithDrawer: React.FC<{
 
     return (
     <>
-        <CompositeStyledButton ref={inputRef} className={`${className} ${isCollapsed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
+        <CompositeStyledButton className={`${className} ${isCollapsed ? '' : 'button-enabled'}`} onClick={handler}>
             {buttonText}
         </CompositeStyledButton>
         <Drawer style={{flexDirection: flexDirection, display: isCollapsed ? 'none' : 'flex', justifyContent: justifyContent}} className={isCollapsed ? 'collapsed' : ''}>

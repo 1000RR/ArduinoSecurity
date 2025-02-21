@@ -35,6 +35,12 @@ const ButtonLayoutStyle = css`
     flex-direction: row;
     padding: 10px;
 `;
+
+const ButtonTextStyle = css`
+    font-family: "futura";
+    font-size: 25px;
+`;
+
 const ButtonPressStyle = css`
     &.buttonEnabled {
         background-color: #00a0d0;
@@ -77,6 +83,7 @@ const CompositeStyledButton = styled.button`
     ${ButtonBorderStyle}
     ${ButtonLayoutStyle}
     ${ButtonPressStyle}
+    ${ButtonTextStyle}
 `;
 
 const AlarmEnableButton: React.FC<{

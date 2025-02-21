@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
 "use client";
-import React, {useRef} from "react";
+import React from "react";
 import styled, {css} from "styled-components";
 import { emitGarageDoorToggleEvent } from "@components/WebSocketService";
-
 
 export const ButtonSizeStyle = css`
     width: calc(100% - 10px);
@@ -20,18 +19,14 @@ export const ButtonSizeStyle = css`
 export const ButtonTextStyle = css`
     text-align: left;
     font-weight: bold;
-    font-size: 1.5em;
+    font-size: 1.25em;
+    font-family: "futura";
 `;
 
 export const ButtonBorderStyle = css`
     border: 1px;
     border-style: solid;
     border-radius: 5px;
-    border-color: darkgrey;
-
-    @media (prefers-color-scheme: dark) {
-        border-color: #777777
-    }
 `;
 
 export const ButtonLayoutStyle = css`
@@ -43,23 +38,24 @@ export const ButtonLayoutStyle = css`
 `;
 
 export const ButtonPressStyle = css`
-    background-color: rgba(85,150,118,1);
-    color: #3c3c3c;
+    background-color: #39644E;
+    border-color: #bbbbbb;
+    color: #bbbbbb;
+    
+    &:hover {
+        background-color: #4d8a6a;
+        border-color: #dddddd;
+        color: #dddddd;
+    }
+
     &:active {
-        background-color: rgba(57,100,78,1);
-        border-color: white;
-        color: #c5c5c5;
+        background-color: #71bb95;
+        border-color: #ffffff;
+        color: #ffffff;
     }
     
     @media (prefers-color-scheme: dark) {
-        background-color: rgba(57,100,78,1);
-        color: #c5c5c5;
-
-        &:active {
-            color: #3c3c3c;
-            background-color: rgba(85,150,118,1);
-            border-color: black;
-        }
+        
     }
 `;
 
@@ -71,12 +67,9 @@ const CompositeStyledButton = styled.button`
     ${ButtonPressStyle}
 `;
 
-
 const GarageDoorButton: React.FC<{
     className?: string
 }> = ({ className }) => {
-    
-    const inputRef = useRef(null);
     const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         event.currentTarget.blur();
         emitGarageDoorToggleEvent();
@@ -84,10 +77,9 @@ const GarageDoorButton: React.FC<{
 
     return (
     <>
-        <CompositeStyledButton ref={inputRef} onClick={handler}>
+        <CompositeStyledButton className="dimmable" onClick={handler}>
             <div>Activate Garage Door Opener</div>
         </CompositeStyledButton>
-        
     </>
     );
 };

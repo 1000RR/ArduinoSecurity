@@ -34,7 +34,7 @@ const AppView: React.FC = () => {
             <Image className="fadeoutImageRound" src={"/assets/dogsleep.jpg"} width="150" height="150" alt=""></Image>
         </div>;
     const loadingContent = <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
-        Loading...
+        Loading
         <Image className="fadeoutImageRound" src={"/assets/dogread.jpg"} width="150" height="150" alt=""></Image>
     </div>;
 

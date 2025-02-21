@@ -44,7 +44,6 @@ const PanelColorStyle = css`
     background-color: rgba(60,60,60, .5);
 `;
 
-
 const CompositeStyledPanel = styled.div`
     ${PanelSizeStyle}
     ${PanelLayoutStyle}

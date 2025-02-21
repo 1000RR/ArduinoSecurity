@@ -6,7 +6,8 @@ import styled, {css} from "styled-components";
 const ButtonSizeStyle = css`
     width: 100%;
     height: 80px;
-    font-size: 2em;
+    font-size: 1.7em;
+    font-family: "futura";
 
     @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
        only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3)
@@ -29,13 +30,24 @@ const ButtonLayoutStyle = css`
     flex-direction: column;
 `;
 const ButtonPressStyle = css`
+    background-color: #444444;
+    color: #999999;
+    border-color: #999999;
     
+    &:hover {
+        background-color: #555555;
+        color: #BBBBBB;
+        border-color: #BBBBBB;
+    }
+
     &:active {
-        background-color: #0F0F0F;
+        background-color: #888888;
+        color: #dddddd;
+        border-color: #dddddd;
     }
 
     @media (prefers-color-scheme: dark) {   
-        color: white;
+        
     }
     
 

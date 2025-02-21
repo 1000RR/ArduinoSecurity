@@ -1,4 +1,3 @@
-// filepath: /Users/uzun/Development/Arduino Projects/ArduinoSecurity/CAN-2022/frontend2/app/components/webSocketService.ts
 import * as Comlink from "comlink";
 import { ComWorkerAPI } from "@/app/workers/ComWorker";
 import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } from "./AppStateSlice";
@@ -128,8 +127,3 @@ export const emitStopSendingSpecial = () => {
 		comAPI.emitEvent('canstopsending', {message: undefined});
 	}
 };
-
-
-
-
-
