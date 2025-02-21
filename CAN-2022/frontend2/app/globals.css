@@ -77,11 +77,11 @@ body {
 }
 
 .highlight_green {
-    filter: sepia(100%) hue-rotate(40deg) saturate(10);
+    filter: sepia(100%) hue-rotate(40deg) saturate(20);
 }
 
 .highlight_red {
-    filter: sepia(100%) hue-rotate(290deg) saturate(150);
+    filter: sepia(100%) hue-rotate(300deg) saturate(255);
 }
 
 .alarm_button_disabled {
