@@ -47,8 +47,8 @@ const SensorsPanel: React.FC<{
     const deviceList:Array<DeviceDescriptor> = [];
 
     const stateDeviceList = useSelector(function (state: AppStateSlice) { 
-        return state.appState.status.memberDevicesReadable.slice(0).sort((a: string, b:string) => a.localeCompare(b));
-    });
+        return state.appState.status.memberDevicesReadable;
+    }).slice(0).sort((a: string, b:string) => a.localeCompare(b));
     const garageOpen = useSelector(function (state: AppStateSlice) { 
         return (state.appState.status as StatusResponse).garageOpen;
     });
@@ -104,8 +104,8 @@ const AlarmsPanel: React.FC<{
     const deviceList:Array<DeviceDescriptor> = [];
 
     const stateDeviceList = useSelector(function (state: AppStateSlice) { 
-        return state.appState.status.memberDevicesReadable.slice(0).sort((a: string, b:string) => a.localeCompare(b));
-    });
+        return state.appState.status.memberDevicesReadable;
+    }).slice(0).sort((a: string, b:string) => a.localeCompare(b))
 
     const profileNumber = useSelector(function (state: AppStateSlice) { 
         return Number((state.appState.status as StatusResponse).profileNumber);
