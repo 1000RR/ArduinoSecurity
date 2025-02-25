@@ -77,7 +77,7 @@ const SensorsPanel: React.FC<{
             deviceList.push({
                 name: name,
                 id: id,
-                enabled: alarmArmed && (!sensorsThatTriggerAlarm || sensorsThatTriggerAlarm.includes(id)),
+                enabled: alarmArmed && (!sensorsThatTriggerAlarm || sensorsThatTriggerAlarm.includes(id)), //if sensorsThatTriggerAlarm not included, all alarms are supposed to be enabled
                 missing: missingDevices && missingDevices.includes(id),
                 triggered: triggeredDevices && triggeredDevices.includes(id),
             });

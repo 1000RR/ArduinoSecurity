@@ -14,7 +14,7 @@ export type PastEventsResponse = {
 export type AlarmProfile = {
     index: number;
     name: string;
-    sensorsThatTriggerAlarm?: string[];
+    sensorsThatTriggerAlarm?: string[]; //if not included, all alarms are to be enabled
     missingDevicesThatTriggerAlarm?: string[];
     alarmOutputDevices?: string[];
     alarmTimeLengthSec: number;

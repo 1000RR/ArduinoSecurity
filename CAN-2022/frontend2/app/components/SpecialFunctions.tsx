@@ -1,9 +1,11 @@
 "use client";
-import React, { MouseEventHandler, useRef } from "react";
+import React, { MouseEventHandler } from "react";
 import styled, {css} from "styled-components";
 import Button from "./Button";
 import { emitClearDataEvent, emitTestAlarmEvent, emitGetAttentionEvent, emitSendSpecialOnce, emitSendSpecialRepeatedly, emitStopSendingSpecial } from "./WebSocketService";
 import Panel from "./Panel";
+import { setPastEvents } from "./AppStateSlice";
+import { useDispatch } from "react-redux";
 
 export const PanelSizeStyle = css`
     width: 100%;
@@ -35,9 +37,7 @@ const CompositePanelStyle = styled.div`
 const testAlarmsHandler : MouseEventHandler<HTMLButtonElement> = function(event) {
     emitTestAlarmEvent();
 };
-const clearDataHandler : MouseEventHandler<HTMLButtonElement> = function(event) {
-    emitClearDataEvent();
-};
+
 const getAttentionHandler : MouseEventHandler<HTMLButtonElement> = function(event) {
     emitGetAttentionEvent();
 };
@@ -63,7 +63,16 @@ const stopSendingCan : MouseEventHandler<HTMLButtonElement> = function(event) {
 
 const SpecialFunctions: React.FC<{
     className?: string
-}> = ({ className}) => {
+}> = ({ className }) => {
+    const clearDataHandler : MouseEventHandler<HTMLButtonElement> = function(event) {
+        dispatch(setPastEvents({ //clear past events in model immediately (UI will reflect this)
+            pastEvents: []
+        }));
+        emitClearDataEvent();
+    };
+
+    const dispatch = useDispatch();
+
     return (
         <CompositePanelStyle className={className}>
             <Button onClick={clearDataHandler}>Clear Data</Button>
