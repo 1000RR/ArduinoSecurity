@@ -162,7 +162,8 @@ def main():
         print('Error', e)
        
     sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    sslContext.load_cert_chain(certfile=serverKeysDir+'/server-cert.pem', keyfile=serverKeysDir+'/server-key.pem')
+    sslContext.load_cert_chain(certfile=serverKeysDir+'/bobik-cert.pem', keyfile=serverKeysDir+'/bobik-key.pem')
+
 
     # Run the Flask app
     #socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)
