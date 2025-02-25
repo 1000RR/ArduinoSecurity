@@ -3,10 +3,14 @@ import { ComWorkerAPI } from "@/app/workers/ComWorker";
 import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } from "./AppStateSlice";
 
 let comAPI: Comlink.Remote<ComWorkerAPI> | null = null;
+let lastClickTime: EpochTimeStamp = 0;
+let timeout: number = 2500;
+
 
 export const initializeWebSocket = (dispatch: (action: any) => void) => {
   const worker = new Worker(new URL("@workers/ComWorker.ts", import.meta.url));
   comAPI = Comlink.wrap(worker);
+  let firstLoad = true;
 
   let getPastEventsTimeout: undefined | NodeJS.Timeout = undefined;
 
@@ -18,7 +22,8 @@ export const initializeWebSocket = (dispatch: (action: any) => void) => {
 		dispatch(setIsLoaded(true));
 		comAPI?.emitEvent('getPastEvents', { message: undefined });
 	  if (getPastEventsTimeout) clearTimeout(getPastEventsTimeout);
-	}, 3000);
+	  firstLoad = false;
+	}, firstLoad ? 1 : 3000);
   };
 
   const pastEventsHandler = (message: object): void => {
@@ -73,21 +78,32 @@ export const emitGarageDoorToggleEvent = () => {
 
 export const emitArmEvent = () => {
 	if (comAPI) {
+		if (lastClickTime > Date.now() - timeout) return; //don't allow clicks that are frequent
+		lastClickTime = Date.now();
 		comAPI.emitEvent('arm', {message: undefined});
 	}
 };
 
-export const emitArmAndChangeProfileEvent = (profileId: number) => {
+export const emitArmAndChangeProfileEvent = (profileId: number, isArmed: boolean) => {
 	if (comAPI) {
+		if (lastClickTime > Date.now() - timeout) return; //don't allow clicks that are frequent
+		lastClickTime = Date.now();
+
 		comAPI.emitEvent('setAlarmProfile', {message: profileId})
-		setTimeout(()=>{
-			comAPI?.emitEvent('arm', {message: undefined});
-		}, 2000)
+		
+		if (!isArmed) {
+			setTimeout(()=>{
+				comAPI?.emitEvent('arm', {message: undefined});
+			}, 2000);
+		}
+		
 	}
 };
 
 export const emitDisarmEvent = () => {
 	if (comAPI) {
+		if (lastClickTime > Date.now() - timeout) return; //don't allow clicks that are frequent
+		lastClickTime = Date.now();
 		comAPI.emitEvent('disarm', {message: undefined});
 	}
 };

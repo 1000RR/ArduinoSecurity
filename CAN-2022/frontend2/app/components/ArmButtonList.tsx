@@ -44,7 +44,7 @@ const ArmButtonContainer: React.FC<{
 
     const clickHandler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         const profileId =  Number.parseInt(event.currentTarget.id); //-1 is disable button manually added
-        profileId === -1 ?  emitDisarmEvent() : emitArmAndChangeProfileEvent(profileId);
+        profileId === -1 ?  emitDisarmEvent() : emitArmAndChangeProfileEvent(profileId, alarmArmed);
     };
 
     return (

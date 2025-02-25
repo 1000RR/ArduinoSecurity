@@ -87,6 +87,7 @@ const SensorsPanel: React.FC<{
     return (
         <Panel className={className}>
             <div style={{zIndex: -1, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
+            <div style={{zIndex: -1, position: "absolute", top: -2, right: 5}}>{`Selected profile: ${myAlarmProfile?.name}`}</div>
             {deviceList.map((sensorElement, index) => (
                 <div key={index} id={sensorElement.id} className={(sensorElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (sensorElement.enabled && !sensorElement.missing ? " highlight_green " : "") + (sensorElement.missing ? " highlight_red " : "") + " dimmable"} >
                     {sensorElement.name.toLowerCase().indexOf("garage car door") > -1 
@@ -141,6 +142,7 @@ const AlarmsPanel: React.FC<{
     
     return (<Panel className={className}>
         <div style={{zIndex: -1, position: "absolute", top: 0, left: 5}}>{deviceList.length}</div>
+        <div style={{zIndex: -1, position: "absolute", top: -2, right: 5}}>{Number.isInteger(myAlarmProfile?.alarmTimeLengthSec) ? (myAlarmProfile?.alarmTimeLengthSec > 0 ? `Alarms occur for ${myAlarmProfile?.alarmTimeLengthSec} sec` : 'alarms will sound while triggered') : ''}</div>
         {deviceList.map((alarmElement, index) => (
             <div key={index} id={alarmElement.id} className={(alarmElement.triggered ? " invertTransitions " : "") + " thin_round_border status_icon_container_layout lower_opacity icon lowlight_gray" + (alarmElement.enabled ? " highlight_green " : "") + (alarmElement.missing ? " highlight_red " : "") + " dimmable"} >
                  {alarmElement.name}

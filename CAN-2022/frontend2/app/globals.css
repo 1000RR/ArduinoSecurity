@@ -25,7 +25,7 @@
 	}
 
 	.dimmable, option {
-		filter: brightness(60%);
+		filter: brightness(70%);
 	}
 }
 
@@ -33,6 +33,35 @@ body {
 	color: var(--foreground);
 	background: var(--background);
 	font-family: Arial, Helvetica, sans-serif;
+}
+
+pre {
+	display: block;
+	margin-right: 10px;
+	min-width: 100%;
+	height: fit-content;
+	width: 0px;
+	color: black;
+	line-height: 20px;
+  	padding: 0px; /* adjust as needed */
+  	border-radius: 5px;
+    background-blend-mode: color-burn;
+	overflow-y: none;
+	overflow-x: auto;
+
+	background: 
+	repeating-linear-gradient(
+		to bottom,
+		#ffffe0,
+		#ffffe0 20px,
+		#fffacd 20px,
+		#fffacd 40px
+	),
+	linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0),
+      rgba(68, 0, 255, 0.15)
+    );
 }
 
 .fadeoutImageRound {
@@ -89,7 +118,7 @@ body {
 	border-color: rgba(255, 170, 0, 1) !important;
 	color: rgba(255, 170, 0, 1) !important;
 
-	&:hover {
+	&:focus {
 		filter: brightness(120%);
 	}
 
@@ -98,7 +127,7 @@ body {
 	}
 
 	@media (prefers-color-scheme: dark) {
-		&:hover {
+		&:focus {
 			filter: brightness(75%);
 		}
 	
@@ -108,13 +137,21 @@ body {
 	}
 }
 
+.button-enabled {
+	filter: sepia(30%) hue-rotate(190deg) saturate(100);
+
+	@media (prefers-color-scheme: dark) {
+		filter: sepia(25%) hue-rotate(150deg) saturate(90) brightness(65%);
+	}
+}
+
 .alarm_button_enabled {
 	background-color: rgba(255, 170, 0, 1) !important;
 	border-width: 3px !important;
 	border-color:rgba(72, 2, 194, 1) !important;
 	color: rgba(72, 2, 194, 1) !important;
 
-	&:hover {
+	&:focus {
 		filter: brightness(110%);
 	}
 
@@ -123,7 +160,7 @@ body {
 	}
 
 	@media (prefers-color-scheme: dark) {
-		&:hover {
+		&:focus {
 			filter: brightness(70%);
 		}
 	
@@ -191,6 +228,41 @@ body {
 	color: white;
 }
 
+/* Common styles for both buttons */
+.scroll-btn {
+	position: sticky !important;
+	justify-content: start !important;
+	z-index: 10;       /* ensure the button appears above other content */
+	padding: 8px 12px;
+	border: none;
+	background: #007BFF;
+	color: #fff;
+	cursor: pointer;
+	opacity: 0.8;
+	transition: opacity 0.3s;
+	height: 50px !important;
+	line-height: 1.2;
+	width: calc(50vw - 10px) !important;
+}
+
+.scroll-btn:focus {
+	opacity: 1;
+}
+
+/* "Scroll to Top" button sticks to the top of the container (or viewport) */
+.scrollToTopBtn {
+	z-index: 2;
+	bottom: 0;
+	margin-top: 0; /* margin can be adjusted or removed */
+}
+
+/* "Scroll to Bottom" button sticks to the bottom */
+.scrollToBottomBtn {
+	z-index: 2;
+	top: 0;
+	margin-bottom: 0; /* adjust as necessary */
+}
+
 @media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
 		only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3) {
 	.status_icon_container_layout {
@@ -226,7 +298,7 @@ body {
 	}
 
 	.scale_mobile {
-		scale: .7!important;
+		scale: .9 !important;
 	}
 }
 

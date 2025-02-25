@@ -8,8 +8,10 @@ import UnavailableOverlay from "@components/UnavailableOverlay";
 import ArmButtonList from "@components/ArmButtonList";
 import SpecialFunctions from "@components/SpecialFunctions";
 import Image from "next/image";
+import Button from "./Button";
 
-import { useEffect } from "react";
+
+import { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { AppState, AppStateSlice } from "./AppStateSlice";
 import { initializeWebSocket } from "@components/WebSocketService";
@@ -38,19 +40,66 @@ const AppView: React.FC = () => {
         <Image className="fadeoutImageRound" src={"/assets/dogread.jpg"} width="150" height="150" alt=""></Image>
     </div>;
 
+    const scrollToTop = (e: any, elName: any) => {
+        let el = document.getElementById(elName);
+        if (el) {
+            el.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const scrollToBottom = (e: any, elName: any) => {
+        let el = document.getElementById(elName);
+        if (el) {
+            el?.scrollTo({
+                top: el.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const close = (ref: any) => {
+        if (ref) {
+            ref?.current.click();
+        }
+    };
+
+    let currentRef = useRef(null);
+
     return (
         <>
             { serviceAvailable ? 
-                <div className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
+                <div style={{overflowX: 'hidden'}} className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
                     <TopPanel></TopPanel>
                     <TopPanelSpacer></TopPanelSpacer>
                     <IndicatorPanel></IndicatorPanel>
                     <ButtonWithDrawer flexDirection="column" buttonText="Alarm Control"><ArmButtonList alarmProfilesToDisplay={[0,1,3,15,2,7]}></ArmButtonList></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" buttonText="Garage Door"><GarageDoorButton></GarageDoorButton></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"><SpecialFunctions></SpecialFunctions></ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Status"><pre>{JSON.stringify(appState.status, null, 2)}</pre></ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Past Events"><pre>{JSON.stringify(appState.pastEvents, null, 2)}</pre></ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="row" justifyContent="flex-start" buttonText="Profiles"><pre>{JSON.stringify(appState.alarmProfiles, null, 2)}</pre></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Status" containsScrollable>
+                        <div style={{display: "flex", gap: 10}}>
+                            <Button onClick={(e) => {scrollToBottom(e, "statusContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop(e, "statusContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                        </div>
+                        <pre id="statusContainer" className="dimmable">{JSON.stringify(appState.status, null, 2)}</pre>
+                    </ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Past Events" containsScrollable>
+                        <div style={{display: "flex", gap: 10}}>
+                            <Button onClick={(e) => {scrollToBottom(e, "eventsContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop(e, "eventsContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                        </div>
+                        <pre id="eventsContainer" className="dimmable">{JSON.stringify(appState.pastEvents, null, 2)}</pre>
+                    </ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Profiles" containsScrollable>
+                        <div style={{display: "flex", gap: 10}}>
+                            <Button onClick={(e) => {scrollToBottom(e, "profilesContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop(e, "profilesContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                        </div>
+                        <pre id="profilesContainer" className="dimmable">{JSON.stringify(appState.alarmProfiles, null, 2)}</pre>
+                    </ButtonWithDrawer>
+
                     <ButtonWithDrawer flexDirection="column" buttonText="All Alarm Profiles"><ArmButtonList></ArmButtonList></ButtonWithDrawer>
                 </div> :
                 <div>

@@ -44,7 +44,7 @@ const ButtonTextStyle = css`
 const ButtonPressStyle = css`
     &.buttonEnabled {
         background-color: #00a0d0;
-        &:hover {
+        &:focus {
             background-color: lightblue;
             border-color: white;
             color: white;
@@ -63,7 +63,7 @@ const ButtonPressStyle = css`
 
     &.buttonDisabled {
         background-color:  #d00000;
-        &:hover {
+        &:focus {
             background-color: lightcoral;
             border-color: white;
         }
@@ -105,7 +105,6 @@ const AlarmEnableButton: React.FC<{
 
     const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         isArmed ? emitDisarmEvent() : emitArmEvent();
-        event.currentTarget.blur();
     };
 
     const buttonText = isArmed ? `ARMED : ${profileName.toUpperCase()}` : "DISARMED";
@@ -116,7 +115,7 @@ const AlarmEnableButton: React.FC<{
 
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
-            <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" width="90" height="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
+            <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" height="90" width="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}
             

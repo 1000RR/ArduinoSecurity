@@ -18,8 +18,8 @@ export const ButtonSizeStyle = css`
 
 export const ButtonTextStyle = css`
     text-align: left;
-    font-weight: bold;
-    font-size: 1.25em;
+    font-weight: normal;
+    font-size: 1.5em;
     font-family: "futura";
 `;
 
@@ -42,7 +42,7 @@ export const ButtonPressStyle = css`
     border-color: #bbbbbb;
     color: #bbbbbb;
     
-    &:hover {
+    &:focus {
         background-color: #4d8a6a;
         border-color: #dddddd;
         color: #dddddd;
@@ -71,7 +71,6 @@ const GarageDoorButton: React.FC<{
     className?: string
 }> = ({ className }) => {
     const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
-        event.currentTarget.blur();
         emitGarageDoorToggleEvent();
     };
 

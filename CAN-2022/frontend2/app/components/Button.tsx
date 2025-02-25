@@ -19,7 +19,6 @@ const ButtonBorderStyle = css`
     border: 1px;
     border-style: solid;
     border-radius: 5px;
-    border-color: darkgrey;
 `;
 const ButtonLayoutStyle = css`
     display: flex;
@@ -30,28 +29,45 @@ const ButtonLayoutStyle = css`
     flex-direction: column;
 `;
 const ButtonPressStyle = css`
-    background-color: #444444;
-    color: #999999;
-    border-color: #999999;
-    
-    &:hover {
-        background-color: #555555;
-        color: #BBBBBB;
-        border-color: #BBBBBB;
-    }
+    background-color:  #aaaaaa;
+	color: #3c3c3c;
+	border-color: #3c3c3c;
+	
+	&:focus {
+		background-color: #bbbbbb;
+		border-color: #3c3c3c;
+		color: #3c3c3c;
+	}
 
-    &:active {
-        background-color: #888888;
-        color: #dddddd;
-        border-color: #dddddd;
-    }
+	&:active {
+		background-color: #dddddd;
+		border-color: #111111;
+		color: #111111;
+	}
 
-    @media (prefers-color-scheme: dark) {   
-        
-    }
-    
+	@media (prefers-color-scheme: dark) {
+		background-color: #3c3c3c;
+		color: #999999;
+        border-color: #999999;
 
-    
+		&:focus {
+			color: #c5c5c5;
+			background-color: #454545;
+			border-color: #aaaaaa;
+		}
+
+		&:active {
+			color: #d5c5c5;
+			background-color: #6f6f6f;
+			border-color: black;
+		}
+
+		.button-enabled {
+			color: white !important;
+			background-color: red !important;
+			border-color: white !important; 
+		}
+	}
 `;
 
 const CompositeStyledButton = styled.button`
