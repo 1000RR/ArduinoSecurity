@@ -1,9 +1,4 @@
 TODO
 
-- [major bug] crashes server when buttons hit too frequently. Serverside?
-
-- serve HTTPS over nginx
-- nginx must provide cert
-- PWA
-
+- bug: does not add link rel manifest to production html
 - stretch goal: nginx checks for client cert - client verification
