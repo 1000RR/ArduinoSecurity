@@ -40,7 +40,7 @@ const AppView: React.FC = () => {
         <Image className="fadeoutImageRound" src={"/assets/dogread.jpg"} width="150" height="150" alt=""></Image>
     </div>;
 
-    const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>, elName: string) => {
+    const scrollToTop = (elName: string) => {
         const el = document.getElementById(elName);
         if (el) {
             el.scrollTo({
@@ -50,7 +50,7 @@ const AppView: React.FC = () => {
         }
     };
 
-    const scrollToBottom = (e: React.MouseEvent<HTMLButtonElement>, elName: string) => {
+    const scrollToBottom = (elName: string) => {
         const el = document.getElementById(elName);
         if (el) {
             el?.scrollTo({
@@ -59,7 +59,6 @@ const AppView: React.FC = () => {
             });
         }
     };
-
 
     return (
         <>
@@ -73,22 +72,22 @@ const AppView: React.FC = () => {
                     <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"><SpecialFunctions></SpecialFunctions></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Status" containsScrollable>
                         <div style={{display: "flex", gap: 10}}>
-                            <Button onClick={(e) => {scrollToBottom(e, "statusContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
-                            <Button onClick={(e) => {scrollToTop(e, "statusContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                            <Button onClick={(e) => {scrollToBottom("statusContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop("statusContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
                         </div>
                         <pre id="statusContainer" className="dimmable">{JSON.stringify(appState.status, null, 2)}</pre>
                     </ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Past Events" containsScrollable>
                         <div style={{display: "flex", gap: 10}}>
-                            <Button onClick={(e) => {scrollToBottom(e, "eventsContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
-                            <Button onClick={(e) => {scrollToTop(e, "eventsContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                            <Button onClick={(e) => {scrollToBottom("eventsContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop("eventsContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
                         </div>
                         <pre id="eventsContainer" className="dimmable">{JSON.stringify(appState.pastEvents, null, 2)}</pre>
                     </ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Profiles" containsScrollable>
                         <div style={{display: "flex", gap: 10}}>
-                            <Button onClick={(e) => {scrollToBottom(e, "profilesContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
-                            <Button onClick={(e) => {scrollToTop(e, "profilesContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
+                            <Button onClick={(e) => {scrollToBottom("profilesContainer")}} className="scrollToBottomBtn scroll-btn">Bottom</Button>
+                            <Button onClick={(e) => {scrollToTop("profilesContainer")}}  className="scrollToTopBtn scroll-btn">Top</Button>
                         </div>
                         <pre id="profilesContainer" className="dimmable">{JSON.stringify(appState.alarmProfiles, null, 2)}</pre>
                     </ButtonWithDrawer>

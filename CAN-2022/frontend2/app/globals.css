@@ -62,6 +62,8 @@ pre {
       rgba(255, 255, 255, 0),
       rgba(68, 0, 255, 0.15)
     );
+	background-attachment: local;
+	overscroll-behavior: none;
 }
 
 .fadeoutImageRound {
