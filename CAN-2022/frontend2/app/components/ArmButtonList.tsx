@@ -4,7 +4,7 @@ import Panel from "@components/Panel"
 import { useSelector } from "react-redux";
 import { AlarmProfile, AppStateSlice, StatusResponse } from "./AppStateSlice";
 import Button from "./Button";
-import { emitDisarmEvent, emitArmAndChangeProfileEvent } from "./WebSocketService";
+import { emitDisarmEvent, emitArmAndChangeProfileEvent, emitChangeProfileEvent } from "./WebSocketService";
 
 type AlarmProfileDescriptor = {
     id: number,
@@ -17,6 +17,7 @@ const ArmButtonContainer: React.FC<{
     alarmProfilesToDisplay?: Array<number>
 }> = ({ className, alarmProfilesToDisplay = []}) => {
 
+    const setAlarmMode = alarmProfilesToDisplay.length > 0;
     const alarmProfiles = useSelector(function (state: AppStateSlice) { 
         return state.appState.alarmProfiles.profiles;
     });
@@ -26,25 +27,27 @@ const ArmButtonContainer: React.FC<{
     const alarmArmed = useSelector(function (state: AppStateSlice) { 
         return state.appState.status.armStatus === 'ARMED';
     });
-    const generatedAlarmProfileList:Array<AlarmProfileDescriptor> = [{
+    const generatedAlarmProfileList:Array<AlarmProfileDescriptor> = setAlarmMode ?[{
         name: "Disarm",
         id: -1,
         enabled: !alarmArmed
-    }];
+    }] : [];
 
     alarmProfiles?.forEach((alarmProfile: AlarmProfile, index: number) => {
-        if (alarmProfilesToDisplay.length && alarmProfilesToDisplay.includes(index) || !alarmProfilesToDisplay.length) {
+        if (setAlarmMode && alarmProfilesToDisplay.includes(index) || !setAlarmMode) {
             generatedAlarmProfileList.push({
-                name: (!alarmProfilesToDisplay.length ? `${index}: ` : ``) + alarmProfile.name,
+                name: (!setAlarmMode ? `${index}: ` : `Arm `) + alarmProfile.name,
                 id: index,
-                enabled: alarmArmed && selectedProfileNumber === index
+                enabled: ((setAlarmMode && alarmArmed) || !setAlarmMode) && selectedProfileNumber === index
             });
         }
     });
 
     const clickHandler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         const profileId =  Number.parseInt(event.currentTarget.id); //-1 is disable button manually added
-        profileId === -1 ?  emitDisarmEvent() : emitArmAndChangeProfileEvent(profileId, alarmArmed);
+        profileId === -1 ?  emitDisarmEvent() : (
+            setAlarmMode ? emitArmAndChangeProfileEvent(profileId, alarmArmed) : emitChangeProfileEvent(profileId)
+        );
     };
 
     return (

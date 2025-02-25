@@ -4,8 +4,7 @@ import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError,
 
 let comAPI: Comlink.Remote<ComWorkerAPI> | null = null;
 let lastClickTime: EpochTimeStamp = 0;
-let timeout: number = 2500;
-
+const timeout: number = 2500;
 
 export const initializeWebSocket = (dispatch: (action: any) => void) => {
   const worker = new Worker(new URL("@workers/ComWorker.ts", import.meta.url));
@@ -97,6 +96,15 @@ export const emitArmAndChangeProfileEvent = (profileId: number, isArmed: boolean
 			}, 2000);
 		}
 		
+	}
+};
+
+export const emitChangeProfileEvent = (profileId: number) => {
+	if (comAPI) {
+		if (lastClickTime > Date.now() - timeout) return; //don't allow clicks that are frequent
+		lastClickTime = Date.now();
+
+		comAPI.emitEvent('setAlarmProfile', {message: profileId});		
 	}
 };
 

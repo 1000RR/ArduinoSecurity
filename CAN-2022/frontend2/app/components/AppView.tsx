@@ -40,8 +40,8 @@ const AppView: React.FC = () => {
         <Image className="fadeoutImageRound" src={"/assets/dogread.jpg"} width="150" height="150" alt=""></Image>
     </div>;
 
-    const scrollToTop = (e: any, elName: any) => {
-        let el = document.getElementById(elName);
+    const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>, elName: string) => {
+        const el = document.getElementById(elName);
         if (el) {
             el.scrollTo({
                 top: 0,
@@ -50,8 +50,8 @@ const AppView: React.FC = () => {
         }
     };
 
-    const scrollToBottom = (e: any, elName: any) => {
-        let el = document.getElementById(elName);
+    const scrollToBottom = (e: React.MouseEvent<HTMLButtonElement>, elName: string) => {
+        const el = document.getElementById(elName);
         if (el) {
             el?.scrollTo({
                 top: el.scrollHeight,
@@ -60,13 +60,6 @@ const AppView: React.FC = () => {
         }
     };
 
-    const close = (ref: any) => {
-        if (ref) {
-            ref?.current.click();
-        }
-    };
-
-    let currentRef = useRef(null);
 
     return (
         <>
@@ -100,7 +93,7 @@ const AppView: React.FC = () => {
                         <pre id="profilesContainer" className="dimmable">{JSON.stringify(appState.alarmProfiles, null, 2)}</pre>
                     </ButtonWithDrawer>
 
-                    <ButtonWithDrawer flexDirection="column" buttonText="All Alarm Profiles"><ArmButtonList></ArmButtonList></ButtonWithDrawer>
+                    <ButtonWithDrawer flexDirection="column" buttonText="Choose Alarm Profile"><ArmButtonList></ArmButtonList></ButtonWithDrawer>
                 </div> :
                 <div>
                     <UnavailableOverlay>{appState.isError && !appState.isConnected ? unavailableContent : loadingContent}</UnavailableOverlay>
