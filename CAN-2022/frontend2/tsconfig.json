@@ -26,6 +26,7 @@
       "@store/*": ["./app/components/store/*"],
       "@workers/*": ["./app/workers/*"],
       "@features/*": ["./app/features/*"],
+      "@src/*": ["./app/src/*"],
       "@assets/*": ["./public/assets/*"],
     }
   },

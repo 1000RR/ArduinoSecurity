@@ -47,6 +47,7 @@ const ButtonPressStyle = css`
 	background-color:  #aaaaaa;
 	color: #3c3c3c;
 	border-color: #3c3c3c;
+	transition-duration: .4s;
 	
 	&:focus {
 		background-color: #bbbbbb;
@@ -120,6 +121,7 @@ const ButtonWithDrawer: React.FC<{
 	
 	const [isCollapsed, setIsCollapsed] = useState(true);
 	const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
+		event.currentTarget.blur();
 		setIsCollapsed(!isCollapsed);
 	};
 

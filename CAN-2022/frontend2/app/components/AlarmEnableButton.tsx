@@ -4,7 +4,7 @@ import Image from "next/image";
 import React from "react";
 import { useSelector } from "react-redux";
 import styled, {css} from "styled-components";
-import { emitDisarmEvent, emitArmEvent } from "./WebSocketService";
+import { emitDisarmEvent, emitArmEvent } from "@src/WebSocketService";
 import { AppStateSlice } from "./AppStateSlice";
 
 const ButtonSizeStyle = css`
@@ -21,7 +21,7 @@ const ButtonSizeStyle = css`
     }
 `;
 const ButtonBorderStyle = css`
-    border: 1px;
+    border: 2px;
     border-style: solid;
     border-radius: 5px;
     border-color: darkgrey;
@@ -42,8 +42,11 @@ const ButtonTextStyle = css`
 `;
 
 const ButtonPressStyle = css`
+    transition-duration: .4s;
+
     &.buttonEnabled {
-        background-color: #00a0d0;
+        background-color: #539eff;
+        border-color: #5eaeaf;
         &:focus {
             background-color: lightblue;
             border-color: white;
@@ -114,7 +117,7 @@ const AlarmEnableButton: React.FC<{
 
 
     return (<div style={{ width: "100%", }}>
-        <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={handler}>
+        <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={(e)=>{e.currentTarget.blur(); handler(e);}}>
             <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" height="90" width="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
                 {buttonText}
                 {children}

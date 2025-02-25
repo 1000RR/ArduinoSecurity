@@ -2,7 +2,7 @@
 import React, { MouseEventHandler } from "react";
 import styled, {css} from "styled-components";
 import Button from "./Button";
-import { emitClearDataEvent, emitTestAlarmEvent, emitGetAttentionEvent, emitSendSpecialOnce, emitSendSpecialRepeatedly, emitStopSendingSpecial } from "./WebSocketService";
+import { emitClearDataEvent, emitTestAlarmEvent, emitGetAttentionEvent, emitSendSpecialOnce, emitSendSpecialRepeatedly, emitStopSendingSpecial } from "@src/WebSocketService";
 import Panel from "./Panel";
 import { setPastEvents } from "./AppStateSlice";
 import { useDispatch } from "react-redux";
@@ -95,9 +95,9 @@ const SpecialFunctions: React.FC<{
                 <input type="text" id="type-field" className="dimmable input-field" name="type" defaultValue="0x00" required />
                 <span className="input-hint" style={{position: "absolute", right: 7}}>TYPE</span>
             </div>  
-            <button id="can-send-single" className="smallbutton gray dimmable" onClick={sendSingleCan}>send once</button>
-            <button id="can-send-repeatedly" className="smallbutton gray dimmable" onClick={sendRepeatedlyCan}>send repeatedly</button>
-            <button id="can-stop-send" className="smallbutton gray dimmable" onClick={stopSendingCan}>stop sending</button>
+            <Button id="can-send-single" className="smallbutton gray dimmable" onClick={sendSingleCan}>send once</Button>
+            <Button id="can-send-repeatedly" className="smallbutton gray dimmable" onClick={sendRepeatedlyCan}>send repeatedly</Button>
+            <Button id="can-stop-send" className="smallbutton gray dimmable" onClick={stopSendingCan}>stop sending</Button>
             </Panel>
         </CompositePanelStyle>
     );

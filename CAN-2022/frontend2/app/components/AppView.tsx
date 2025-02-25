@@ -11,10 +11,10 @@ import Image from "next/image";
 import Button from "./Button";
 
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { AppState, AppStateSlice } from "./AppStateSlice";
-import { initializeWebSocket } from "@components/WebSocketService";
+import { initializeWebSocket } from "@src/WebSocketService";
 import TopPanelSpacer from "./TopPanelSpacer";
 
 const AppView: React.FC = () => {

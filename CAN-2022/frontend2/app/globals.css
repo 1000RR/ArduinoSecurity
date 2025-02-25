@@ -217,12 +217,30 @@ pre {
 }
 
 .smallbutton {
-    border-radius: 15px;
-    height: 50px;
-    width: 100px;
-    transition-duration: .4s;
-    font-size: 16px;
-    word-wrap: break-word;
+    border-radius: 15px !important;
+    height: 50px !important;
+    width: 100px !important;
+    transition-duration: .4s !important;
+    font-size: 16px !important;
+    word-wrap: break-word !important;
+}
+
+.garage_door_opener_button_color {
+	background-color: #39644E !important;
+    border-color: #bbbbbb !important;
+    color: #bbbbbb !important;
+    
+    &:focus {
+        background-color: #4d8a6a !important;
+        border-color: #dddddd !important;
+        color: #dddddd !important;
+    }
+
+    &:active {
+        background-color: #71bb95 !important;
+        border-color: #ffffff !important;
+        color: #ffffff !important;
+    }
 }
 
 .gray {

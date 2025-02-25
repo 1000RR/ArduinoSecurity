@@ -4,7 +4,7 @@ import Panel from "@components/Panel"
 import { useSelector } from "react-redux";
 import { AlarmProfile, AppStateSlice, StatusResponse } from "./AppStateSlice";
 import Button from "./Button";
-import { emitDisarmEvent, emitArmAndChangeProfileEvent, emitChangeProfileEvent } from "./WebSocketService";
+import { emitDisarmEvent, emitArmAndChangeProfileEvent, emitChangeProfileEvent } from "@src/WebSocketService";
 
 type AlarmProfileDescriptor = {
     id: number,
@@ -53,7 +53,7 @@ const ArmButtonContainer: React.FC<{
     return (
         <Panel flexDirection="row" alignItems="center" gap={10} rowGap={30}>
             {generatedAlarmProfileList.map((alarmProfile: AlarmProfileDescriptor, index) => (
-                <Button id={alarmProfile.id} key={index} onClick={clickHandler} className={(alarmProfile.enabled ? " alarm_button_enabled " : " alarm_button_disabled ") + " dimmable alarm_button"} >
+                <Button id={alarmProfile.id.toString()} key={index} onClick={clickHandler} className={(alarmProfile.enabled ? " alarm_button_enabled " : " alarm_button_disabled ") + " dimmable alarm_button"} >
                     {alarmProfile.name}
                 </Button>
             ))}

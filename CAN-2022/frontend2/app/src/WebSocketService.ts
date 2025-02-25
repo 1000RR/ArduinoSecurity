@@ -1,6 +1,6 @@
 import * as Comlink from "comlink";
 import { ComWorkerAPI } from "@/app/workers/ComWorker";
-import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } from "./AppStateSlice";
+import { setStatus, setPastEvents, setAlarmProfiles, setIsConnected, setIsError, setIsLoaded } from "@components/AppStateSlice";
 
 let comAPI: Comlink.Remote<ComWorkerAPI> | null = null;
 let lastClickTime: EpochTimeStamp = 0;
@@ -84,19 +84,14 @@ export const emitArmEvent = () => {
 };
 
 export const emitArmAndChangeProfileEvent = (profileId: number, isArmed: boolean) => {
-	if (comAPI) {
-		if (lastClickTime > Date.now() - timeout) return; //don't allow clicks that are frequent
-		lastClickTime = Date.now();
-
-		comAPI.emitEvent('setAlarmProfile', {message: profileId})
+	emitChangeProfileEvent(profileId);
 		
-		if (!isArmed) {
-			setTimeout(()=>{
-				comAPI?.emitEvent('arm', {message: undefined});
-			}, 2000);
-		}
-		
+	if (!isArmed) {
+		setTimeout(()=>{
+			comAPI?.emitEvent('arm', {message: undefined});
+		}, 2000);
 	}
+	
 };
 
 export const emitChangeProfileEvent = (profileId: number) => {

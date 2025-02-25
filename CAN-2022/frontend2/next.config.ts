@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+const staticConfig: NextConfig = {
   output: "export",
   images: {
     unoptimized: true,
   }
 };
 
-export default nextConfig;
+const ssrConfig: NextConfig = {};
+
+export default (process.env.NEXT_BUILD_CONFIG === 'static' ? staticConfig : ssrConfig);

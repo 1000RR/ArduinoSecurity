@@ -32,6 +32,7 @@ const ButtonPressStyle = css`
     background-color:  #aaaaaa;
 	color: #3c3c3c;
 	border-color: #3c3c3c;
+    transition-duration: .4s;
 	
 	&:focus {
 		background-color: #bbbbbb;
@@ -84,10 +85,10 @@ const Button: React.FC<{
     buttonText?: string,
     style?: React.CSSProperties,
     onClick?: React.MouseEventHandler<HTMLButtonElement>,
-    id?: number
+    id?: string
 }> = ({ className, children, buttonText, style, onClick, id}) => {
     return (
-        <CompositeStyledButton id={id?.toString()} className={`base-button ${className}`} style={style} onClick={onClick}>
+        <CompositeStyledButton id={id} className={`${className} base-button`} style={style} onClick={(e)=>{e.currentTarget.blur(); onClick? onClick(e) : (()=>{})();}}>
             {buttonText}
             {children}
         </CompositeStyledButton>
