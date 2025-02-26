@@ -51,7 +51,7 @@ const ArmButtonContainer: React.FC<{
     };
 
     return (
-        <Panel flexDirection="row" alignItems="center" gap={10} rowGap={30}>
+        <Panel flexDirection="row" alignItems="center" gap={10} rowGap={10}>
             {generatedAlarmProfileList.map((alarmProfile: AlarmProfileDescriptor, index) => (
                 <Button id={alarmProfile.id.toString()} key={index} onClick={clickHandler} className={(alarmProfile.enabled ? " alarm_button_enabled " : " alarm_button_disabled ") + " dimmable alarm_button"} >
                     {alarmProfile.name}

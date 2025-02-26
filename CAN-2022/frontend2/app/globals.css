@@ -65,6 +65,8 @@ pre {
     );
 	background-attachment: local;
 	overscroll-behavior: none;
+
+
 }
 
 .fadeoutImageRound {
@@ -201,11 +203,11 @@ pre {
 }	
 
 .alarm_button {
-	margin: 0px 10px 00px 10px;
-	width: calc(300px) !important;
+	margin: 0px 0px 0px 0px !important;
+	width: 250px !important;
 	padding: 0px 20px !important;
-	height: 150px !important;
-	font-size: 26px !important;
+	height: 100px !important;
+	font-size: 22px !important;
 }
 
 .invertTransitions {
@@ -334,19 +336,14 @@ pre {
 		min-height: 110px;
 		padding: 0 !important;
 		margin: 0 !important;
-
-	}
-
-	.alarm_button {
-		margin: 0px 10px 00px 10px;
-		width: calc(300px) !important;
-		padding: 0px 20px !important;
-		height: 150px !important;
-		font-size: 23px !important;
 	}
 
 	.scale_mobile {
 		scale: .9 !important;
+	}
+
+	pre {
+		font-size: 14px !important;
 	}
 }
 

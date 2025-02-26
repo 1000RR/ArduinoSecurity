@@ -5,7 +5,7 @@ import styled, {css} from "styled-components";
 
 const ButtonSizeStyle = css`
     width: 100%;
-    height: 80px;
+    height: 65px;
     font-size: 1.7em;
     font-family: "futura";
 

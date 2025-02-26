@@ -8,12 +8,11 @@ const drawerDisplay = 'flex';
 
 const ButtonSizeStyle = css`
 	width: calc(100% - 20px);
-	height: 75px;
+	height: 65px;
 
 	@media only screen and (min-device-width: 320px) and (max-device-width: 430px) and (-webkit-device-pixel-ratio: 2), 
 	   only screen and (min-device-width: 375px) and (max-device-width: 812px) and (-webkit-device-pixel-ratio: 3)
 	{
-	   width: calc(100vw - 20px);
 	   font-size: 1.5em;
 	}
 `;
