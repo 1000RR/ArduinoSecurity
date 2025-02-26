@@ -9,7 +9,6 @@ import subprocess
 import os
 from threading import Thread
 
-
 debug = False
 LISTEN_PORT=8080
 memberDevices = {} #map of {string hex id:{properties}}
@@ -47,7 +46,7 @@ threadShouldTerminate = False
 canDebugMessage = ""
 shouldSendDebugRepeatedly = False
 shouldSendDebugMessage = False
-alwaysKeepOnSet = {"0x30", "0x31"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors.
+
 avrSoundChannel = "SAT/CBL"
 
 
@@ -308,7 +307,6 @@ def setDevicesPower():
     # if armed, send OFF or ON to all depending on whether the device is in the profile's sensorsthattrigger
     if not armed:
         sendPowerCommand([], True, False)
-        sendPowerCommand(list(alwaysKeepOnSet), False, True)
     else:
         offDevices, onDevices = getDevicesPowerStateLists()
         sendPowerCommand(offDevices, False, False)
@@ -318,7 +316,6 @@ def getDevicesPowerStateLists():
     oldProfilesSet = set(memberDevices)
     newProfilesSet = set(alarmProfiles[currentAlarmProfile]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[currentAlarmProfile] else set(memberDevices)
 
-    newProfilesSet = newProfilesSet.union(alwaysKeepOnSet)
 
     offDevices = list(oldProfilesSet - newProfilesSet)
     onDevices = list(newProfilesSet)
@@ -839,7 +836,6 @@ def run(webserver_message_queue):
     global lastCheckedMissingDevicesMsec
     global alarmProfiles
     global currentAlarmProfile
-    global alwaysKeepOnSet
     global testAlarmId
     global missingDevices
     resetMemberDevices()
@@ -869,6 +865,7 @@ def run(webserver_message_queue):
             elif (message['request'].startswith("SET-ALARM-PROFILE-")):
                 profileNumber = int(message['request'].split("SET-ALARM-PROFILE-",1)[1])
                 setCurrentAlarmProfile(profileNumber)
+                
             elif (message['request'] == "GET-ALARM-PROFILES") :
                 message['responseQueue'].put({"response": getProfilesJsonString(), "uuid": message['uuid'] })
             elif (message['request'] == "FORCE-ALARM-SOUND-ON") :
@@ -882,9 +879,12 @@ def run(webserver_message_queue):
                 clearOldData()
             elif (message['request'] == "ALERT-CHECK-PHONES") :
                 currentlyAlarmedDevices[hex(checkPhonesId)] = getTimeSec();
+                saveProfile = currentAlarmProfile;
+                currentAlarmProfile = 0;
                 sendAlarmMessage(True, True)
                 time.sleep(.1)
                 sendAlarmMessage(False, False)
+                currentAlarmProfile = saveProfile;
             elif (message['request'].startswith("CAN-REPEATEDLY-SEND-")) :
                 sendcan(message['request'].split('CAN-REPEATEDLY-SEND-')[1], True)
             elif (message['request'].startswith("CAN-SINGLE-SEND-")) :
@@ -906,7 +906,6 @@ def run(webserver_message_queue):
                 print(f"{member} : {memberDevices[member]}")
             print("\n\n\n")
             sendPowerCommand([], True, False) #turn off all - broadcast
-            sendPowerCommand(set(alwaysKeepOnSet), False, True) #turn on those devices that are meant to stay on always
         try:
             decodedLine = line.decode('utf-8')
         except:
@@ -1047,23 +1046,5 @@ def sendcan(message, repeatedly):
             shouldSendDebugRepeatedly = True if repeatedly else False
             shouldSendDebugMessage = True
 
-#TODO: 
-#ADJUST AND FLASH ALL DEVICES WITH CORRECT DEVICETYPES!!
-#web server certs auth
-#profiles
-#profiles with trigger conditions and overridable default alarm (specific-device alarms)
-#overlapping profiles (multiple alarm sessions at the same time)
-#rename variables
-#long antenna for key fob
-#remote garage opener
-#light alarm 24v
-#wire the wall
-#power things for any device with relay into 5v
-
-
-#pmd.reset_output_buffer()
-
-
 if __name__ == "__main__":
     run(None)  # For testing in standalone mode
-
