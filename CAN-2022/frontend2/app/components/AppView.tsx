@@ -63,7 +63,7 @@ const AppView: React.FC = () => {
     return (
         <>
             { serviceAvailable ? 
-                <div style={{overflowX: 'hidden', overscrollBehavior: 'none'}} className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
+                <div style={{overflowX: 'hidden'}} className={`background ${alarmTriggered ? " blinkingTransitions " : " "}`}>
                     <TopPanel></TopPanel>
                     <TopPanelSpacer></TopPanelSpacer>
                     <IndicatorPanel></IndicatorPanel>

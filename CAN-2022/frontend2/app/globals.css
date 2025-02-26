@@ -33,6 +33,7 @@ body {
 	color: var(--foreground);
 	background: var(--background);
 	font-family: Arial, Helvetica, sans-serif;
+	overscroll-behavior: 'none';
 }
 
 pre {
@@ -171,6 +172,33 @@ pre {
 		}
 	}
 }
+
+.blueButton {
+	background-color: #0095ff !important;
+	color: rgb(204, 204, 204) !important;
+	&:active {
+		background-color: #70b4fd !important;
+		color: rgb(120, 120, 120) !important;
+	}
+}
+
+.redButton {
+	background-color: #DC3545 !important;
+	color: rgb(204, 204, 204) !important;
+	&:active {
+		background-color: #dd6974 !important;
+		color: rgb(120, 120, 120) !important;
+	}
+}
+
+.orangeButton {
+	background-color: #ffa807 !important;
+	color: rgb(115, 115, 115) !important;
+	&:active {
+		background-color: #fedd5b !important;
+		color: rgb(78, 78, 78) !important;
+	}
+}	
 
 .alarm_button {
 	margin: 0px 10px 00px 10px;

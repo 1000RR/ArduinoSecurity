@@ -75,9 +75,9 @@ const SpecialFunctions: React.FC<{
 
     return (
         <CompositePanelStyle className={className}>
-            <Button onClick={clearDataHandler}>Clear Data</Button>
-            <Button onClick={testAlarmsHandler}>Test Alarms</Button>
-            <Button onClick={getAttentionHandler}>Get Attention</Button>
+            <Button className="blueButton dimmable" onClick={clearDataHandler}>Clear Data</Button>
+            <Button className="orangeButton dimmable" onClick={testAlarmsHandler}>Test Alarms</Button>
+            <Button className="redButton dimmable" onClick={getAttentionHandler}>Get Attention</Button>
             <Panel>
             <div className="input-wrapper" style={{position: "relative", display: "inline-block"}}>
                 <input type="text" id="sender-field" className="dimmable input-field" name="sender" defaultValue="0x75" required />
