@@ -46,7 +46,7 @@ threadShouldTerminate = False
 canDebugMessage = ""
 shouldSendDebugRepeatedly = False
 shouldSendDebugMessage = False
-
+alwaysKeepOnSet = {"0x30", "0x31", "0x40", "0x50"} #set of devices to always keep powered on (active). This should be limited to non-emitting sensors. #TODO: removing this logic inhibited the intended operation of the garage door sensor when disarmed. It makes sense to always have non-relay devices transmitting and not respond to base power commands, with base filtering the.
 avrSoundChannel = "SAT/CBL"
 
 
@@ -293,6 +293,9 @@ alarmProfiles = [
 #06 device controller
 #07 temperature/humidity sensor
 
+#name of ARDUINO tty device
+#on mac: /dev/tty.usbserial-10
+#on linux: /dev/ttyUSB0
 
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=.25) #quarter second timeout so that Serial.readLine() doesn't block if no message(s) on CAN
 print("Arduino: serial connection with PI established")
@@ -307,15 +310,17 @@ def setDevicesPower():
     # if armed, send OFF or ON to all depending on whether the device is in the profile's sensorsthattrigger
     if not armed:
         sendPowerCommand([], True, False)
+        sendPowerCommand(list(alwaysKeepOnSet), False, True)
     else:
         offDevices, onDevices = getDevicesPowerStateLists()
         sendPowerCommand(offDevices, False, False)
         sendPowerCommand(onDevices, False, True)
 
-def getDevicesPowerStateLists():
+def getDevicesPowerStateLists(): #devices per current profile
     oldProfilesSet = set(memberDevices)
     newProfilesSet = set(alarmProfiles[currentAlarmProfile]['sensorsThatTriggerAlarm']) if 'sensorsThatTriggerAlarm' in alarmProfiles[currentAlarmProfile] else set(memberDevices)
 
+    newProfilesSet = newProfilesSet.union(alwaysKeepOnSet)
 
     offDevices = list(oldProfilesSet - newProfilesSet)
     onDevices = list(newProfilesSet)
@@ -501,6 +506,8 @@ def possiblyAddMember(msg):
         else :
             memberDevices[hex(msg[0])]['lastSeen'] = now
             memberDevices[hex(msg[0])]['lastSeenReadable'] = readableTimestamp
+            # if (hex(msg[0]) in currentlyMissingDevices):
+            #     print(f"Removing missing device {hex(msg[0])} at {getReadableTime()}.")
 
 
 def playDenonThreadMain(currentlyAlarmedDevices, everAlarmedDuringAlarm, mp3AlarmDictionary):
@@ -660,12 +667,18 @@ def sendPowerCommand(devicesOverrideArray, shouldBroadcast, powerState): #two op
     # global alarmProfiles
     
     devicesToSendTo = devicesOverrideArray if devicesOverrideArray else memberDevices if shouldBroadcast else alarmProfiles[currentAlarmProfile]["sensorsThatTriggerAlarm"] if "sensorsThatTriggerAlarm" in alarmProfiles[currentAlarmProfile] else memberDevices
-    for member in devicesToSendTo:
-        intMemberId = int(member, 16)
-        messageToSend = [homeBaseId, intMemberId, 0x0F if powerState else 0x01, 0x01]
-        sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
-        print(f">>>> SENDING POWER {'ON' if powerState else 'OFF'} SIGNAL {np.array(messageToSend)}")
-        time.sleep(.25) #in seconds, double - 500 msec sleep
+
+    if (shouldBroadcast):
+         messageToSend = [homeBaseId, broadcastId, 0x0F if powerState else 0x01, 0x01]
+         sendMessage(messageToSend)
+         print(f">>>> SENDING POWER {'ON' if powerState else 'OFF'} SIGNAL TO ALL {np.array(messageToSend)}")
+    else: 
+        for member in devicesToSendTo:
+            intMemberId = int(member, 16)
+            messageToSend = [homeBaseId, intMemberId, 0x0F if powerState else 0x01, 0x01]
+            sendMessage(messageToSend) #stand up power - 0x0F enabled / 0x01 disabled
+            print(f">>>> SENDING POWER {'ON' if powerState else 'OFF'} SIGNAL {np.array(messageToSend)}")
+            time.sleep(.07) #in seconds represented as double - to not have a voltage drop from multiple relay-gated PIR/mwave devices powering on (and charging capacitor) simultaneously
 
 
 def exitSteps():
@@ -836,8 +849,8 @@ def run(webserver_message_queue):
     global lastCheckedMissingDevicesMsec
     global alarmProfiles
     global currentAlarmProfile
+    global alwaysKeepOnSet #TODO: this should not be a thing. All non-relay-gated devices should not respond in any way to power messages, and should always output their sensor status. Home base decides what to do with this.
     global testAlarmId
-    global missingDevices
     resetMemberDevices()
 
     atexit.register(exitSteps)
@@ -865,7 +878,6 @@ def run(webserver_message_queue):
             elif (message['request'].startswith("SET-ALARM-PROFILE-")):
                 profileNumber = int(message['request'].split("SET-ALARM-PROFILE-",1)[1])
                 setCurrentAlarmProfile(profileNumber)
-                
             elif (message['request'] == "GET-ALARM-PROFILES") :
                 message['responseQueue'].put({"response": getProfilesJsonString(), "uuid": message['uuid'] })
             elif (message['request'] == "FORCE-ALARM-SOUND-ON") :
@@ -905,7 +917,7 @@ def run(webserver_message_queue):
             for member in memberDevices:
                 print(f"{member} : {memberDevices[member]}")
             print("\n\n\n")
-            sendPowerCommand([], True, False) #turn off all - broadcast
+            setDevicesPower()
         try:
             decodedLine = line.decode('utf-8')
         except:
@@ -928,7 +940,7 @@ def run(webserver_message_queue):
         if (lastCheckedMissingDevicesMsec+checkForMissingDevicesEveryMsec < getTimeMsec()):  #do a check for missing devices
             if (debug): 
                 print(f">>>Checking for missing devices at {getTimeMsec()}")
-            missingDevices = checkMembersOnline()
+            currentlyMissingDevices = checkMembersOnline()
 
             if (armed and len(currentlyMissingDevices) > 0):
                 updateCurrentlyTriggeredDevices()
@@ -1045,6 +1057,7 @@ def sendcan(message, repeatedly):
             canDebugMessage = arrCanDebugMessage
             shouldSendDebugRepeatedly = True if repeatedly else False
             shouldSendDebugMessage = True
+
 
 if __name__ == "__main__":
     run(None)  # For testing in standalone mode

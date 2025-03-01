@@ -89,9 +89,8 @@ export const emitArmAndChangeProfileEvent = (profileId: number, isArmed: boolean
 	if (!isArmed) {
 		setTimeout(()=>{
 			comAPI?.emitEvent('arm', {message: undefined});
-		}, 2000);
+		}, 1000);
 	}
-	
 };
 
 export const emitChangeProfileEvent = (profileId: number) => {
