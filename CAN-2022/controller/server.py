@@ -14,7 +14,7 @@ webserver_message_queue = Queue()
 responseQueues = {}
 # Set up the Flask web API
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins=["https://192.168.2.100:5020", "https://192.168.2.100:5010", "http://192.168.2.100:3000", "https://bobik.lan","https://192.168.99.5"], ping_timeout=11, ping_interval=5, async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins=["https://bobik.lan:5020", "https://192.168.2.100", "https://192.168.2.100:443", "https://192.168.2.100:5020", "https://192.168.2.100:5010", "http://192.168.2.100:3000", "https://bobik.lan","https://192.168.99.5"], ping_timeout=11, ping_interval=5, async_mode="threading")
 thread = None
 thread_lock = threading.Lock()
 new_client_exists = False
@@ -193,6 +193,15 @@ def sendAlarmStatus (last_status_str):
     responseQueues[callUUID] = Queue()
     messageToSend = {"request":"ALARM-STATUS", "uuid": callUUID, "responseQueue": responseQueues[callUUID] }
     webserver_message_queue.put(messageToSend)
+   
+    # TODO: the following code is for debugging a bug whereby after an Arm&Switch
+    # profile button is pressed, no response present on queue after 5 seconds
+    # (tried 10, as well), which gets the server into a bad state, with all clients showing "loading"
+    #
+    # try:
+    #     response = responseQueues[callUUID].get(True, 10)["response"]
+    # except:
+    #     response = last_status_str
     response = responseQueues[callUUID].get(True, 5)["response"]
     del responseQueues[callUUID]
 
@@ -201,8 +210,8 @@ def sendAlarmStatus (last_status_str):
         socketio.emit('postStatus', {'message': json.loads(response)})
         new_client_exists = False
 
-
     return response
+    
 
 if __name__ == '__main__':
     main()
