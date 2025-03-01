@@ -2,3 +2,5 @@
 CAN-2022/server-keys/*.*
 CAN-2022/server-keys
 crypto-NOCHECKIN/
+CAN-2022/controller/server-keys
+CAN-2022/controller/__pycache__
