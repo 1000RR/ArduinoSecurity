@@ -1,5 +1,6 @@
 "use client";
 
+import { initializeWebSocket } from "@src/WebSocketService";
 import TopPanel from "@components/TopPanel";
 import IndicatorPanel from "@components/IndicatorPanel";
 import ButtonWithDrawer from "@components/ButtonWithDrawer";
@@ -7,15 +8,12 @@ import GarageDoorButton from "@/app/components/GarageDoorButton";
 import UnavailableOverlay from "@components/UnavailableOverlay";
 import ArmButtonList from "@components/ArmButtonList";
 import SpecialFunctions from "@components/SpecialFunctions";
+import TopPanelSpacer from "@components/TopPanelSpacer";
+import Button from "@components/Button";
 import Image from "next/image";
-import Button from "./Button";
-
-
 import { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { AppState, AppStateSlice } from "./AppStateSlice";
-import { initializeWebSocket } from "@src/WebSocketService";
-import TopPanelSpacer from "./TopPanelSpacer";
 
 const AppView: React.FC = () => {
     const appState: AppState = useSelector((state: AppStateSlice) => state.appState); //appState is the name of the slice
@@ -23,7 +21,6 @@ const AppView: React.FC = () => {
 
     useEffect(() => {
         const terminateWebSocket = initializeWebSocket(dispatch);
-
         return () => {
             terminateWebSocket();
         };

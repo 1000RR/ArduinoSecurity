@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
 "use client";
-import React, {useRef, useState} from "react";
+import React, {useState} from "react";
 import styled, {css} from "styled-components";
 
 const drawerDisplay = 'flex';
