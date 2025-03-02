@@ -115,7 +115,7 @@ pre {
 }
 
 .highlight_red {
-    filter: sepia(100%) hue-rotate(300deg) saturate(255);
+    filter: brightness(70%) sepia(100%) saturate(7500%) hue-rotate(0) contrast(100%);
 }
 
 .alarm_button_disabled {
