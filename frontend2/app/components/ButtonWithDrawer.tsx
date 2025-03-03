@@ -93,19 +93,29 @@ const CompositeStyledButton = styled.button`
 	${ButtonTextStyle}
 `;
 
-const Drawer = styled.div`
+const DrawerSpacing = css`
+	gap: 10px;
+	padding: 10px;
+`;
+
+interface DrawerProps {
+	disableInternalSpacing?: boolean;
+  }
+
+const Drawer = styled.div<DrawerProps>`
 	width: calc(100% - 20px);
 	background-color: rgba(55, 55, 55, .4);
 	margin: 0px 10px 5px 10px;
 	border-radius: 5px;
 	display: ${drawerDisplay};
 	position: relative;
-	gap: 10px;
-	padding: 10px;
 	justify-content: space-around; 
 	overflow-y: auto;
 	overflow-x: hidden;
 	height: auto;
+	
+	//eslint-disable-next-line
+	${({ disableInternalSpacing }) => !disableInternalSpacing && DrawerSpacing}
 `;
 
 const ButtonWithDrawer: React.FC<{
@@ -115,8 +125,9 @@ const ButtonWithDrawer: React.FC<{
 	buttonText?: string,
 	justifyContent? : ('space-around' | 'space-between' | 'center' | 'flex-start' | 'flex-end'),
 	onClick?: React.MouseEventHandler,
-	containsScrollable?: boolean
-}> = ({ flexDirection, className, children, buttonText, justifyContent, containsScrollable}) => {
+	containsScrollable?: boolean,
+	disableInternalSpacing?: boolean
+}> = ({ flexDirection, className, children, buttonText, justifyContent, containsScrollable, disableInternalSpacing}) => {
 	
 	const [isCollapsed, setIsCollapsed] = useState(true);
 	const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
@@ -129,7 +140,7 @@ const ButtonWithDrawer: React.FC<{
 		<CompositeStyledButton className={`${className} ${isCollapsed ? '' : 'button-enabled'}`} onClick={handler}>
 			{buttonText}
 		</CompositeStyledButton>
-		<Drawer style={{flexDirection: flexDirection, display: isCollapsed ? 'none' : 'flex', justifyContent: justifyContent, maxHeight: containsScrollable ? 'calc(100vh - 150px)': '' }}>
+		<Drawer style={{flexDirection: flexDirection, display: isCollapsed ? 'none' : 'flex', justifyContent: justifyContent, maxHeight: containsScrollable ? 'calc(100vh - 150px)': '' }} disableInternalSpacing={disableInternalSpacing}>
 			{!isCollapsed && children}
 		</Drawer>
 	</>
