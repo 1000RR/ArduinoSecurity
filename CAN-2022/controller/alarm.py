@@ -79,8 +79,11 @@ mp3AlarmDictionary = {
     "0x40": "kitchenbackdoor.mp3"
 }
 
+def getThisDirAddress():
+    return os.path.dirname(__file__)
 
-with open('./alarmProfiles.json', 'r') as file:
+
+with open(getThisDirAddress() + '/alarmProfiles.json', 'r') as file:
     alarmProfiles = json.loads(file.read())
 
 ###################### MESSAGES #######################
@@ -292,8 +295,6 @@ def getCurrentProfileSoundByteData():
     return playSound, playSoundVolume
 
 
-def getThisDirAddress():
-    return os.path.dirname(__file__)
 
 
 def getTime():
