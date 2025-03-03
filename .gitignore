@@ -1,6 +1,6 @@
 .DS_Store
-CAN-2022/server-keys/*.*
-CAN-2022/server-keys
+server-keys/*.*
+server-keys/
 crypto-NOCHECKIN/
-CAN-2022/controller/server-keys
-CAN-2022/controller/__pycache__
+controller/server-keys
+controller/__pycache__
