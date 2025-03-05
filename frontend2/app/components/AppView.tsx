@@ -66,7 +66,7 @@ const AppView: React.FC = () => {
                     <IndicatorPanel></IndicatorPanel>
                     <ButtonWithDrawer flexDirection="column" buttonText="Alarm Control"><ArmButtonList alarmProfilesToDisplay={[0,1,3,15,2,7]}></ArmButtonList></ButtonWithDrawer>
                     <ButtonWithDrawer flexDirection="row" buttonText="Garage Door"><GarageDoorButton></GarageDoorButton></ButtonWithDrawer>
-                    <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Advanced" disableInternalSpacing={true}>
+                    <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Advanced" disableinternalspacing={true}>
                         <ButtonWithDrawer flexDirection="column" buttonText="Special Functions"><SpecialFunctions></SpecialFunctions></ButtonWithDrawer>
                         <ButtonWithDrawer flexDirection="column" justifyContent="flex-start" buttonText="Status" containsScrollable>
                             <div style={{display: "flex", gap: 10}}>

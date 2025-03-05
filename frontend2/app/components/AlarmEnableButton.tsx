@@ -111,6 +111,10 @@ const AlarmEnableButton: React.FC<{
     };
 
     const buttonText = isArmed ? `ARMED : ${profileName.toUpperCase()}` : "DISARMED";
+    const TapText = styled.div`
+        font-size: .75em;
+    `;
+
     const alarmTriggered = useSelector(function (state: AppStateSlice) { 
         return state.appState.status.alarmStatus === 'ALARM';
     });
@@ -119,9 +123,11 @@ const AlarmEnableButton: React.FC<{
     return (<div style={{ width: "100%", }}>
         <CompositeStyledButton className={`${className} ${isArmed ? 'buttonEnabled' : 'buttonDisabled'}`} onClick={(e)=>{e.currentTarget.blur(); handler(e);}}>
             <Image className={`fadeoutImageRound scale_mobile ${alarmTriggered ? 'invertTransitions' : ''}`} alt="" height="90" width="90" src={isArmed ? imgSrcArmed : imgSrcDisarmed}></Image><></>
-                {buttonText}
+                <div>
+                    {buttonText}
+                    <TapText>quick tap to toggle</TapText>
+                </div>
                 {children}
-            
         </CompositeStyledButton>
         </div>
     );
