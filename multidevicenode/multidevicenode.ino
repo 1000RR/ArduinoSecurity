@@ -2,15 +2,16 @@
 #include <mcp2515.h>
 
 const bool debugOutput = false;
-const long toneInterval = 50;  // Interval between frequency changes (ms)
-const int buzzerPin = 3;	   // d3=3 has pwm
-
+const long toneInterval = 50;	 // Interval between frequency changes (ms)
+const int localBuzzerPin = 3;	 // d3=3 has pwm
+const int loopIndexMax = 30000;	 // Loop index max for buzzer tone
+int loopIndex = 0;				 // Loop index for buzzer tone
 int loopDeviceIndex = 0;
-bool enableBuzzer = true;
-bool buzzerSounding = false;
-long previousMillis = 0;		   // Tracks the last tone update
-bool buzzerToneIncreasing = true;  // Direction of frequency sweep
-int frequency = 500;			   // Current frequency
+bool enableLocalBuzzer = true;
+bool localBuzzerSounding = false;
+long previousMillis = 0;				// Tracks the last tone update
+bool localBuzzerToneIncreasing = true;	// Direction of frequency sweep
+int localBuzzerFrequency = 500;			// Current frequency
 
 struct can_frame myCanMessage;
 MCP2515 mcp2515(10);
@@ -38,15 +39,16 @@ enum TYPE {
 };
 
 struct Device {
-	const TYPE type;			   // config
-	const int myCanId;			   // config
-	const int deviceType;		   // config. per DeviceType[]
-	const int ioPin;			   // config. sensor: pin is connected to ground via resistor for a LOW signal (alarm at rest) or chain broken for a HIGH signal (alarm triggered) | alarm: pin LOW is off.
-	const int relayPin;			   // config. -1 for no relay
-	int sensorVal;				   // state. for sensors only
-	bool isAlarmed;				   // state. for alarms only
-	int nextStateChangeTimestamp;  // state. for momentary switches only - the hold time of the HIGH signal to the relay.
-	bool isEnabled;				   // state. this is the enable state for sensor devices that affects the relay state downstream, if any
+	const TYPE type;				// config
+	const int myCanId;				// config
+	const int deviceType;			// config. per DeviceType[]
+	const int ioPin;				// config. sensor: pin is connected to ground via resistor for a LOW signal (alarm at rest) or chain broken for a HIGH signal (alarm triggered) | alarm: LOW=off, should be connected to an analog pin for sweeping the buzzer.
+	const int relayPin;				// config. -1 for no relay
+	int sensorVal;					// state. for sensors only
+	bool isAlarmed;					// state. for alarms only
+	long nextStateChangeTimestamp;	// state. for momentary switches only - the hold time of the HIGH signal to the relay.
+	bool isEnabled;					// state. this is the enable state for sensor devices that affects the relay state downstream, if any
+	bool buzzerDirection;			// state. for alarms only. true = up, false = down in frequency
 };
 
 String DeviceType[] = {
@@ -70,7 +72,8 @@ Device devices[] = {
 		sensorVal : LOW, /* variable to store the sensor status (value) */
 		isAlarmed : false,
 		nextStateChangeTimestamp : 0,
-		isEnabled : true /* false = off; true = on; has direct effect on relay state if relay present */
+		isEnabled : true, /* false = off; true = on; has direct effect on relay state if relay present */
+		buzzerDirection : false
 	},
 	{
 		type : SENSOR,
@@ -81,7 +84,8 @@ Device devices[] = {
 		sensorVal : LOW, /* variable to store the sensor status (value) */
 		isAlarmed : false,
 		nextStateChangeTimestamp : 0,
-		isEnabled : true /* false = off; true = on; has direct effect on relay state if relay present */
+		isEnabled : true, /* false = off; true = on; has direct effect on relay state if relay present */
+		buzzerDirection : false
 	},
 	{
 		type : SENSOR,
@@ -92,7 +96,8 @@ Device devices[] = {
 		sensorVal : LOW, /* variable to store the sensor status (value) */
 		isAlarmed : false,
 		nextStateChangeTimestamp : 0,
-		isEnabled : true /* false = off; true = on; has direct effect on relay state if relay present */
+		isEnabled : true, /* false = off; true = on; has direct effect on relay state if relay present */
+		buzzerDirection : false
 	}};
 
 const int numDevices = sizeof(devices) / sizeof(devices[0]); /* num connected devices */
@@ -102,6 +107,7 @@ String ERROR_NAMES[] = {"OK", "FAIL", "ALLTXBUSY", "FAILINIT", "FAILTX", "NOMSG"
 long lastSentMillis = 0;
 int sendEveryMillis = 1000 / numDevices;
 
+/// MSG DLC: 3 constant in all messages
 /// MSG FORMAT: [0] TO (1 byte, number = specific ID OR 00 = broadcast)
 ///             [1] MSG (1 byte)
 ///             [2] DEVICETYPE (1 byte)
@@ -145,7 +151,7 @@ void setup() {
 	mcp2515.setBitrate(CAN_125KBPS);
 	mcp2515.setNormalMode();
 
-	pinMode(buzzerPin, OUTPUT);	 // Set buzzer pin as output
+	pinMode(localBuzzerPin, OUTPUT);  // Set buzzer pin as output
 
 	// initialize the device pins (inputs and relay, if applicable)
 	for (int i = 0; i < numDevices; i++) {
@@ -154,8 +160,7 @@ void setup() {
 			setPinModeIfExists(devices[i].relayPin, OUTPUT);
 			setDigitalPinIfExists(devices[i].relayPin, devices[i].isEnabled ? LOW : HIGH);	// low = on, high = off
 		} else if (devices[i].type == ALARM) {
-			setPinModeIfExists(devices[i].ioPin, OUTPUT);
-			setDigitalPinIfExists(devices[i].ioPin, LOW);  // low = off
+			//no setup for ioPin, it is a variable output, analog pin
 			setPinModeIfExists(devices[i].relayPin, OUTPUT);
 			setDigitalPinIfExists(devices[i].relayPin, LOW);  // low = off
 		} else if (devices[i].type == MOMENTARY_SWITCH) {
@@ -173,7 +178,7 @@ void setup() {
 
 		delay(100);	 // wait for relays to init (actually click into place) to avoid false alarms
 	}
-};
+}
 
 // for SENSOR type devices only
 void setSensorEnableState(int deviceNumber, bool newState) {
@@ -266,29 +271,23 @@ int matchMessageToThisDevice() {
 
 void processIncomingCanMessage() {
 	int deviceNum = matchMessageToThisDevice();
+	String debugMessage;
 
 	if (deviceNum == -1) {
-		if (debugOutput) {
-			Serial.println(">>>>>>>>>>>MESSAGE NOT MATCHED TO ANY DEVICE>>>>>>>>>>>");
-			debugPrintIncoming();
-		}
-		return;
-	}
-
-	if (deviceNum == -1000) {
-		if (debugOutput) {
-			Serial.println(">>>>>>>>>>>MESSAGE MATCHED TO ALL DEVICES>>>>>>>>>>>");
-			debugPrintIncoming();
-		}
+		debugMessage = ">>>>>>>>>>>MESSAGE NOT MATCHED TO ANY DEVICE>>>>>>>>>>>";
+	} else if (deviceNum == -1000) {
+		debugMessage = ">>>>>>>>>>>MESSAGE MATCHED TO ALL DEVICES>>>>>>>>>>>";
 		for (int i = 0; i < numDevices; i++) {
 			setStateAccordingToMessage(i);
 		}
 	} else {
-		if (debugOutput) {
-			Serial.println(">>>>>>>>>>>MESSAGE MATCHED TO DEVICE " + String(devices[deviceNum].myCanId, HEX) + ">>>>>>>>>>>");
-			debugPrintIncoming();
-		}
+		debugMessage = ">>>>>>>>>>>MESSAGE MATCHED TO DEVICE " + String(devices[deviceNum].myCanId, HEX) + ">>>>>>>>>>>";
 		setStateAccordingToMessage(deviceNum);
+	}
+
+	if (debugOutput) {
+		Serial.println(debugMessage);
+		debugPrintIncoming();
 	}
 }
 
@@ -320,26 +319,21 @@ void setStateAccordingToMessage(int deviceNum) {
 void loop() /* go through all devices: read incoming CAN message, send message for each device when appropriate */
 {
 	if (readIncomingCanMessage()) {
-		if (debugOutput) {
-			Serial.println(">>>>>>>READMESSAGE TRUE");
-			Serial.print(">>>>>>>MESSAGE: ");
-			debugPrintIncoming();
-		}
 		processIncomingCanMessage();
 	}
 
 	long now = millis();
 
-	if (enableBuzzer) buzzerSounding = false;
+	if (enableLocalBuzzer) localBuzzerSounding = false;
 
 	for (int i = 0; i < numDevices; i++) {
 		if (devices[i].type == SENSOR) {
 			devices[i].sensorVal = digitalRead(devices[i].ioPin); /*LOW by default, no motion detected*/
-			if (enableBuzzer) {
-				buzzerSounding = buzzerSounding || (devices[i].sensorVal == HIGH && devices[i].isEnabled == true);
+			if (enableLocalBuzzer) {
+				localBuzzerSounding = localBuzzerSounding || (devices[i].sensorVal == HIGH && devices[i].isEnabled == true);
 			}
 		} else if (devices[i].type == ALARM) {
-			setDigitalPinIfExists(devices[i].ioPin, devices[i].isAlarmed ? HIGH : LOW);
+			setAlarmBuzzerToneState(i);
 			setDigitalPinIfExists(devices[i].relayPin, devices[i].isAlarmed ? HIGH : LOW);
 
 		} else if (devices[i].type == MOMENTARY_SWITCH) {
@@ -352,26 +346,25 @@ void loop() /* go through all devices: read incoming CAN message, send message f
 		}
 	}
 
-	if (enableBuzzer && buzzerSounding && now - previousMillis >= toneInterval) {
+	//Buzzer tone things
+	if (loopIndex < loopIndexMax - 1)
+		loopIndex++;
+	else
+		loopIndex = 0;
+
+	if (enableLocalBuzzer && localBuzzerSounding && now - previousMillis >= toneInterval) {
 		previousMillis = now;  // Update the time
 
 		// Play the tone at the current frequency
-		tone(buzzerPin, frequency);
+		tone(localBuzzerPin, localBuzzerFrequency);
 
-		// Update the frequency
-		if (buzzerToneIncreasing) {
-			frequency += 10;
-			if (frequency >= 2000) {
-				buzzerToneIncreasing = false;  // Start decreasing the frequency
-			}
-		} else {
-			frequency -= 10;
-			if (frequency <= 500) {
-				buzzerToneIncreasing = true;  // Start increasing the frequency
-			}
+		// Update the frequency. Up by 10 if increasing until 2000, down by 10 if decreasing until 500.
+		localBuzzerFrequency += 10 * (localBuzzerToneIncreasing ? 1 : -1);
+		if (localBuzzerFrequency >= 2000 || localBuzzerFrequency <= 500) {
+			localBuzzerToneIncreasing = !localBuzzerToneIncreasing;
 		}
-	} else if (enableBuzzer && !buzzerSounding) {
-		noTone(buzzerPin);
+	} else if (enableLocalBuzzer && !localBuzzerSounding) {
+		noTone(localBuzzerPin);
 	}
 
 	if ((now > lastSentMillis + sendEveryMillis) || now < lastSentMillis && now > sendEveryMillis) {  // only send a message if it's been "sendEveryMillis" OR the timer has cycled around LONG
@@ -383,8 +376,33 @@ void loop() /* go through all devices: read incoming CAN message, send message f
 			loopDeviceIndex++;
 		}
 	}
-};
+}
 
+void setAlarmBuzzerToneState(int deviceIndex) {
+	if (deviceIndex < 0 || deviceIndex >= numDevices || devices[deviceIndex].ioPin == -1) {
+		return;
+	}
+
+	if (devices[deviceIndex].isAlarmed) {
+		int factor = 3000;
+		int freqConstant = 500;
+		if (loopIndex % factor == 0) {
+			devices[deviceIndex].buzzerDirection = !devices[deviceIndex].buzzerDirection;
+		}
+
+		int alarmBuzzerFrequency;
+
+		if (devices[deviceIndex].buzzerDirection)
+			alarmBuzzerFrequency = freqConstant + loopIndex % factor;
+		else
+			alarmBuzzerFrequency = freqConstant + factor - loopIndex % factor;
+		tone(devices[deviceIndex].ioPin, alarmBuzzerFrequency, 5);
+	} else {
+		noTone(devices[deviceIndex].ioPin);
+	}
+}
+
+//Print the incoming CANBUS message to Serial if debugOutput is set to true
 void debugPrintIncoming() {
 	if (!debugOutput) {
 		return;
@@ -396,4 +414,4 @@ void debugPrintIncoming() {
 	}
 	output += "\n";
 	Serial.println(output);
-};
+}
