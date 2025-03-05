@@ -30,4 +30,4 @@ TODO:
 - move access password from nginx.conf.
 - control unit time and/or client time displayed in UI in local/GMT formats.
 - front end security: implement CSP.
-
+- install dependencies script should include pip dependencies (both on device at (re)install time and in dev env)
