@@ -7,15 +7,16 @@ import { emitGarageDoorToggleEvent } from "@src/WebSocketService";
 import Button from "./Button";
 
 const GarageDoorButton: React.FC<{
-    className?: string
-}> = ({ className }) => {
+    className?: string,
+    margin?: string
+}> = ({ className, margin }) => {
     const handler:React.MouseEventHandler<HTMLButtonElement> = function(event) {
         emitGarageDoorToggleEvent();
     };
 
     return (
     <>
-        <Button className="dimmable garage_door_opener_button_color" onClick={(e)=>{e.currentTarget.blur(); handler(e);}}>
+        <Button className="dimmable garage_door_opener_button_color" style={{margin: margin}} onClick={(e)=>{e.currentTarget.blur(); handler(e);}}>
             <div>Activate Garage Door Opener</div>
         </Button>
     </>
